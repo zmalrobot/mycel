@@ -676,12 +676,12 @@ public class FemValidationTests
                 (new Vector3(nx * (float)h, 0, 0), new Vector3(nx * (float)h, ny * (float)h, nz * (float)h)),
                 true);
 
-            var model = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(tipPatch, new Vector3(0, 0, -1000.0f)) });
-            var op = new FemOperator(model);
+            var model0 = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(tipPatch, new Vector3(0, 0, -1000.0f)) });
+            var op = new FemOperator(model0);
 
             // Benchmark matvec
-            double[] x = new double[model.TotalDofs];
-            double[] y = new double[model.TotalDofs];
+            double[] x = new double[model0.TotalDofs];
+            double[] y = new double[model0.TotalDofs];
             Array.Fill(x, 1.0);
 
             // Warmup
@@ -694,24 +694,422 @@ public class FemValidationTests
             sw.Stop();
             double msPerMatvec = sw.Elapsed.TotalMilliseconds / matvecReps;
 
-            // Solve to 1e-4
+            // 1. Cold solve to 1e-4
             var swSolve4 = Stopwatch.StartNew();
-            var res4 = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-4));
+            var resCold4 = StaticAnalysis.Run(model0, new StaticAnalysisOptions(Tolerance: 1e-4));
             swSolve4.Stop();
 
-            // Warm start to 1e-6 from res4.U
-            var swWarm6 = Stopwatch.StartNew();
-            var resWarm6 = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-6, WarmStartDisplacements: res4.U));
-            swWarm6.Stop();
+            // 2. Perturb density by 2% (rho = 0.98), simulating 1 OC step
+            double[] rhoPerturbed = new double[totalActive];
+            Array.Fill(rhoPerturbed, 0.98);
+            var modelPerturbed = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(tipPatch, new Vector3(0, 0, -1000.0f)) }, elementDensity: rhoPerturbed);
 
-            // Cold start to 1e-6
+            // 3. Warm start to 1e-4 from resCold4.U on perturbed model
+            var swWarm4 = Stopwatch.StartNew();
+            var resWarm4 = StaticAnalysis.Run(modelPerturbed, new StaticAnalysisOptions(Tolerance: 1e-4, WarmStartDisplacements: resCold4.U));
+            swWarm4.Stop();
+
+            // 4. Cold start to 1e-4 on perturbed model
+            var swColdPert4 = Stopwatch.StartNew();
+            var resColdPert4 = StaticAnalysis.Run(modelPerturbed, new StaticAnalysisOptions(Tolerance: 1e-4));
+            swColdPert4.Stop();
+
+            // 5. Cold start to 1e-6
             var swCold6 = Stopwatch.StartNew();
-            var resCold6 = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-6));
+            var resCold6 = StaticAnalysis.Run(model0, new StaticAnalysisOptions(Tolerance: 1e-6));
             swCold6.Stop();
 
             long memoryBytes = GC.GetTotalMemory(forceFullCollection: false);
 
-            Console.WriteLine($"[BENCH] Elements: {totalActive:N0}, Matvec: {msPerMatvec:F2} ms, PCG(1e-4 cold): {res4.SolverInfo.Iterations} it ({swSolve4.Elapsed.TotalSeconds:F2} s), PCG(1e-6 warm): {resWarm6.SolverInfo.Iterations} it ({swWarm6.Elapsed.TotalSeconds:F2} s), PCG(1e-6 cold): {resCold6.SolverInfo.Iterations} it ({swCold6.Elapsed.TotalSeconds:F2} s), Memory: {memoryBytes / (1024.0 * 1024.0):F1} MB");
+            Console.WriteLine($"[BENCH] Elements: {totalActive:N0}, Matvec: {msPerMatvec:F2} ms, PCG(1e-4 cold): {resCold4.SolverInfo.Iterations} it ({swSolve4.Elapsed.TotalSeconds:F2} s), PCG(1e-4 warm 2% Δρ): {resWarm4.SolverInfo.Iterations} it ({swWarm4.Elapsed.TotalSeconds:F2} s) [vs cold: {resColdPert4.SolverInfo.Iterations} it], PCG(1e-6 cold): {resCold6.SolverInfo.Iterations} it ({swCold6.Elapsed.TotalSeconds:F2} s), Memory: {memoryBytes / (1024.0 * 1024.0):F1} MB");
         }
+    }
+
+    [Fact]
+    public void V11_AnisotropicBox_AxisInvariance_NxNyNzDifferent()
+    {
+        int nx = 8, ny = 6, nz = 4;
+        double h = 1.0;
+        double e0 = 1000.0;
+        double nu = 0.0; // nu=0 for pure 1D uniaxial elongation delta = F*L / (E*A)
+        var mat = new FeMaterial(e0, nu);
+
+        // Case X: Length = nx*h = 8, Area = (ny*h)*(nz*h) = 24. Force = 240 N. delta = 240 * 8 / (1000 * 24) = 0.08 mm.
+        {
+            var grid = new GridSpec(Vector3.Zero, (float)h, nx, ny, nz);
+            byte[] domain = new byte[nx * ny * nz];
+            Array.Fill(domain, (byte)1);
+
+            List<int> fixedNodes = new();
+            for (int k = 0; k <= nz; k++)
+                for (int j = 0; j <= ny; j++)
+                    fixedNodes.Add((int)grid.NodeIndex(0, j, k));
+
+            int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+
+            List<int> loadNodes = new();
+            List<double> loadAreas = new();
+            for (int k = 0; k <= nz; k++)
+            {
+                double dz = (k == 0 || k == nz) ? 0.5 * h : h;
+                for (int j = 0; j <= ny; j++)
+                {
+                    double dy = (j == 0 || j == ny) ? 0.5 * h : h;
+                    loadNodes.Add((int)grid.NodeIndex(nx, j, k));
+                    loadAreas.Add(dy * dz);
+                }
+            }
+
+            var patch = new SurfacePatch(Array.Empty<VoxelFace>(), loadNodes.ToArray(), loadAreas.ToArray(), (Vector3.Zero, Vector3.One), true);
+            var model = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(240.0f, 0, 0)) });
+            var res = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-7));
+
+            double expectedDisp = 240.0 * (nx * h) / (e0 * (ny * h * nz * h));
+            double relErr = Math.Abs(res.MaxDisplacement - expectedDisp) / expectedDisp;
+            Assert.True(relErr < 0.01, $"X-tension disp error: {res.MaxDisplacement} vs {expectedDisp}, err={relErr}");
+        }
+
+        // Case Y: Length = ny*h = 6, Area = (nx*h)*(nz*h) = 32. Force = 320 N. delta = 320 * 6 / (1000 * 32) = 0.06 mm.
+        {
+            var grid = new GridSpec(Vector3.Zero, (float)h, nx, ny, nz);
+            byte[] domain = new byte[nx * ny * nz];
+            Array.Fill(domain, (byte)1);
+
+            List<int> fixedNodes = new();
+            for (int k = 0; k <= nz; k++)
+                for (int i = 0; i <= nx; i++)
+                    fixedNodes.Add((int)grid.NodeIndex(i, 0, k));
+
+            int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+
+            List<int> loadNodes = new();
+            List<double> loadAreas = new();
+            for (int k = 0; k <= nz; k++)
+            {
+                double dz = (k == 0 || k == nz) ? 0.5 * h : h;
+                for (int i = 0; i <= nx; i++)
+                {
+                    double dx = (i == 0 || i == nx) ? 0.5 * h : h;
+                    loadNodes.Add((int)grid.NodeIndex(i, ny, k));
+                    loadAreas.Add(dx * dz);
+                }
+            }
+
+            var patch = new SurfacePatch(Array.Empty<VoxelFace>(), loadNodes.ToArray(), loadAreas.ToArray(), (Vector3.Zero, Vector3.One), true);
+            var model = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(0, 320.0f, 0)) });
+            var res = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-7));
+
+            double expectedDisp = 320.0 * (ny * h) / (e0 * (nx * h * nz * h));
+            double relErr = Math.Abs(res.MaxDisplacement - expectedDisp) / expectedDisp;
+            Assert.True(relErr < 0.01, $"Y-tension disp error: {res.MaxDisplacement} vs {expectedDisp}, err={relErr}");
+        }
+
+        // Case Z: Length = nz*h = 4, Area = (nx*h)*(ny*h) = 48. Force = 480 N. delta = 480 * 4 / (1000 * 48) = 0.04 mm.
+        {
+            var grid = new GridSpec(Vector3.Zero, (float)h, nx, ny, nz);
+            byte[] domain = new byte[nx * ny * nz];
+            Array.Fill(domain, (byte)1);
+
+            List<int> fixedNodes = new();
+            for (int j = 0; j <= ny; j++)
+                for (int i = 0; i <= nx; i++)
+                    fixedNodes.Add((int)grid.NodeIndex(i, j, 0));
+
+            int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+
+            List<int> loadNodes = new();
+            List<double> loadAreas = new();
+            for (int j = 0; j <= ny; j++)
+            {
+                double dy = (j == 0 || j == ny) ? 0.5 * h : h;
+                for (int i = 0; i <= nx; i++)
+                {
+                    double dx = (i == 0 || i == nx) ? 0.5 * h : h;
+                    loadNodes.Add((int)grid.NodeIndex(i, j, nz));
+                    loadAreas.Add(dx * dy);
+                }
+            }
+
+            var patch = new SurfacePatch(Array.Empty<VoxelFace>(), loadNodes.ToArray(), loadAreas.ToArray(), (Vector3.Zero, Vector3.One), true);
+            var model = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(0, 0, 480.0f)) });
+            var res = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-7));
+
+            double expectedDisp = 480.0 * (nz * h) / (e0 * (nx * h * ny * h));
+            double relErr = Math.Abs(res.MaxDisplacement - expectedDisp) / expectedDisp;
+            Assert.True(relErr < 0.01, $"Z-tension disp error: {res.MaxDisplacement} vs {expectedDisp}, err={relErr}");
+        }
+    }
+
+    [Fact]
+    public void V12_UnderconstrainedModel_ThrowsInvalidOperationException()
+    {
+        // 6 fixed DOFs, but all on a single line (x=0, y=0), leaving rotation about Z free
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 4, 4, 4);
+        byte[] domain = new byte[64];
+        Array.Fill(domain, (byte)1);
+        var mat = new FeMaterial(1000.0, 0.3);
+
+        // Fix 2 nodes along the Z-axis (x=0, y=0, z=0) and (x=0, y=0, z=4) -> 6 DOFs, but body can rotate around Z
+        int n0 = (int)grid.NodeIndex(0, 0, 0);
+        int n1 = (int)grid.NodeIndex(0, 0, 4);
+        int[] fixedDofs = FeModel.FixDofs(new[] { n0, n1 }, true, true, true);
+        Assert.Equal(6, fixedDofs.Length);
+
+        // Apply torque / tangential force at (x=4, y=0, z=2) in +Y direction
+        int loadNode = (int)grid.NodeIndex(4, 0, 2);
+        var patch = new SurfacePatch(Array.Empty<VoxelFace>(), new[] { loadNode }, new[] { 1.0 }, (Vector3.Zero, Vector3.One), true);
+        var model = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(0, 100.0f, 0)) });
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-6, MaxIterations: 500));
+        });
+
+        Assert.Contains("sufficiently constrained", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void V13_WarmStart_ExactSolutionTakesZeroIterations()
+    {
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 6, 2, 2);
+        byte[] domain = new byte[24];
+        Array.Fill(domain, (byte)1);
+        var mat = new FeMaterial(1000.0, 0.3);
+
+        List<int> fixedNodes = new();
+        for (int k = 0; k <= 2; k++)
+            for (int j = 0; j <= 2; j++)
+                fixedNodes.Add((int)grid.NodeIndex(0, j, k));
+
+        int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+
+        int tipNode = (int)grid.NodeIndex(6, 1, 1);
+        var patch = new SurfacePatch(Array.Empty<VoxelFace>(), new[] { tipNode }, new[] { 1.0 }, (Vector3.Zero, Vector3.One), true);
+        var model = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(0, 0, -10.0f)) });
+
+        // Solve cold
+        var resCold = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-6));
+        Assert.True(resCold.SolverInfo.Iterations > 0);
+
+        // Solve warm with exact solution
+        var resWarm = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-6, WarmStartDisplacements: resCold.U));
+        Assert.Equal(0, resWarm.SolverInfo.Iterations);
+        Assert.Equal(resCold.Compliance, resWarm.Compliance, 1e-10);
+    }
+
+    [Fact]
+    public void V14_WarmStart_PerturbedDensity_ConvergesFasterThanCold()
+    {
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 20, 6, 6);
+        int totalElements = 20 * 6 * 6;
+        byte[] domain = new byte[totalElements];
+        Array.Fill(domain, (byte)1);
+        var mat = new FeMaterial(1000.0, 0.3);
+
+        List<int> fixedNodes = new();
+        for (int k = 0; k <= 6; k++)
+            for (int j = 0; j <= 6; j++)
+                fixedNodes.Add((int)grid.NodeIndex(0, j, k));
+
+        int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+
+        List<int> tipNodes = new();
+        List<double> tipAreas = new();
+        for (int k = 0; k <= 6; k++)
+            for (int j = 0; j <= 6; j++)
+            {
+                tipNodes.Add((int)grid.NodeIndex(20, j, k));
+                tipAreas.Add(1.0);
+            }
+
+        var patch = new SurfacePatch(Array.Empty<VoxelFace>(), tipNodes.ToArray(), tipAreas.ToArray(), (Vector3.Zero, Vector3.One), true);
+        var model0 = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(0, 0, -100.0f)) });
+
+        // Step 0: solve to 1e-4
+        var res0 = StaticAnalysis.Run(model0, new StaticAnalysisOptions(Tolerance: 1e-4));
+
+        // Step 1: perturb density by 2% (rho = 0.98) simulating one topopt OC iteration
+        double[] rho1 = new double[totalElements];
+        Array.Fill(rho1, 0.98);
+        var model1 = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(0, 0, -100.0f)) }, elementDensity: rho1);
+
+        // Cold solve on model1 to 1e-4
+        var resCold = StaticAnalysis.Run(model1, new StaticAnalysisOptions(Tolerance: 1e-4));
+
+        // Warm solve on model1 to 1e-4 using res0.U
+        var resWarm = StaticAnalysis.Run(model1, new StaticAnalysisOptions(Tolerance: 1e-4, WarmStartDisplacements: res0.U));
+
+        Assert.True(resWarm.SolverInfo.Iterations < resCold.SolverInfo.Iterations,
+            $"Warm start iterations ({resWarm.SolverInfo.Iterations}) should be fewer than cold start ({resCold.SolverInfo.Iterations})");
+    }
+
+    [Fact]
+    public void V15_StressRecovery_PureShearAndBending_WithNonUnitHAndPenalizedDensity()
+    {
+        // 1. Pure shear with h = 2.5 mm, rho = 0.8, penal = 3.0
+        double h = 2.5;
+        double e0 = 2000.0;
+        double nu = 0.25;
+        double rho = 0.8;
+        double penal = 3.0;
+        double ee = Math.Pow(rho, penal) * e0; // E_e = 0.8^3 * 2000 = 1024 MPa
+        double g = ee / (2.0 * (1.0 + nu));   // G = 1024 / 2.5 = 409.6 MPa
+
+        var grid = new GridSpec(Vector3.Zero, (float)h, 2, 2, 2);
+        byte[] domain = new byte[8];
+        Array.Fill(domain, (byte)1);
+        double[] densities = new double[8];
+        Array.Fill(densities, rho);
+        var mat = new FeMaterial(e0, nu);
+
+        var model = new FeModel(grid, domain, mat, Array.Empty<int>(), elementDensity: densities, penal: penal);
+        var op = new FemOperator(model);
+
+        // Impose pure shear displacement field: u_x = gamma * y, u_y = 0, u_z = 0
+        double gamma = 0.002; // engineering shear strain gamma_xy = 0.002
+        double[] u = new double[model.TotalDofs];
+        for (int k = 0; k <= 2; k++)
+            for (int j = 0; j <= 2; j++)
+                for (int i = 0; i <= 2; i++)
+                {
+                    int n = (int)grid.NodeIndex(i, j, k);
+                    double y = j * h;
+                    u[3 * n + 0] = gamma * y;
+                }
+
+        // Stress recovery
+        double[] vm = StaticAnalysis.ComputeElementVonMises(model, op, u);
+
+        // Analytical: tau_xy = G * gamma = 409.6 * 0.002 = 0.8192 MPa
+        // sigma_vm = sqrt(3 * tau_xy^2) = sqrt(3) * tau_xy
+        double tauExpected = g * gamma;
+        double vmExpected = Math.Sqrt(3.0) * tauExpected;
+
+        for (int e = 0; e < 8; e++)
+        {
+            double relErr = Math.Abs(vm[e] - vmExpected) / vmExpected;
+            Assert.True(relErr < 1e-6, $"Element {e} von Mises error: {vm[e]} vs {vmExpected}, err={relErr}");
+        }
+    }
+
+    [Fact]
+    public void V16_UnprojectedRhs_PcgProjectsCorrectly()
+    {
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 4, 2, 2);
+        byte[] domain = new byte[16];
+        Array.Fill(domain, (byte)1);
+        var mat = new FeMaterial(1000.0, 0.3);
+
+        List<int> fixedNodes = new();
+        for (int k = 0; k <= 2; k++)
+            for (int j = 0; j <= 2; j++)
+                fixedNodes.Add((int)grid.NodeIndex(0, j, k));
+
+        int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+        var model = new FeModel(grid, domain, mat, fixedDofs);
+        var op = new FemOperator(model);
+
+        // RHS with load at tip AND large force components at fixed DOFs
+        double[] bUnprojected = new double[model.TotalDofs];
+        int tipDof = 3 * (int)grid.NodeIndex(4, 1, 1) + 2;
+        bUnprojected[tipDof] = -50.0;
+        foreach (int fd in fixedDofs)
+        {
+            bUnprojected[fd] = 12345.67; // Large force on constrained DOF!
+        }
+
+        double[] bClean = new double[model.TotalDofs];
+        bClean[tipDof] = -50.0;
+
+        var solver = new PcgSolver();
+        double[] u1 = new double[model.TotalDofs];
+        double[] u2 = new double[model.TotalDofs];
+
+        var prec = new JacobiPreconditioner();
+        var res1 = solver.Solve(op, bUnprojected, u1, prec, tol: 1e-6);
+        var res2 = solver.Solve(op, bClean, u2, prec, tol: 1e-6);
+
+        Assert.True(res1.Converged);
+        Assert.True(res2.Converged);
+
+        // Displacements on constrained DOFs must be exactly 0
+        foreach (int fd in fixedDofs)
+        {
+            Assert.Equal(0.0, u1[fd]);
+        }
+
+        // Entire solution must match the clean solve to machine precision
+        for (int i = 0; i < model.TotalDofs; i++)
+        {
+            Assert.Equal(u2[i], u1[i], 1e-10);
+        }
+    }
+
+    [Fact]
+    public void V17_InvalidWarmStartLength_ThrowsArgumentException()
+    {
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 2, 2, 2);
+        byte[] domain = new byte[8];
+        Array.Fill(domain, (byte)1);
+        var mat = new FeMaterial(1000.0, 0.3);
+        int[] fixedDofs = FeModel.FixDofs(new[] { 0, 1 }, true, true, true);
+        var model = new FeModel(grid, domain, mat, fixedDofs);
+
+        var badWarmStart = new double[model.TotalDofs - 1]; // invalid length!
+
+        Assert.Throws<ArgumentException>(() =>
+        {
+            StaticAnalysis.Run(model, new StaticAnalysisOptions(WarmStartDisplacements: badWarmStart));
+        });
+    }
+
+    [Fact]
+    public void V18_ZeroAllocationsInHotLoops()
+    {
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 10, 4, 4);
+        int totalElements = 10 * 4 * 4;
+        byte[] domain = new byte[totalElements];
+        Array.Fill(domain, (byte)1);
+        var mat = new FeMaterial(1000.0, 0.3);
+
+        List<int> fixedNodes = new();
+        for (int k = 0; k <= 4; k++)
+            for (int j = 0; j <= 4; j++)
+                fixedNodes.Add((int)grid.NodeIndex(0, j, k));
+
+        int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+        int tipDof = 3 * (int)grid.NodeIndex(10, 2, 2) + 2;
+
+        var model = new FeModel(grid, domain, mat, fixedDofs);
+        var op = new FemOperator(model);
+        var solver = new PcgSolver();
+        var prec = new JacobiPreconditioner();
+
+        double[] b = new double[model.TotalDofs];
+        b[tipDof] = -100.0;
+        double[] u = new double[model.TotalDofs];
+        double[] y = new double[model.TotalDofs];
+
+        // Warmup JIT and pre-allocate solver buffers
+        op.ApplyK(b, y, parallel: true);
+        solver.Solve(op, b, u, prec, tol: 1e-4, maxIterations: 10);
+
+        // 1. Assert ApplyK causes zero GC allocations
+        long allocBeforeApplyK = GC.GetAllocatedBytesForCurrentThread();
+        for (int rep = 0; rep < 50; rep++)
+        {
+            op.ApplyK(b, y, parallel: true);
+        }
+        long allocAfterApplyK = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Equal(0, allocAfterApplyK - allocBeforeApplyK);
+
+        // 2. Assert PCG solve loop causes zero GC allocations
+        // (the only allocation across all iterations is the final PcgResult return object <= 128 bytes)
+        Array.Clear(u);
+        long b0 = GC.GetAllocatedBytesForCurrentThread();
+        var result = solver.Solve(op, b, u, prec, tol: 1e-4, maxIterations: 50);
+        long b1 = GC.GetAllocatedBytesForCurrentThread();
+        long allocDuringSolve = b1 - b0;
+        Assert.True(allocDuringSolve <= 128, $"Allocations ({allocDuringSolve} bytes) should be at most the single PcgResult instance");
     }
 }

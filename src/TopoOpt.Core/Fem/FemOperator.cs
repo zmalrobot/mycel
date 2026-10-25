@@ -22,6 +22,13 @@ public sealed class FemOperator
     public double[][] ColorElemE { get; }
 
     private readonly double[] _vScratch;
+    private const int ChunkSize = 256;
+    private readonly ParallelOptions _parallelOptions;
+    private readonly Action<int>[] _colorWorkers;
+
+    private nint _ptrX;
+    private nint _ptrY;
+    private nint _ptrKe;
 
     public FemOperator(FeModel model)
     {
@@ -30,6 +37,18 @@ public sealed class FemOperator
         DiagKe = Hex8Element.ExtractDiagonal(Ke);
         DiagA = new double[model.TotalDofs];
         _vScratch = new double[model.TotalDofs];
+
+        _parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = Environment.ProcessorCount
+        };
+
+        _colorWorkers = new Action<int>[8];
+        for (int c = 0; c < 8; c++)
+        {
+            int color = c;
+            _colorWorkers[c] = chunkIdx => ProcessColorChunk(color, chunkIdx);
+        }
 
         // Precompute flat 24-DOF index arrays and element Young's moduli for each color
         ColorElemDofs = new int[8][];
@@ -90,11 +109,18 @@ public sealed class FemOperator
 
     /// <summary>
     /// Updates element stiffness scaling E_e when densities or penalization change.
+    /// Synchronizes changes with Model.ElementDensity.
     /// </summary>
     public void UpdateDensities(ReadOnlySpan<double> densities, double penal)
     {
         double e0 = Model.Material.E0;
         double emin = Model.Material.Emin;
+
+        if (!densities.SequenceEqual(Model.ElementDensity))
+        {
+            densities.CopyTo(Model.ElementDensity);
+        }
+        Model.Penal = penal;
 
         for (int c = 0; c < 8; c++)
         {
@@ -145,10 +171,27 @@ public sealed class FemOperator
         }
     }
 
-    private static readonly ParallelOptions DefaultParallelOptions = new();
+    private unsafe void ProcessColorChunk(int color, int chunkIdx)
+    {
+        int[] elems = Model.ElementsByColor[color];
+        int start = chunkIdx * ChunkSize;
+        int end = Math.Min(start + ChunkSize, elems.Length);
+
+        int[] dofs = ColorElemDofs[color];
+        double[] eVals = ColorElemE[color];
+        double* pKe = (double*)_ptrKe;
+        double* pX = (double*)_ptrX;
+        double* pY = (double*)_ptrY;
+
+        for (int i = start; i < end; i++)
+        {
+            MultiplyElementUnsafe(i, dofs, eVals, pKe, pX, pY);
+        }
+    }
 
     /// <summary>
     /// Evaluates y = K(ρ) * x element-by-element using the 8-colour lattice.
+    /// Completely zero-allocation in hot loops using pre-allocated delegates and chunked workers.
     /// </summary>
     public unsafe void ApplyK(ReadOnlySpan<double> x, Span<double> y, bool parallel = true, int maxDegreeOfParallelism = -1)
     {
@@ -158,28 +201,24 @@ public sealed class FemOperator
         fixed (double* pY = y)
         fixed (double* pKe = Ke)
         {
-            nint ptrX = (nint)pX;
-            nint ptrY = (nint)pY;
-            nint ptrKe = (nint)pKe;
+            _ptrX = (nint)pX;
+            _ptrY = (nint)pY;
+            _ptrKe = (nint)pKe;
 
             if (parallel)
             {
-                ParallelOptions pOpts = maxDegreeOfParallelism > 0
-                    ? new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }
-                    : DefaultParallelOptions;
+                var workTeam = (maxDegreeOfParallelism > 0 && maxDegreeOfParallelism != FemWorkTeam.Shared.ThreadCount)
+                    ? new FemWorkTeam(maxDegreeOfParallelism)
+                    : FemWorkTeam.Shared;
 
                 for (int c = 0; c < 8; c++)
                 {
-                    int[] dofs = ColorElemDofs[c];
-                    double[] eVals = ColorElemE[c];
                     int count = Model.ElementsByColor[c].Length;
                     if (count == 0) continue;
 
+                    int numChunks = (count + ChunkSize - 1) / ChunkSize;
                     // Elements of the same colour share no nodes: race-free parallel evaluation
-                    Parallel.For(0, count, pOpts, i =>
-                    {
-                        MultiplyElementUnsafe(i, dofs, eVals, (double*)ptrKe, (double*)ptrX, (double*)ptrY);
-                    });
+                    workTeam.For(numChunks, _colorWorkers[c]);
                 }
             }
             else
@@ -196,6 +235,10 @@ public sealed class FemOperator
                     }
                 }
             }
+
+            _ptrX = 0;
+            _ptrY = 0;
+            _ptrKe = 0;
         }
     }
 
@@ -217,12 +260,15 @@ public sealed class FemOperator
         {
             ApplyK(x, y, parallel, maxDegreeOfParallelism);
 
-            for (int i = 0; i < Model.TotalDofs; i++)
+            // Inactive DOFs are never touched by any active element (y remains 0.0),
+            // and x is already projected (x is 0.0 on inactive DOFs).
+            // Only Fixed DOFs may have received contributions from active elements,
+            // so we set y[dof] = x[dof] for all Fixed DOFs.
+            int[] fixedDofs = Model.FixedDofs;
+            for (int i = 0; i < fixedDofs.Length; i++)
             {
-                if (constrained[i])
-                {
-                    y[i] = x[i];
-                }
+                int dof = fixedDofs[i];
+                y[dof] = x[dof];
             }
         }
         else
@@ -319,6 +365,16 @@ public sealed class FemOperator
         }
     }
 
+    /// <summary>
+    /// Performs element matrix-vector product Ke * ue scaled by E_e.
+    /// <para>
+    /// Note on floating-point determinism: Floating-point addition is non-associative.
+    /// When AVX2 (Vector256) is available, <see cref="Vector256.Sum"/> performs pairwise reduction across 4 lanes.
+    /// When running under the scalar fallback, accumulation is sequential (<c>c = 0..23</c>).
+    /// Both execution paths are 100% deterministic on their respective hardware targets,
+    /// but may differ by at most 1-2 units in the last place (ULP, &lt; 1e-15 relative) compared to each other.
+    /// </para>
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void MultiplyElementUnsafe(
         int elemIndex,

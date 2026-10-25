@@ -12,7 +12,8 @@ public sealed record StaticAnalysisOptions(
     IPreconditioner? Preconditioner = null,
     IProgress<PcgProgress>? Progress = null,
     CancellationToken CancellationToken = default,
-    int MaxDegreeOfParallelism = -1
+    int MaxDegreeOfParallelism = -1,
+    bool ThrowOnNonConvergence = true
 );
 
 public sealed class StaticAnalysisResult
@@ -37,10 +38,10 @@ public static class StaticAnalysis
         options ??= new StaticAnalysisOptions();
 
         // Preflight checks
-        if (model.FixedDofs == null || model.FixedDofs.Length < 6)
+        if (model.ActiveFixedDofCount < 6)
         {
             throw new InvalidOperationException(
-                $"Model has fewer than 6 fixed DOFs (found {model.FixedDofs?.Length ?? 0}). " +
+                $"Model has fewer than 6 unique fixed DOFs on active nodes (found {model.ActiveFixedDofCount}). " +
                 "At least 6 fixed DOFs are required to prevent rigid body modes in 3D.");
         }
 
@@ -58,10 +59,14 @@ public static class StaticAnalysis
         double[] u = new double[n];
         if (options.WarmStartDisplacements != null)
         {
-            if (options.WarmStartDisplacements.Length == n)
+            if (options.WarmStartDisplacements.Length != n)
             {
-                Array.Copy(options.WarmStartDisplacements, u, n);
+                throw new ArgumentException(
+                    $"WarmStartDisplacements length ({options.WarmStartDisplacements.Length}) must match TotalDofs ({n}).",
+                    nameof(options));
             }
+
+            Array.Copy(options.WarmStartDisplacements, u, n);
         }
 
         // Build operator and preconditioner
@@ -79,6 +84,12 @@ public static class StaticAnalysis
             options.Progress,
             options.CancellationToken,
             options.MaxDegreeOfParallelism);
+
+        if (options.ThrowOnNonConvergence && !solverResult.Converged)
+        {
+            throw new InvalidOperationException(
+                $"FEM solver did not converge in {solverResult.Iterations} iterations ({solverResult.Message}). Is the model not sufficiently constrained?");
+        }
 
         // Compliance: C = Fᵀ * U
         double compliance = 0.0;
@@ -130,7 +141,7 @@ public static class StaticAnalysis
         };
     }
 
-    private static double[] ComputeElementVonMises(FeModel model, FemOperator op, ReadOnlySpan<double> u)
+    internal static double[] ComputeElementVonMises(FeModel model, FemOperator op, ReadOnlySpan<double> u)
     {
         double[] vm = new double[model.TotalElements];
         double invH = 1.0 / model.Grid.H;

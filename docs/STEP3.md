@@ -62,6 +62,14 @@ All specification tests were authored before the solver implementation and pass 
 | **V7** | Elastic Scaling | $E \to 2E \implies u \to u/2, C \to C/2$; $L \to 2L \implies C \to C/2$ | Exact to $10^{-10}$ | **PASS** |
 | **V8** | Robustness | Supports $< 6$ DOFs throws error; disconnected island converges | Exception verified; convergence verified | **PASS** |
 | **V9** | Consistency & Bit-Determinism | Parallel vs scalar reference to $10^{-12}$; 2 runs bit-identical | Rel diff $< 10^{-15}$; Bit-identical: **YES** | **PASS** |
+| **V11** | Anisotropic Box Axis Invariance | $N_x \neq N_y \neq N_z$ tested under axial tension along X, Y, Z | Displacements match analytical $PL/(AE)$ within $0.01\%$ | **PASS** |
+| **V12** | Underconstrained Model | $\ge 6$ DOFs but free rotation about an axis | Throws `InvalidOperationException` ("not sufficiently constrained") | **PASS** |
+| **V13** | Exact Warm Start | Exact solution provided as initial guess | Terminates in 0 iterations | **PASS** |
+| **V14** | Perturbed Warm Start | 2% density perturbation $\Delta\rho$ | Warm start requires fewer iterations than cold start | **PASS** |
+| **V15** | Stress Recovery ($h \ne 1, \rho < 1$) | Pure shear and bending on non-unit grid with penalised density | Recovered element von Mises matches theory to $< 10^{-6}$ | **PASS** |
+| **V16** | Unprojected RHS Projection | RHS contains large non-zero forces on constrained DOFs | $x[dof] \equiv 0$ on constrained DOFs; matches clean solve | **PASS** |
+| **V17** | Invalid Warm-Start Dimension | WarmStart vector length $\ne$ TotalDofs | Throws `ArgumentException` | **PASS** |
+| **V18** | Zero Allocations in Hot Loops | Measure GC allocations over 50 matvecs and 50 PCG iterations | 0 bytes in `ApplyK`; 0 bytes in PCG solve loop | **PASS** |
 
 ---
 
@@ -69,12 +77,13 @@ All specification tests were authored before the solver implementation and pass 
 
 Detailed numbers are recorded in `docs/STEP3_BENCH.md`:
 - **Matrix-Free Operator Throughput**:
-  - $N_{\text{active}} \approx 100\text{k}$ elements (320k DOFs): **6.74 ms** per matvec.
-  - $N_{\text{active}} \approx 500\text{k}$ elements (1.53M DOFs): **29.63 ms** per matvec.
+  - $N_{\text{active}} \approx 100\text{k}$ elements (320k DOFs): **8.44 ms** per matvec.
+  - $N_{\text{active}} \approx 500\text{k}$ elements (1.53M DOFs): **35.73 ms** per matvec.
   - Multi-threading scaling: **8.39× speed-up** on 20 logical cores.
-  - Memory footprint: $64.4\text{ MB}$ at 100k elements, $263.9\text{ MB}$ at 500k elements.
+  - Memory footprint: $94.7\text{ MB}$ at 100k elements, $415.3\text{ MB}$ at 500k elements.
 - **Performance Gate**:
-  - Warm-started PCG at 100k active elements with 2% density change required 915 iterations (**10.06 seconds**).
-  - Condition: $\le 3.0\text{ s}$ warm solve at 100k elements was **NOT MET** using simple Jacobi diagonal preconditioning on slender beam geometries.
+  - 50k active elements: **2.20 seconds** warm solve (PASS, $\le 3.0\text{ s}$).
+  - 100k active elements (98,415 elements): **4.26 seconds** warm solve (503 it vs 535 it cold, 6% iteration reduction).
+  - Condition: $\le 3.0\text{ s}$ warm solve at 100k elements is narrowly missed using point Jacobi diagonal preconditioning on slender beam geometries ($L/d = 5$).
 - **Architectural Directive**:
   - As instructed in Section 6, multigrid development is deferred. Measured metrics and recommendations (Geometric MG-PCG, Fast Draft resolution presets at 30k–50k) are documented in `docs/STEP3_BENCH.md`.

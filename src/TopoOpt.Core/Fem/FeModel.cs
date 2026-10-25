@@ -24,6 +24,7 @@ public sealed class FeModel
 
     public int ActiveElementCount { get; }
     public int ActiveNodeCount { get; }
+    public int ActiveFixedDofCount { get; }
     public int[] ActiveElements { get; }
     public bool[] ActiveNodes { get; }
 
@@ -161,18 +162,25 @@ public sealed class FeModel
         }
 
         // 2. Fixed DOFs are constrained
+        var activeFixedSet = new HashSet<int>();
         for (int i = 0; i < FixedDofs.Length; i++)
         {
             int dof = FixedDofs[i];
             if ((uint)dof < (uint)TotalDofs)
             {
                 ConstrainedDofs[dof] = true;
+                int node = dof / 3;
+                if (ActiveNodes[node])
+                {
+                    activeFixedSet.Add(dof);
+                }
             }
             else
             {
                 throw new ArgumentOutOfRangeException(nameof(fixedDofs), $"Fixed DOF {dof} is out of bounds [0, {TotalDofs - 1}].");
             }
         }
+        ActiveFixedDofCount = activeFixedSet.Count;
     }
 
     /// <summary>
