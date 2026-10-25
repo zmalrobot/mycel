@@ -167,3 +167,4 @@ public sealed class SurfacePatchBuilderTests
         return StlReader.Read(ms).Mesh;
     }
 }
+

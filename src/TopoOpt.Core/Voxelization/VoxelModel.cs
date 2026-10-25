@@ -60,3 +60,4 @@ public sealed class VoxelModel
         ActiveElements = activeElements ?? Array.Empty<int>();
     }
 }
+

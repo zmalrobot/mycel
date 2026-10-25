@@ -138,3 +138,4 @@ public sealed class ModelValidatorTests
         return StlReader.Read(ms).Mesh;
     }
 }
+

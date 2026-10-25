@@ -138,3 +138,4 @@ public sealed class GridSpecTests
         return StlReader.Read(ms).Mesh;
     }
 }
+

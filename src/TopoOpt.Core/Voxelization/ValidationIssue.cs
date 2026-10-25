@@ -25,3 +25,4 @@ public sealed record ValidationIssue(
         _ => "#3B82F6"
     };
 }
+

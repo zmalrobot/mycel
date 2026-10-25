@@ -202,3 +202,4 @@ public sealed class GridSpec
         return Origin + new Vector3(i * H, j * H, k * H);
     }
 }
+

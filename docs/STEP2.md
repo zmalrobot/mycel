@@ -74,3 +74,4 @@ Executed on a synthetic high-resolution sphere mesh ($R = 50\text{ mm}$):
 3. **View Mode Toggle**: Instant switching between Original STL rendering and Voxel exposed-quad mode.
 4. **Active Patch Node Points**: When a surface selection is highlighted, its associated Hex8 boundary nodes are rendered as large colored points directly on the voxel mesh surface.
 5. **Validation Diagnostics Panel**: Live issue feed with color-coded severity badges (Red Error, Yellow Warning, Blue Info). The "Start Optimisation" button is automatically disabled when validation errors are present.
+

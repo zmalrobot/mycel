@@ -116,3 +116,4 @@ public static class VoxelMeshBuilder
         ind.Add(baseIdx + 3);
     }
 }
+

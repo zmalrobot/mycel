@@ -47,3 +47,4 @@ public sealed class SurfacePatch
         this.TouchesLargestComponent = TouchesLargestComponent;
     }
 }
+

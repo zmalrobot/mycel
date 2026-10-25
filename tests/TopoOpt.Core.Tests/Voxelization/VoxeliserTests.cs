@@ -247,3 +247,4 @@ public sealed class VoxeliserTests
         return StlReader.Read(ms).Mesh;
     }
 }
+
