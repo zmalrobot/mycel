@@ -41,10 +41,6 @@ public static class Program
                 }
                 return RunOptimize(args[1], outDir);
             }
-            if (cmd == "--benchmark-fem")
-            {
-                return RunFemBenchmarks();
-            }
 
             PrintUsage();
             return 1;
@@ -61,7 +57,6 @@ public static class Program
         Console.WriteLine("TopoOpt CLI — Usage:");
         Console.WriteLine("  topoopt analyze <model.json>");
         Console.WriteLine("  topoopt optimize <model.json> [--out <dir>]");
-        Console.WriteLine("  topoopt --benchmark-fem");
     }
 
     private static int RunAnalyze(string jsonPath)
@@ -116,7 +111,7 @@ public static class Program
 
         // Save final physical density as raw binary float[] (.bin)
         string binPath = Path.Combine(outDir, "density.bin");
-        using (var bw = new BinaryWriter(File.OpenWrite(binPath)))
+        using (var bw = new BinaryWriter(File.Create(binPath)))
         {
             foreach (float d in result.FinalPhysicalDensity)
             {
@@ -137,7 +132,10 @@ public static class Program
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        float voxelSize = root.TryGetProperty("voxelSize", out var vsProp) ? vsProp.GetSingle() : 1.0f;
+        float voxelSize = 1.0f;
+        if (root.TryGetProperty("resolution", out var resProp)) voxelSize = resProp.GetSingle();
+        else if (root.TryGetProperty("voxelSize", out var vsProp)) voxelSize = vsProp.GetSingle();
+
         double e0 = 3000.0, nu = 0.3, eminRatio = 1e-6;
         if (root.TryGetProperty("material", out var matProp))
         {
@@ -149,18 +147,22 @@ public static class Program
 
         GridSpec grid;
         byte[] domain;
+        IndexedMesh? mesh = null;
+        VoxelModel? vm = null;
 
         if (root.TryGetProperty("stl", out var stlProp) && !string.IsNullOrWhiteSpace(stlProp.GetString()))
         {
             string stlPath = Path.IsPathRooted(stlProp.GetString()!) ? stlProp.GetString()! : Path.Combine(Path.GetDirectoryName(jsonPath) ?? "", stlProp.GetString()!);
             using var fs = File.OpenRead(stlPath);
-            var (mesh, _) = StlReader.Read(fs);
+            var (readMesh, _) = StlReader.Read(fs);
+            mesh = readMesh;
             var (min, max) = mesh.BBox;
             int nx = (int)Math.Ceiling((max.X - min.X) / voxelSize);
             int ny = (int)Math.Ceiling((max.Y - min.Y) / voxelSize);
             int nz = (int)Math.Ceiling((max.Z - min.Z) / voxelSize);
             grid = new GridSpec(min, voxelSize, nx, ny, nz);
-            var (vm, _) = Voxeliser.Voxelise(mesh, grid);
+            var (voxModel, _) = Voxeliser.Voxelise(mesh, grid);
+            vm = voxModel;
             domain = vm.Domain;
         }
         else
@@ -172,32 +174,54 @@ public static class Program
             Array.Fill(domain, (byte)1);
         }
 
+        static int[]? ParseTriangles(JsonElement elem)
+        {
+            if (elem.TryGetProperty("triangles", out var tArr))
+            {
+                var list = new List<int>();
+                foreach (var item in tArr.EnumerateArray()) list.Add(item.GetInt32());
+                return list.ToArray();
+            }
+            if (elem.TryGetProperty("triangleRange", out var trArr))
+            {
+                int start = trArr[0].GetInt32(), count = trArr[1].GetInt32();
+                var arr = new int[count];
+                for (int i = 0; i < count; i++) arr[i] = start + i;
+                return arr;
+            }
+            return null;
+        }
+
         // Parse Supports
         var fixedDofsList = new List<int>();
         if (root.TryGetProperty("supports", out var supArr))
         {
             foreach (var sup in supArr.EnumerateArray())
             {
-                var b = sup.GetProperty("box");
-                float minX = b[0].GetSingle(), minY = b[1].GetSingle(), minZ = b[2].GetSingle();
-                float maxX = b[3].GetSingle(), maxY = b[4].GetSingle(), maxZ = b[5].GetSingle();
                 bool fixX = !sup.TryGetProperty("fixX", out var fx) || fx.GetBoolean();
                 bool fixY = !sup.TryGetProperty("fixY", out var fy) || fy.GetBoolean();
                 bool fixZ = !sup.TryGetProperty("fixZ", out var fz) || fz.GetBoolean();
 
-                for (int k = 0; k <= grid.Nz; k++)
-                    for (int j = 0; j <= grid.Ny; j++)
-                        for (int i = 0; i <= grid.Nx; i++)
-                        {
-                            var pt = grid.NodePosition(i, j, k);
-                            if (pt.X >= minX && pt.X <= maxX && pt.Y >= minY && pt.Y <= maxY && pt.Z >= minZ && pt.Z <= maxZ)
-                            {
-                                int n = (int)grid.NodeIndex(i, j, k);
-                                if (fixX) fixedDofsList.Add(3 * n + 0);
-                                if (fixY) fixedDofsList.Add(3 * n + 1);
-                                if (fixZ) fixedDofsList.Add(3 * n + 2);
-                            }
-                        }
+                var triIndices = ParseTriangles(sup);
+                if (triIndices != null && mesh != null && vm != null)
+                {
+                    var patch = SurfacePatchBuilder.Build(vm, mesh, triIndices);
+                    foreach (int n in patch.Nodes)
+                    {
+                        if (fixX) fixedDofsList.Add(3 * n + 0);
+                        if (fixY) fixedDofsList.Add(3 * n + 1);
+                        if (fixZ) fixedDofsList.Add(3 * n + 2);
+                    }
+                }
+                else if (sup.TryGetProperty("box", out var b))
+                {
+                    foreach (int n in NodesInBox(grid, b))
+                    {
+                        if (fixX) fixedDofsList.Add(3 * n + 0);
+                        if (fixY) fixedDofsList.Add(3 * n + 1);
+                        if (fixZ) fixedDofsList.Add(3 * n + 2);
+                    }
+                }
             }
         }
 
@@ -207,33 +231,29 @@ public static class Program
         {
             foreach (var ld in loadArr.EnumerateArray())
             {
-                var b = ld.GetProperty("box");
-                float minX = b[0].GetSingle(), minY = b[1].GetSingle(), minZ = b[2].GetSingle();
-                float maxX = b[3].GetSingle(), maxY = b[4].GetSingle(), maxZ = b[5].GetSingle();
                 var f = ld.GetProperty("force");
                 var forceVec = new Vector3(f[0].GetSingle(), f[1].GetSingle(), f[2].GetSingle());
 
-                var patchNodes = new List<int>();
-                var patchAreas = new List<double>();
-                for (int k = 0; k <= grid.Nz; k++)
-                    for (int j = 0; j <= grid.Ny; j++)
-                        for (int i = 0; i <= grid.Nx; i++)
-                        {
-                            var pt = grid.NodePosition(i, j, k);
-                            if (pt.X >= minX && pt.X <= maxX && pt.Y >= minY && pt.Y <= maxY && pt.Z >= minZ && pt.Z <= maxZ)
-                            {
-                                patchNodes.Add((int)grid.NodeIndex(i, j, k));
-                                patchAreas.Add(voxelSize * voxelSize);
-                            }
-                        }
-
-                var patch = new SurfacePatch(
-                    Array.Empty<VoxelFace>(),
-                    patchNodes.ToArray(),
-                    patchAreas.ToArray(),
-                    (new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ)),
-                    true);
-                loads.Add(new LoadCase(patch, forceVec));
+                var triIndices = ParseTriangles(ld);
+                if (triIndices != null && mesh != null && vm != null)
+                {
+                    var patch = SurfacePatchBuilder.Build(vm, mesh, triIndices);
+                    loads.Add(new LoadCase(patch, forceVec));
+                }
+                else if (ld.TryGetProperty("box", out var b))
+                {
+                    var pNodes = NodesInBox(grid, b);
+                    var pAreas = new double[pNodes.Count];
+                    Array.Fill(pAreas, voxelSize * voxelSize);
+                    var patch = new SurfacePatch(
+                        Array.Empty<VoxelFace>(),
+                        pNodes.ToArray(),
+                        pAreas,
+                        (new Vector3(b[0].GetSingle(), b[1].GetSingle(), b[2].GetSingle()),
+                         new Vector3(b[3].GetSingle(), b[4].GetSingle(), b[5].GetSingle())),
+                        true);
+                    loads.Add(new LoadCase(patch, forceVec));
+                }
             }
         }
 
@@ -244,21 +264,33 @@ public static class Program
             passiveMask = new byte[grid.TotalElements];
             foreach (var p in presArr.EnumerateArray())
             {
-                var b = p.GetProperty("box");
-                float minX = b[0].GetSingle(), minY = b[1].GetSingle(), minZ = b[2].GetSingle();
-                float maxX = b[3].GetSingle(), maxY = b[4].GetSingle(), maxZ = b[5].GetSingle();
+                var triIndices = ParseTriangles(p);
+                if (triIndices != null && mesh != null && vm != null)
+                {
+                    var patch = SurfacePatchBuilder.Build(vm, mesh, triIndices);
+                    var shell = PassiveRegion.Build(grid, null, patch.Nodes, radiusInVoxels: 1);
+                    for (int i = 0; i < grid.TotalElements; i++)
+                    {
+                        if (shell[i] != 0) passiveMask[i] = 1;
+                    }
+                }
+                else if (p.TryGetProperty("box", out var b))
+                {
+                    float minX = b[0].GetSingle(), minY = b[1].GetSingle(), minZ = b[2].GetSingle();
+                    float maxX = b[3].GetSingle(), maxY = b[4].GetSingle(), maxZ = b[5].GetSingle();
 
-                for (int iz = 0; iz < grid.Nz; iz++)
-                    for (int iy = 0; iy < grid.Ny; iy++)
-                        for (int ix = 0; ix < grid.Nx; ix++)
-                        {
-                            var pt = grid.ElementCenter(ix, iy, iz);
-                            if (pt.X >= minX && pt.X <= maxX && pt.Y >= minY && pt.Y <= maxY && pt.Z >= minZ && pt.Z <= maxZ)
+                    for (int iz = 0; iz < grid.Nz; iz++)
+                        for (int iy = 0; iy < grid.Ny; iy++)
+                            for (int ix = 0; ix < grid.Nx; ix++)
                             {
-                                int e = (int)grid.ElementIndex(ix, iy, iz);
-                                passiveMask[e] = 1;
+                                var pt = grid.ElementCenter(ix, iy, iz);
+                                if (pt.X >= minX && pt.X <= maxX && pt.Y >= minY && pt.Y <= maxY && pt.Z >= minZ && pt.Z <= maxZ)
+                                {
+                                    int e = (int)grid.ElementIndex(ix, iy, iz);
+                                    passiveMask[e] = 1;
+                                }
                             }
-                        }
+                }
             }
         }
 
@@ -288,26 +320,19 @@ public static class Program
         return (model, options);
     }
 
-    private static int RunFemBenchmarks()
+    private static List<int> NodesInBox(GridSpec g, JsonElement b)
     {
-        Console.WriteLine("Running FEM solver performance benchmarks...");
-        var grid = new GridSpec(Vector3.Zero, 1.0f, 40, 20, 4);
-        byte[] domain = new byte[40 * 20 * 4];
-        Array.Fill(domain, (byte)1);
-        var mat = new FeMaterial(3000.0, 0.3, 1e-6);
-        var fixedNodes = new List<int>();
-        for (int k = 0; k <= 4; k++)
-            for (int j = 0; j <= 20; j++)
-                fixedNodes.Add((int)grid.NodeIndex(0, j, k));
-        int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
-        var tipNodes = new int[] { (int)grid.NodeIndex(40, 10, 2) };
-        var patch = new SurfacePatch(Array.Empty<VoxelFace>(), tipNodes, new double[] { 1.0 }, (new Vector3(40, 0, 0), new Vector3(40, 20, 4)), true);
-        var model = new FeModel(grid, domain, mat, fixedDofs, new[] { new LoadCase(patch, new Vector3(0, 0, -1000.0f)) });
-
-        var sw = Stopwatch.StartNew();
-        var res = StaticAnalysis.Run(model, new StaticAnalysisOptions(Tolerance: 1e-6));
-        sw.Stop();
-        Console.WriteLine($"Solve complete: {res.Compliance:F2} in {sw.Elapsed.TotalMilliseconds:F1} ms ({res.SolverInfo.Iterations} iters)");
-        return 0;
+        float x0 = b[0].GetSingle(), y0 = b[1].GetSingle(), z0 = b[2].GetSingle();
+        float x1 = b[3].GetSingle(), y1 = b[4].GetSingle(), z1 = b[5].GetSingle();
+        var nodes = new List<int>();
+        for (int k = 0; k <= g.Nz; k++)
+            for (int j = 0; j <= g.Ny; j++)
+                for (int i = 0; i <= g.Nx; i++)
+                {
+                    var pt = g.NodePosition(i, j, k);
+                    if (pt.X >= x0 && pt.X <= x1 && pt.Y >= y0 && pt.Y <= y1 && pt.Z >= z0 && pt.Z <= z1)
+                        nodes.Add((int)g.NodeIndex(i, j, k));
+                }
+        return nodes;
     }
 }

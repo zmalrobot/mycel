@@ -122,9 +122,12 @@ public static class TopologyOptimizer
         }
 
         // Pre-allocate scratch vectors outside hot loops
+        double[] rhoTilde = new double[nActive];
         double[] rhoBar = new double[nActive];
         double[] rhoOld = new double[nActive];
         double[] dcDrhoBar = new double[nActive];
+        double[] dcDrhoTilde = options.EnableHeaviside ? new double[nActive] : dcDrhoBar;
+        double[] dRhoBar_dRhoTilde = options.EnableHeaviside ? new double[nActive] : Array.Empty<double>();
         double[] dcDrho = new double[nActive];
         double[] u = new double[model.TotalDofs];
 
@@ -137,8 +140,20 @@ public static class TopologyOptimizer
         }
 
         var op = new FemOperator(model);
+        var prec = new JacobiPreconditioner();
+        var solver = new PcgSolver();
+
+        double[] fForces = model.AssembleForces();
+        int nDofs = model.TotalDofs;
+        double[] b = new double[nDofs];
+        for (int i = 0; i < nDofs; i++)
+        {
+            b[i] = model.ConstrainedDofs[i] ? 0.0 : fForces[i];
+        }
+
         double lambda = 1.0;
         double maxChange = 1.0;
+        double beta = 1.0;
         bool converged = false;
 
         var snapshots = new List<IterationSnapshot>();
@@ -167,9 +182,23 @@ public static class TopologyOptimizer
                 else penal = penalBase;
             }
 
-            // 2. Filter step: rhoBar = W * rho
+            // Ensure passive solid elements remain 1.0 before filtering
+            for (int i = 0; i < nActive; i++)
+            {
+                if (isPassive[i]) rho[i] = 1.0;
+            }
+
+            // 2. Filter step: rhoTilde = W * rho
             var swFilter = Stopwatch.StartNew();
-            filter.ApplyFilter(rho, rhoBar);
+            if (options.EnableHeaviside)
+            {
+                filter.ApplyFilter(rho, rhoTilde);
+                HeavisideProjection.Project(rhoTilde, rhoBar, beta);
+            }
+            else
+            {
+                filter.ApplyFilter(rho, rhoBar);
+            }
             swFilter.Stop();
 
             // Sync rhoBar into model.ElementDensity and op
@@ -188,25 +217,25 @@ public static class TopologyOptimizer
             else
             {
                 double tolAlpha = Math.Clamp((maxChange - 0.01) / 0.09, 0.0, 1.0);
-                double logInitial = Math.Log10(options.SolverToleranceInitial);
-                double logFinal = Math.Log10(options.SolverToleranceFinal);
+                double logInitial = Math.Log10(Math.Max(options.SolverToleranceInitial, 1e-15));
+                double logFinal = Math.Log10(Math.Max(options.SolverToleranceFinal, 1e-15));
                 double logTol = logFinal + tolAlpha * (logInitial - logFinal);
                 solverTol = Math.Pow(10.0, logTol);
             }
 
-            // 4. FEM Linear solve (warm start from previous u)
+            // 4. FEM Linear solve (warm start in-place in u, zero allocations in hot loop)
             var swSolve = Stopwatch.StartNew();
-            StaticAnalysisResult solveResult;
+            PcgResult solverResult;
             try
             {
-                solveResult = StaticAnalysis.Run(
-                    model,
-                    new StaticAnalysisOptions(
-                        Tolerance: solverTol,
-                        MaxIterations: options.SolverMaxIterations,
-                        WarmStartDisplacements: u,
-                        ThrowOnNonConvergence: true,
-                        CancellationToken: ct));
+                solverResult = solver.Solve(
+                    op,
+                    b,
+                    u,
+                    prec,
+                    tol: solverTol,
+                    maxIterations: options.SolverMaxIterations,
+                    ct: ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -214,14 +243,54 @@ public static class TopologyOptimizer
             }
             swSolve.Stop();
 
-            Array.Copy(solveResult.U, u, model.TotalDofs);
-            double compliance = solveResult.Compliance;
-            double maxDisp = solveResult.MaxDisplacement;
+            if (ct.IsCancellationRequested)
+                break;
+
+            if (!solverResult.Converged)
+            {
+                throw new InvalidOperationException(
+                    $"FEM solver did not converge in {solverResult.Iterations} iterations ({solverResult.Message}). Is the model not sufficiently constrained?");
+            }
+
+            // Compliance: c = Fᵀ * U
+            double compliance = 0.0;
+            for (int i = 0; i < nDofs; i++)
+            {
+                compliance += fForces[i] * u[i];
+            }
+
+            // Max nodal displacement
+            double maxDispSq = 0.0;
+            for (int node = 0; node < model.TotalNodes; node++)
+            {
+                if (model.ActiveNodes[node])
+                {
+                    double ux = u[3 * node + 0];
+                    double uy = u[3 * node + 1];
+                    double uz = u[3 * node + 2];
+                    double dispSq = ux * ux + uy * uy + uz * uz;
+                    if (dispSq > maxDispSq)
+                        maxDispSq = dispSq;
+                }
+            }
+            double maxDisp = Math.Sqrt(maxDispSq);
 
             // 5. Sensitivity analysis
             var swSens = Stopwatch.StartNew();
             SensitivityAnalysis.ComputeComplianceSensitivities(model, op, u, rhoBar, dcDrhoBar, penal);
-            filter.ApplySensitivityFilter(dcDrhoBar, dcDrho);
+            if (options.EnableHeaviside)
+            {
+                HeavisideProjection.Derivative(rhoTilde, dRhoBar_dRhoTilde, beta);
+                for (int i = 0; i < nActive; i++)
+                {
+                    dcDrhoTilde[i] = dcDrhoBar[i] * dRhoBar_dRhoTilde[i];
+                }
+                filter.ApplySensitivityFilter(dcDrhoTilde, dcDrho);
+            }
+            else
+            {
+                filter.ApplySensitivityFilter(dcDrhoBar, dcDrho);
+            }
             swSens.Stop();
 
             // 6. OC update
@@ -242,6 +311,12 @@ public static class TopologyOptimizer
                 volumeTolerance: 1e-8);
             swUpdate.Stop();
 
+            // Step up Heaviside beta every 25 iterations
+            if (options.EnableHeaviside && iter % 25 == 0 && beta < 8.0)
+            {
+                beta = Math.Min(8.0, beta * 2.0);
+            }
+
             swTotal.Stop();
 
             // Compute convergence metrics
@@ -254,8 +329,8 @@ public static class TopologyOptimizer
                 double diff = Math.Abs(rho[i] - rhoOld[i]);
                 if (diff > maxChange) maxChange = diff;
 
-                currentVol += s[i] * rho[i];
-                double rb = rhoBar[i];
+                currentVol += rhoBar[i];
+                double rb = options.EnableHeaviside ? rhoTilde[i] : rhoBar[i];
                 greySum += rb * (1.0 - rb);
             }
 
@@ -285,8 +360,8 @@ public static class TopologyOptimizer
                 VolumeFraction = volFraction,
                 MaxChange = maxChange,
                 GreyLevel = greyLevel,
-                SolverIterations = solveResult.SolverInfo.Iterations,
-                SolverResidual = solveResult.SolverInfo.FinalResidual,
+                SolverIterations = solverResult.Iterations,
+                SolverResidual = solverResult.FinalResidual,
                 Timings = timings,
                 PhysicalDensity = physicalDensityBox,
                 DesignDensity = designDensityBox,

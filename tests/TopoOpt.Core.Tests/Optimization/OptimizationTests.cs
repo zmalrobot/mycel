@@ -425,7 +425,7 @@ public class OptimizationTests
     /// <summary>
     /// Ablation on EminRatio (1e-3, 1e-6, 1e-9) on 40×20×4 cantilever, f = 0.4.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "Explicit benchmark — run on demand")]
     public void Ablation_EminRatio()
     {
         double[] ratios = { 1e-3, 1e-6, 1e-9 };
@@ -457,7 +457,7 @@ public class OptimizationTests
                 totalIterMs += s.TotalMs;
             }
             double meanPcg = (double)totalPcgIters / result.Snapshots.Count;
-
+            Console.WriteLine($"| {ratio:E0} | {result.FinalCompliance:F2} | {totalPcgIters:N0} | {meanPcg:F1} | {totalSolveMs:F0} ms | {totalIterMs / result.Snapshots.Count:F1} ms |");
         }
     }
 
