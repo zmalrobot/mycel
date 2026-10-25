@@ -16,6 +16,12 @@ using TopoOpt.Core.Geometry;
 
 namespace TopoOpt.App.Controls;
 
+public enum ViewRenderMode
+{
+    OriginalStl,
+    Voxels
+}
+
 /// <summary>
 /// Hardware-accelerated 3D viewport control built on Avalonia's <see cref="OpenGlControlBase"/>
 /// and <see cref="Silk.NET.OpenGL"/>. Supports both Desktop OpenGL 3.3+ Core and OpenGL ES 3.0+ (ANGLE/Mesa).
@@ -64,6 +70,33 @@ public sealed class Viewport3DControl : OpenGlControlBase
     private uint _gridVao;
     private uint _gridVbo;
     private int _gridVertexCount;
+
+    private uint _voxelVao;
+    private uint _voxelVbo;
+    private uint _voxelEbo;
+    private int _voxelIndexCount;
+    private IndexedMesh? _pendingVoxelMesh;
+    private bool _voxelMeshUploadPending;
+
+    private uint _patchPointsVao;
+    private uint _patchPointsVbo;
+    private int _patchPointsCount;
+    private GpuVertex[]? _pendingPatchPoints;
+    private bool _patchPointsUploadPending;
+
+    private ViewRenderMode _renderMode = ViewRenderMode.OriginalStl;
+    public ViewRenderMode RenderMode
+    {
+        get => _renderMode;
+        set
+        {
+            if (_renderMode != value)
+            {
+                _renderMode = value;
+                RequestNextFrameRendering();
+            }
+        }
+    }
 
     private readonly Dictionary<Guid, OverlayBuffer> _overlays = new();
     private readonly List<Guid> _overlaysToRemove = new();
@@ -233,6 +266,38 @@ public sealed class Viewport3DControl : OpenGlControlBase
         RequestNextFrameRendering();
     }
 
+    public void SetVoxelMesh(IndexedMesh? mesh)
+    {
+        lock (_syncLock)
+        {
+            _pendingVoxelMesh = mesh;
+            _voxelMeshUploadPending = true;
+        }
+        RequestNextFrameRendering();
+    }
+
+    public void SetPatchPoints(ReadOnlySpan<Vector3> points, uint colorRgba)
+    {
+        Vector4 col = ColorMap.UnpackRgba(colorRgba);
+        GpuVertex[] arr = new GpuVertex[points.Length];
+        for (int i = 0; i < points.Length; i++)
+        {
+            arr[i] = new GpuVertex
+            {
+                Position = points[i],
+                Normal = Vector3.Zero,
+                Color = new Vector3(col.X, col.Y, col.Z)
+            };
+        }
+
+        lock (_syncLock)
+        {
+            _pendingPatchPoints = arr;
+            _patchPointsUploadPending = true;
+        }
+        RequestNextFrameRendering();
+    }
+
     public void SetArrows(ReadOnlySpan<(Vector3 Origin, Vector3 Direction, uint Color)> arrows)
     {
         // Stub for Step 5 force preview gizmos
@@ -280,6 +345,26 @@ public sealed class Viewport3DControl : OpenGlControlBase
                 Color = hasScalars ? ColorMap.Evaluate(map, scalars[i], min, max) : defaultCol
             };
         }
+    }
+
+    private static GpuVertex[] BuildGpuVertices(IndexedMesh mesh)
+    {
+        int vCount = mesh.VertexCount;
+        GpuVertex[] arr = new GpuVertex[vCount];
+        ReadOnlySpan<Vector3> pos = mesh.Positions.Span;
+        ReadOnlySpan<Vector3> norm = mesh.SmoothVertexNormals.Span;
+        Vector3 defaultCol = new(0.72f, 0.76f, 0.82f);
+
+        for (int i = 0; i < vCount; i++)
+        {
+            arr[i] = new GpuVertex
+            {
+                Position = pos[i],
+                Normal = i < norm.Length ? norm[i] : Vector3.UnitZ,
+                Color = defaultCol
+            };
+        }
+        return arr;
     }
 
     protected override unsafe void OnOpenGlInit(GlInterface gl)
@@ -375,8 +460,20 @@ public sealed class Viewport3DControl : OpenGlControlBase
             _gl.DrawArrays(PrimitiveType.Lines, 0, (uint)_gridVertexCount);
         }
 
-        // 2. Render base STL mesh
-        if (_meshIndexCount > 0)
+        // 2. Render base STL mesh or Voxel mesh
+        if (_renderMode == ViewRenderMode.Voxels && _voxelIndexCount > 0)
+        {
+            _gl.UseProgram(_meshShader);
+            _gl.UniformMatrix4(_uViewProjLoc, 1, false, (float*)&viewProj);
+            _gl.Uniform3(_uEyePosLoc, eyePos.X, eyePos.Y, eyePos.Z);
+            _gl.Uniform4(_uOverrideColorLoc, 0.42f, 0.48f, 0.58f, 1.0f);
+            _gl.Uniform1(_uUseVertexColorLoc, 0);
+
+            _gl.BindVertexArray(_voxelVao);
+            _gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, _voxelEbo);
+            _gl.DrawElements(PrimitiveType.Triangles, (uint)_voxelIndexCount, DrawElementsType.UnsignedInt, null);
+        }
+        else if (_renderMode == ViewRenderMode.OriginalStl && _meshIndexCount > 0)
         {
             _gl.UseProgram(_meshShader);
             _gl.UniformMatrix4(_uViewProjLoc, 1, false, (float*)&viewProj);
@@ -413,6 +510,18 @@ public sealed class Viewport3DControl : OpenGlControlBase
             }
 
             _gl.Disable(EnableCap.PolygonOffsetFill);
+        }
+
+        // 5. Render patch points overlay
+        if (_patchPointsCount > 0)
+        {
+            _gl.Disable(EnableCap.DepthTest);
+            _gl.UseProgram(_lineShader);
+            _gl.UniformMatrix4(_uLineViewProjLoc, 1, false, (float*)&viewProj);
+            _gl.BindVertexArray(_patchPointsVao);
+            _gl.PointSize(8.0f);
+            _gl.DrawArrays(PrimitiveType.Points, 0, (uint)_patchPointsCount);
+            _gl.Enable(EnableCap.DepthTest);
         }
 
         _gl.BindVertexArray(0);
@@ -543,6 +652,84 @@ public sealed class Viewport3DControl : OpenGlControlBase
                     }
                 }
             }
+
+            if (_voxelMeshUploadPending)
+            {
+                _voxelMeshUploadPending = false;
+                if (_pendingVoxelMesh is not null && _pendingVoxelMesh.TriangleCount > 0)
+                {
+                    if (_voxelVao == 0)
+                    {
+                        _voxelVao = gl.GenVertexArray();
+                        _voxelVbo = gl.GenBuffer();
+                        _voxelEbo = gl.GenBuffer();
+                    }
+
+                    GpuVertex[] vList = BuildGpuVertices(_pendingVoxelMesh);
+                    gl.BindVertexArray(_voxelVao);
+
+                    gl.BindBuffer(BufferTargetARB.ArrayBuffer, _voxelVbo);
+                    fixed (GpuVertex* vPtr = vList)
+                    {
+                        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vList.Length * sizeof(GpuVertex)), vPtr, BufferUsageARB.StaticDraw);
+                    }
+
+                    int[] indArr = _pendingVoxelMesh.Indices.ToArray();
+                    gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, _voxelEbo);
+                    fixed (int* iPtr = indArr)
+                    {
+                        gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(indArr.Length * sizeof(int)), iPtr, BufferUsageARB.StaticDraw);
+                    }
+
+                    uint stride = (uint)sizeof(GpuVertex);
+                    gl.EnableVertexAttribArray(0);
+                    gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+                    gl.EnableVertexAttribArray(1);
+                    gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
+                    gl.EnableVertexAttribArray(2);
+                    gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+
+                    gl.BindVertexArray(0);
+                    _voxelIndexCount = indArr.Length;
+                }
+                else
+                {
+                    _voxelIndexCount = 0;
+                }
+            }
+
+            if (_patchPointsUploadPending)
+            {
+                _patchPointsUploadPending = false;
+                if (_pendingPatchPoints is not null && _pendingPatchPoints.Length > 0)
+                {
+                    if (_patchPointsVao == 0)
+                    {
+                        _patchPointsVao = gl.GenVertexArray();
+                        _patchPointsVbo = gl.GenBuffer();
+                    }
+
+                    gl.BindVertexArray(_patchPointsVao);
+                    gl.BindBuffer(BufferTargetARB.ArrayBuffer, _patchPointsVbo);
+                    fixed (GpuVertex* pPtr = _pendingPatchPoints)
+                    {
+                        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(_pendingPatchPoints.Length * sizeof(GpuVertex)), pPtr, BufferUsageARB.DynamicDraw);
+                    }
+
+                    uint stride = (uint)sizeof(GpuVertex);
+                    gl.EnableVertexAttribArray(0);
+                    gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+                    gl.EnableVertexAttribArray(2);
+                    gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+
+                    gl.BindVertexArray(0);
+                    _patchPointsCount = _pendingPatchPoints.Length;
+                }
+                else
+                {
+                    _patchPointsCount = 0;
+                }
+            }
         }
 
         completedTcs?.TrySetResult();
@@ -667,6 +854,11 @@ public sealed class Viewport3DControl : OpenGlControlBase
                 _overlays.Clear();
             }
 
+            if (_voxelEbo != 0) _gl.DeleteBuffer(_voxelEbo);
+            if (_voxelVbo != 0) _gl.DeleteBuffer(_voxelVbo);
+            if (_voxelVao != 0) _gl.DeleteVertexArray(_voxelVao);
+            if (_patchPointsVbo != 0) _gl.DeleteBuffer(_patchPointsVbo);
+            if (_patchPointsVao != 0) _gl.DeleteVertexArray(_patchPointsVao);
             if (_hoverEbo != 0) _gl.DeleteBuffer(_hoverEbo);
             if (_meshEbo != 0) _gl.DeleteBuffer(_meshEbo);
             if (_meshVbo != 0) _gl.DeleteBuffer(_meshVbo);

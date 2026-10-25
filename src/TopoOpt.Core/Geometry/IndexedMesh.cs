@@ -26,6 +26,15 @@ public sealed class IndexedMesh
     public int VertexCount => _positions.Length;
     public int TriangleCount => _triangleNormals.Length;
 
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void GetTriangle(int triangleIndex, out Vector3 a, out Vector3 b, out Vector3 c)
+    {
+        int i3 = triangleIndex * 3;
+        a = _positions[_indices[i3]];
+        b = _positions[_indices[i3 + 1]];
+        c = _positions[_indices[i3 + 2]];
+    }
+
     public IndexedMesh(Vector3[] positions, int[] indices)
     {
         ArgumentNullException.ThrowIfNull(positions);

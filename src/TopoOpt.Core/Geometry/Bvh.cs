@@ -49,12 +49,16 @@ public sealed class Bvh
 
     public int NodeCount => _nodesUsed;
 
-    public Bvh(IndexedMesh mesh)
+    public Bvh(IndexedMesh mesh) : this(mesh, null)
+    {
+    }
+
+    public Bvh(IndexedMesh mesh, int[]? triangleSubset)
     {
         ArgumentNullException.ThrowIfNull(mesh);
         _mesh = mesh;
 
-        int triCount = mesh.TriangleCount;
+        int triCount = triangleSubset is not null ? triangleSubset.Length : mesh.TriangleCount;
         if (triCount == 0)
         {
             _nodes = [];
@@ -64,16 +68,24 @@ public sealed class Bvh
         }
 
         _triIndices = new int[triCount];
-        for (int i = 0; i < triCount; i++)
+        if (triangleSubset is not null)
         {
-            _triIndices[i] = i;
+            Array.Copy(triangleSubset, _triIndices, triCount);
+        }
+        else
+        {
+            for (int i = 0; i < triCount; i++)
+            {
+                _triIndices[i] = i;
+            }
         }
 
         _nodes = new BvhNode[triCount * 2];
 
-        Vector3[] triMin = ArrayPool<Vector3>.Shared.Rent(triCount);
-        Vector3[] triMax = ArrayPool<Vector3>.Shared.Rent(triCount);
-        Vector3[] centroids = ArrayPool<Vector3>.Shared.Rent(triCount);
+        int totalMeshTriangles = mesh.TriangleCount;
+        Vector3[] triMin = ArrayPool<Vector3>.Shared.Rent(totalMeshTriangles);
+        Vector3[] triMax = ArrayPool<Vector3>.Shared.Rent(totalMeshTriangles);
+        Vector3[] centroids = ArrayPool<Vector3>.Shared.Rent(totalMeshTriangles);
 
         try
         {
@@ -82,13 +94,14 @@ public sealed class Bvh
 
             for (int i = 0; i < triCount; i++)
             {
-                Vector3 a = pos[indices[i * 3]];
-                Vector3 b = pos[indices[i * 3 + 1]];
-                Vector3 c = pos[indices[i * 3 + 2]];
+                int triIdx = _triIndices[i];
+                Vector3 a = pos[indices[triIdx * 3]];
+                Vector3 b = pos[indices[triIdx * 3 + 1]];
+                Vector3 c = pos[indices[triIdx * 3 + 2]];
 
-                triMin[i] = Vector3.Min(a, Vector3.Min(b, c));
-                triMax[i] = Vector3.Max(a, Vector3.Max(b, c));
-                centroids[i] = (a + b + c) * (1.0f / 3.0f);
+                triMin[triIdx] = Vector3.Min(a, Vector3.Min(b, c));
+                triMax[triIdx] = Vector3.Max(a, Vector3.Max(b, c));
+                centroids[triIdx] = (a + b + c) * (1.0f / 3.0f);
             }
 
             _nodesUsed = 1;

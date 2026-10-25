@@ -1,26 +1,37 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TopoOpt.App.Controls;
 using TopoOpt.Core.Geometry;
+using TopoOpt.Core.Voxelization;
 
 namespace TopoOpt.App.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject
 {
     private CancellationTokenSource? _loadCts;
+    private CancellationTokenSource? _voxelCts;
     private int _selectionCounter = 1;
+    private MeshReport? _currentReport;
 
     public IndexedMesh? CurrentMesh { get; private set; }
     public Bvh? CurrentBvh { get; private set; }
     public RegionSelector? CurrentSelector { get; private set; }
+    public VoxelModel? CurrentVoxelModel { get; private set; }
+    public IndexedMesh? CurrentVoxelMesh { get; private set; }
 
     public ObservableCollection<SelectionItemViewModel> Selections { get; } = new();
+    public ObservableCollection<ValidationIssue> ValidationIssues { get; } = new();
 
     public SelectionKind[] AvailableKinds { get; } =
     [
@@ -35,6 +46,14 @@ public partial class MainWindowViewModel : ObservableObject
         LengthUnit.Centimeter,
         LengthUnit.Meter,
         LengthUnit.Inch
+    ];
+
+    public int[] TargetElementPresets { get; } =
+    [
+        50_000,
+        100_000,
+        250_000,
+        500_000
     ];
 
     public ColorOption[] PaletteColors { get; } =
@@ -57,6 +76,24 @@ public partial class MainWindowViewModel : ObservableObject
     private LengthUnit _selectedUnit = LengthUnit.Millimeter;
 
     [ObservableProperty]
+    private int _targetSolidElements = 100_000;
+
+    [ObservableProperty]
+    private ViewRenderMode _currentViewMode = ViewRenderMode.OriginalStl;
+
+    [ObservableProperty]
+    private bool _isVoxelising;
+
+    [ObservableProperty]
+    private float _voxelProgress;
+
+    [ObservableProperty]
+    private string _voxelStatusText = "Not Voxelised";
+
+    [ObservableProperty]
+    private bool _hasValidationErrors;
+
+    [ObservableProperty]
     private string _statusTriangles = "0 tris";
 
     [ObservableProperty]
@@ -75,6 +112,9 @@ public partial class MainWindowViewModel : ObservableObject
     private bool _isLoading;
 
     public event Action<IndexedMesh?>? MeshLoaded;
+    public event Action<IndexedMesh?>? VoxelMeshUpdated;
+    public event Action<Vector3[], uint>? ActivePatchNodesUpdated;
+    public event Action<ViewRenderMode>? ViewRenderModeChanged;
     public event Action<SelectionItemViewModel>? SelectionOverlayUpdated;
     public event Action<Guid>? SelectionOverlayRemoved;
 
@@ -188,9 +228,132 @@ public partial class MainWindowViewModel : ObservableObject
             WatertightBadgeBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
         }
 
+        _currentReport = report;
+        CurrentVoxelModel = null;
+        CurrentVoxelMesh = null;
+        VoxelStatusText = "Not Voxelised";
+        ValidationIssues.Clear();
+        HasValidationErrors = false;
+        VoxelMeshUpdated?.Invoke(null);
+        ActivePatchNodesUpdated?.Invoke([], 0);
+
         // Create initial default selection slot so clicking immediately selects
         AddSelection();
         MeshLoaded?.Invoke(mesh);
+    }
+
+    partial void OnCurrentViewModeChanged(ViewRenderMode value)
+    {
+        ViewRenderModeChanged?.Invoke(value);
+    }
+
+    partial void OnActiveSelectionChanged(SelectionItemViewModel? value)
+    {
+        UpdateActivePatchNodes();
+    }
+
+    [RelayCommand]
+    public async Task VoxeliseAsync()
+    {
+        if (CurrentMesh is null) return;
+
+        _voxelCts?.Cancel();
+        _voxelCts = new CancellationTokenSource();
+        CancellationToken ct = _voxelCts.Token;
+
+        IsVoxelising = true;
+        VoxelProgress = 0f;
+        VoxelStatusText = "Voxelising...";
+
+        Stopwatch sw = Stopwatch.StartNew();
+
+        try
+        {
+            var progress = new Progress<float>(p => VoxelProgress = p * 100f);
+
+            var (model, vMesh) = await Task.Run(() =>
+            {
+                var grid = GridSpec.FromTargetElementCount(CurrentMesh, TargetSolidElements, padding: 1);
+                var (m, _) = Voxeliser.Voxelise(CurrentMesh, grid, report: _currentReport, progress: progress, cancellationToken: ct);
+                var exposedMesh = VoxelMeshBuilder.BuildExposedMesh(m);
+                return (m, exposedMesh);
+            }, ct);
+
+            sw.Stop();
+            CurrentVoxelModel = model;
+            CurrentVoxelMesh = vMesh;
+
+            VoxelStatusText = $"{model.SolidCount:N0} solid voxels ({sw.ElapsedMilliseconds} ms, {model.SolidVolume:N1} mm³)";
+            VoxelMeshUpdated?.Invoke(vMesh);
+
+            UpdateValidation();
+            UpdateActivePatchNodes();
+
+            // Auto-switch to voxel view if requested
+            CurrentViewMode = ViewRenderMode.Voxels;
+        }
+        catch (OperationCanceledException)
+        {
+            VoxelStatusText = "Voxelisation cancelled";
+        }
+        catch (Exception ex)
+        {
+            VoxelStatusText = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsVoxelising = false;
+        }
+    }
+
+    [RelayCommand]
+    public void CancelVoxelise()
+    {
+        _voxelCts?.Cancel();
+    }
+
+    public void UpdateValidation()
+    {
+        ValidationIssues.Clear();
+
+        if (CurrentVoxelModel is null || CurrentMesh is null)
+        {
+            HasValidationErrors = false;
+            return;
+        }
+
+        var list = ModelValidator.Validate(
+            CurrentVoxelModel,
+            CurrentMesh,
+            Selections.Select(s => s.Model).ToList());
+
+        foreach (var issue in list)
+        {
+            ValidationIssues.Add(issue);
+        }
+
+        HasValidationErrors = list.Any(i => i.Severity == ValidationSeverity.Error);
+    }
+
+    private void UpdateActivePatchNodes()
+    {
+        if (CurrentVoxelModel is null || CurrentMesh is null || ActiveSelection is null || ActiveSelection.TriangleCount == 0)
+        {
+            ActivePatchNodesUpdated?.Invoke([], 0);
+            return;
+        }
+
+        var patch = SurfacePatchBuilder.Build(CurrentVoxelModel, CurrentMesh, ActiveSelection.Model.TriangleIndices);
+        var grid = CurrentVoxelModel.Grid;
+
+        Vector3[] nodePositions = new Vector3[patch.Nodes.Length];
+        for (int i = 0; i < patch.Nodes.Length; i++)
+        {
+            grid.InverseNodeIndex(patch.Nodes[i], out int ni, out int nj, out int nk);
+            nodePositions[i] = grid.NodePosition(ni, nj, nk);
+        }
+
+        ActivePatchNodesUpdated?.Invoke(nodePositions, ActiveSelection.ColorRgba);
     }
 
     public void ApplyClickedRegion(int[] grownTriangles, SelectionModifyMode mode)
@@ -210,11 +373,15 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Clicking the exact same region toggles / deselects it
             target.UpdateTriangles([]);
+            UpdateActivePatchNodes();
+            UpdateValidation();
             return;
         }
 
         int[] updated = RegionSelector.ModifySelection(target.Model.TriangleIndices, grownTriangles, mode);
         target.UpdateTriangles(updated);
+        UpdateActivePatchNodes();
+        UpdateValidation();
     }
 
     public void UpdateDiagnostics(double fps, string glSummary)
@@ -225,6 +392,11 @@ public partial class MainWindowViewModel : ObservableObject
     private void OnItemOverlayChanged(SelectionItemViewModel item)
     {
         SelectionOverlayUpdated?.Invoke(item);
+        if (ActiveSelection == item)
+        {
+            UpdateActivePatchNodes();
+            UpdateValidation();
+        }
     }
 }
 

@@ -48,6 +48,21 @@ public partial class MainWindow : Window
             Viewport.RemoveOverlay(id);
         };
 
+        vm.VoxelMeshUpdated += mesh =>
+        {
+            Viewport.SetVoxelMesh(mesh);
+        };
+
+        vm.ActivePatchNodesUpdated += (points, color) =>
+        {
+            Viewport.SetPatchPoints(points, color);
+        };
+
+        vm.ViewRenderModeChanged += mode =>
+        {
+            Viewport.RenderMode = mode;
+        };
+
         Viewport.ViewportPointerMoved += OnViewportPointerMoved;
         Viewport.ViewportPointerClicked += OnViewportPointerClicked;
         Viewport.DiagnosticsUpdated += vm.UpdateDiagnostics;

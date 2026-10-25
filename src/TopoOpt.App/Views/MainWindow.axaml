@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:TopoOpt.App.ViewModels"
         xmlns:controls="using:TopoOpt.App.Controls"
+        xmlns:vox="using:TopoOpt.Core.Voxelization"
         x:Class="TopoOpt.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="TopoOpt"
@@ -20,44 +21,97 @@
             BorderBrush="#252A36"
             BorderThickness="0,0,0,1"
             Padding="12,0">
-      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <Button Name="OpenStlButton"
-                Content="Open STL"
-                Click="OnOpenStlClick"
-                Background="#2563EB"
-                Foreground="#FFFFFF"
-                FontWeight="SemiBold"
-                Padding="12,5"
-                CornerRadius="4" />
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Name="OpenStlButton"
+                  Content="Open STL"
+                  Click="OnOpenStlClick"
+                  Background="#2563EB"
+                  Foreground="#FFFFFF"
+                  FontWeight="SemiBold"
+                  Padding="12,5"
+                  CornerRadius="4" />
 
-        <ComboBox ItemsSource="{Binding AvailableUnits}"
-                  SelectedItem="{Binding SelectedUnit}"
-                  ToolTip.Tip="STL Import Unit"
-                  Width="115"
-                  VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding AvailableUnits}"
+                    SelectedItem="{Binding SelectedUnit}"
+                    ToolTip.Tip="STL Import Unit"
+                    Width="110"
+                    VerticalAlignment="Center" />
 
-        <Button Content="Fit View"
-                Click="OnFitViewClick"
-                Background="#1F2430"
-                Foreground="#E2E8F0"
-                Padding="12,5"
-                CornerRadius="4" />
-      </StackPanel>
+          <Button Content="Fit View"
+                  Click="OnFitViewClick"
+                  Background="#1F2430"
+                  Foreground="#E2E8F0"
+                  Padding="10,5"
+                  CornerRadius="4" />
+
+          <Rectangle Width="1" Height="20" Fill="#2D3342" Margin="4,0" />
+
+          <!-- Target Elements Input -->
+          <TextBlock Text="Target Elements:"
+                     FontSize="11"
+                     Foreground="#94A3B8"
+                     VerticalAlignment="Center" />
+
+          <ComboBox ItemsSource="{Binding TargetElementPresets}"
+                    SelectedItem="{Binding TargetSolidElements}"
+                    Width="105"
+                    VerticalAlignment="Center" />
+
+          <!-- Voxelise Action Button -->
+          <Button Content="Voxelise"
+                  Command="{Binding VoxeliseCommand}"
+                  IsEnabled="{Binding !IsVoxelising}"
+                  Background="#0D9488"
+                  Foreground="#FFFFFF"
+                  FontWeight="SemiBold"
+                  Padding="12,5"
+                  CornerRadius="4" />
+
+          <ProgressBar Width="70"
+                       Height="14"
+                       Minimum="0"
+                       Maximum="100"
+                       Value="{Binding VoxelProgress}"
+                       IsVisible="{Binding IsVoxelising}"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Right Side: View Toggle (STL vs Voxels) -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="View:"
+                     FontSize="12"
+                     Foreground="#94A3B8"
+                     VerticalAlignment="Center" />
+
+          <RadioButton Content="STL"
+                       IsChecked="{Binding CurrentViewMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static controls:ViewRenderMode.OriginalStl}}"
+                       GroupName="ViewModeGroup"
+                       Foreground="#E2E8F0"
+                       VerticalAlignment="Center" />
+
+          <RadioButton Content="Voxels"
+                       IsChecked="{Binding CurrentViewMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static controls:ViewRenderMode.Voxels}}"
+                       GroupName="ViewModeGroup"
+                       Foreground="#E2E8F0"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+      </Grid>
     </Border>
 
-    <!-- Main Content: Left Selection Panel + Central 3D Viewport -->
-    <Grid Grid.Row="1" ColumnDefinitions="300,*">
+    <!-- Main Content: Left Selection & Validation Panel + Central 3D Viewport -->
+    <Grid Grid.Row="1" ColumnDefinitions="320,*">
 
-      <!-- Left Panel: Selections & Angle Threshold -->
+      <!-- Left Panel: Selections, Diagnostics & Actions -->
       <Border Grid.Column="0"
               Background="#13161E"
               BorderBrush="#252A36"
               BorderThickness="0,0,1,0"
               Padding="12">
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
 
           <!-- Angle Threshold Slider -->
-          <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,14">
+          <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Grid.Column="0"
                          Text="Angle Threshold"
@@ -96,7 +150,8 @@
           <ListBox Grid.Row="2"
                    ItemsSource="{Binding Selections}"
                    SelectedItem="{Binding ActiveSelection}"
-                   Background="Transparent">
+                   Background="Transparent"
+                   MinHeight="120">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:SelectionItemViewModel">
                 <Border Padding="6"
@@ -156,12 +211,71 @@
             </ListBox.ItemTemplate>
           </ListBox>
 
-          <!-- Interaction Hint -->
-          <TextBlock Grid.Row="3"
-                     Text="Click: Select · Shift: Add · Ctrl: Subtract&#x0a;Right-Drag: Orbit · Mid-Drag: Pan · Wheel: Zoom"
-                     FontSize="11"
-                     Foreground="#64748B"
-                     Margin="0,8,0,0" />
+          <!-- Validation Issues Panel -->
+          <Border Grid.Row="3"
+                  Background="#181C26"
+                  BorderBrush="#252A36"
+                  BorderThickness="1"
+                  CornerRadius="4"
+                  Padding="8"
+                  Margin="0,8,0,8">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="VALIDATION &amp; PRE-FLIGHT"
+                           FontSize="10"
+                           FontWeight="Bold"
+                           Foreground="#94A3B8" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ValidationIssues.Count, StringFormat='{}{0} issue(s)'}"
+                           FontSize="10"
+                           Foreground="#64748B" />
+              </Grid>
+
+              <ItemsControl ItemsSource="{Binding ValidationIssues}"
+                            MaxHeight="140">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vox:ValidationIssue">
+                    <Border Margin="0,2" Padding="4,3" CornerRadius="3" Background="#11141D">
+                      <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Severity}"
+                                   FontWeight="Bold"
+                                   FontSize="10"
+                                   Foreground="{Binding SeverityColor}"
+                                   Margin="0,0,6,0" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Message}"
+                                   FontSize="10"
+                                   Foreground="#CBD5E1"
+                                   TextWrapping="Wrap" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
+          <!-- Start Optimisation Button (Placeholder for Step 3) -->
+          <StackPanel Grid.Row="4" Spacing="4">
+            <Button Content="Start Optimisation"
+                    IsEnabled="{Binding !HasValidationErrors}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Background="#2563EB"
+                    Foreground="#FFFFFF"
+                    FontWeight="Bold"
+                    Padding="0,8"
+                    CornerRadius="4"
+                    ToolTip.Tip="Placeholder: Disabled if validation errors exist" />
+            <TextBlock Text="Click: Select · Shift: Add · Ctrl: Subtract&#x0a;Right-Drag: Orbit · Mid-Drag: Pan · Wheel: Zoom"
+                       FontSize="10"
+                       Foreground="#64748B"
+                       TextAlignment="Center"
+                       Margin="0,4,0,0" />
+          </StackPanel>
+
         </Grid>
       </Border>
 
@@ -176,7 +290,7 @@
             BorderBrush="#252A36"
             BorderThickness="0,1,0,0"
             Padding="12,0">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto">
         <TextBlock Grid.Column="0"
                    Text="{Binding StatusTriangles}"
                    FontSize="11"
@@ -195,14 +309,21 @@
                 Background="{Binding WatertightBadgeBrush}"
                 CornerRadius="3"
                 Padding="6,1"
-                VerticalAlignment="Center">
+                VerticalAlignment="Center"
+                Margin="0,0,16,0">
           <TextBlock Text="{Binding WatertightText}"
                      FontSize="10"
                      FontWeight="SemiBold"
                      Foreground="#FFFFFF" />
         </Border>
 
-        <TextBlock Grid.Column="4"
+        <TextBlock Grid.Column="3"
+                   Text="{Binding VoxelStatusText}"
+                   FontSize="11"
+                   Foreground="#38BDF8"
+                   VerticalAlignment="Center" />
+
+        <TextBlock Grid.Column="5"
                    Text="{Binding FpsText}"
                    FontSize="11"
                    FontWeight="SemiBold"
@@ -213,4 +334,3 @@
 
   </Grid>
 </Window>
-
