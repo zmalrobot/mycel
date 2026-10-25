@@ -38,9 +38,9 @@ public partial class MainWindow : Window
             Viewport.SetMesh(mesh);
         };
 
-        vm.SelectionOverlayUpdated += item =>
+        vm.SelectionOverlayUpdated += (id, triangles, color) =>
         {
-            Viewport.SetOverlayTriangles(item.Id, item.Model.TriangleIndices, item.ColorRgba);
+            Viewport.SetOverlayTriangles(id, triangles.Span, color);
         };
 
         vm.SelectionOverlayRemoved += id =>
@@ -48,19 +48,24 @@ public partial class MainWindow : Window
             Viewport.RemoveOverlay(id);
         };
 
-        vm.VoxelMeshUpdated += mesh =>
+        vm.AllOverlaysCleared += () =>
         {
-            Viewport.SetVoxelMesh(mesh);
+            Viewport.ClearOverlays();
         };
 
-        vm.ActivePatchNodesUpdated += (points, color) =>
+        vm.GlyphsUpdated += (glyphs, diag) =>
         {
-            Viewport.SetPatchPoints(points, color);
+            Viewport.SetBoundaryGlyphs(glyphs, diag);
         };
 
-        vm.ViewRenderModeChanged += mode =>
+        vm.FeaScalarFieldUpdated += (scalars, lut, min, max) =>
         {
-            Viewport.RenderMode = mode;
+            Viewport.SetFeaScalarField(scalars.Span, lut, min, max);
+        };
+
+        vm.FeaScalarFieldCleared += () =>
+        {
+            Viewport.ClearFeaScalarField();
         };
 
         Viewport.ViewportPointerMoved += OnViewportPointerMoved;
@@ -183,29 +188,65 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnOpenProjectClick(object? sender, RoutedEventArgs e)
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Open Project Folder"
+        });
+
+        if (folders.Count > 0)
+        {
+            string? localPath = folders[0].TryGetLocalPath();
+            if (!string.IsNullOrWhiteSpace(localPath))
+            {
+                await ViewModel.OpenProjectAsync(localPath);
+            }
+        }
+    }
+
+    private async void OnSaveProjectClick(object? sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(ViewModel.CurrentProjectPath))
+        {
+            var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Select Destination Folder for Project"
+            });
+
+            if (folders.Count > 0)
+            {
+                string? localPath = folders[0].TryGetLocalPath();
+                if (!string.IsNullOrWhiteSpace(localPath))
+                {
+                    await ViewModel.SaveProjectAsync(localPath);
+                }
+            }
+        }
+        else
+        {
+            await ViewModel.SaveProjectAsync();
+        }
+    }
+
     private void OnFitViewClick(object? sender, RoutedEventArgs e)
     {
         Viewport.FitView();
     }
 
-    private void OnCycleColorClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: SelectionItemViewModel item })
-        {
-            ViewModel.CycleColor(item);
-        }
-    }
-
-    private void OnRemoveSelectionClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: SelectionItemViewModel item })
-        {
-            ViewModel.RemoveSelection(item);
-        }
-    }
-
     private void OnViewportPointerMoved(Vector2 pixelPos)
     {
+        if (!ViewModel.IsPickingActive)
+        {
+            if (_lastHoverSeedTriangle != -1)
+            {
+                _lastHoverSeedTriangle = -1;
+                _currentHoveredTriangles = [];
+                Viewport.SetHoverTriangles([]);
+            }
+            return;
+        }
+
         Bvh? bvh = ViewModel.CurrentBvh;
         RegionSelector? selector = ViewModel.CurrentSelector;
         if (bvh is null || selector is null)
@@ -248,6 +289,8 @@ public partial class MainWindow : Window
 
     private void OnViewportPointerClicked(Vector2 pixelPos, KeyModifiers modifiers)
     {
+        if (!ViewModel.IsPickingActive) return;
+
         Bvh? bvh = ViewModel.CurrentBvh;
         RegionSelector? selector = ViewModel.CurrentSelector;
         if (bvh is null || selector is null)
@@ -274,13 +317,33 @@ public partial class MainWindow : Window
         {
             if (mode == SelectionModifyMode.Replace)
             {
-                ViewModel.ApplyClickedRegion([], SelectionModifyMode.Replace);
+                ViewModel.ModifyActiveSelectionTriangles([], SelectionModifyMode.Replace);
             }
             return;
         }
 
         int[] region = selector.GrowRegion(hit.TriangleIndex, ViewModel.AngleThresholdDegrees);
-        ViewModel.ApplyClickedRegion(region, mode);
+        ViewModel.ModifyActiveSelectionTriangles(region, mode);
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key == Key.Escape && ViewModel.IsPickingActive)
+        {
+            ViewModel.CancelPicking();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.F)
+        {
+            Viewport.FitView();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.O && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            OnOpenStlClick(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)

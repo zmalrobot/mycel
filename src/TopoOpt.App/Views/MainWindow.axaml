@@ -2,332 +2,627 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:TopoOpt.App.ViewModels"
         xmlns:controls="using:TopoOpt.App.Controls"
+        xmlns:rendering="using:TopoOpt.App.Rendering"
         xmlns:vox="using:TopoOpt.Core.Voxelization"
+        xmlns:wf="using:TopoOpt.Core.Workflow"
         x:Class="TopoOpt.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="TopoOpt"
-        Width="1280"
-        Height="800"
-        MinWidth="840"
-        MinHeight="560"
+        Title="TopoOpt — Topology Optimization"
+        Width="1340"
+        Height="840"
+        MinWidth="960"
+        MinHeight="620"
         Background="#0D0F14"
         DragDrop.AllowDrop="True">
 
-  <Grid RowDefinitions="44,*,28">
+  <Grid RowDefinitions="44,*,26">
 
-    <!-- Slim Top Bar -->
+    <!-- 1. Top Bar -->
     <Border Grid.Row="0"
-            Background="#151821"
-            BorderBrush="#252A36"
+            Background="#141720"
+            BorderBrush="#242936"
             BorderThickness="0,0,0,1"
             Padding="12,0">
       <Grid ColumnDefinitions="Auto,*,Auto">
+        <!-- Action Buttons -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button Name="OpenStlButton"
-                  Content="Open STL"
+          <Button Content="Open STL"
                   Click="OnOpenStlClick"
                   Background="#2563EB"
                   Foreground="#FFFFFF"
                   FontWeight="SemiBold"
                   Padding="12,5"
-                  CornerRadius="4" />
+                  CornerRadius="4"
+                  ToolTip.Tip="Open STL file (Ctrl+O)" />
 
-          <ComboBox ItemsSource="{Binding AvailableUnits}"
-                    SelectedItem="{Binding SelectedUnit}"
-                    ToolTip.Tip="STL Import Unit"
-                    Width="110"
-                    VerticalAlignment="Center" />
+          <Button Content="Open Project"
+                  Click="OnOpenProjectClick"
+                  Background="#1E2330"
+                  Foreground="#E2E8F0"
+                  Padding="10,5"
+                  CornerRadius="4"
+                  ToolTip.Tip="Open existing project folder" />
+
+          <Button Content="Save Project"
+                  Click="OnSaveProjectClick"
+                  Background="#1E2330"
+                  Foreground="#E2E8F0"
+                  Padding="10,5"
+                  CornerRadius="4"
+                  ToolTip.Tip="Save project into folder" />
+
+          <Rectangle Width="1" Height="20" Fill="#2A3040" Margin="4,0" />
 
           <Button Content="Fit View"
                   Click="OnFitViewClick"
-                  Background="#1F2430"
+                  Background="#1E2330"
                   Foreground="#E2E8F0"
                   Padding="10,5"
-                  CornerRadius="4" />
-
-          <Rectangle Width="1" Height="20" Fill="#2D3342" Margin="4,0" />
-
-          <!-- Target Elements Input -->
-          <TextBlock Text="Target Elements:"
-                     FontSize="11"
-                     Foreground="#94A3B8"
-                     VerticalAlignment="Center" />
-
-          <ComboBox ItemsSource="{Binding TargetElementPresets}"
-                    SelectedItem="{Binding TargetSolidElements}"
-                    Width="105"
-                    VerticalAlignment="Center" />
-
-          <!-- Voxelise Action Button -->
-          <Button Content="Voxelise"
-                  Command="{Binding VoxeliseCommand}"
-                  IsEnabled="{Binding !IsVoxelising}"
-                  Background="#0D9488"
-                  Foreground="#FFFFFF"
-                  FontWeight="SemiBold"
-                  Padding="12,5"
-                  CornerRadius="4" />
-
-          <ProgressBar Width="70"
-                       Height="14"
-                       Minimum="0"
-                       Maximum="100"
-                       Value="{Binding VoxelProgress}"
-                       IsVisible="{Binding IsVoxelising}"
-                       VerticalAlignment="Center" />
+                  CornerRadius="4"
+                  ToolTip.Tip="Fit camera to geometry (F)" />
         </StackPanel>
 
-        <!-- Right Side: View Toggle (STL vs Voxels) -->
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="View:"
+        <!-- Center Model Header Summary -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+          <TextBlock Text="{Binding ModelFileName}"
+                     FontWeight="SemiBold"
                      FontSize="12"
-                     Foreground="#94A3B8"
+                     Foreground="#E2E8F0"
                      VerticalAlignment="Center" />
 
-          <RadioButton Content="STL"
-                       IsChecked="{Binding CurrentViewMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static controls:ViewRenderMode.OriginalStl}}"
-                       GroupName="ViewModeGroup"
-                       Foreground="#E2E8F0"
-                       VerticalAlignment="Center" />
+          <Border Background="#1C212D" CornerRadius="4" Padding="6,2">
+            <TextBlock Text="{Binding StatusTriangles}" FontSize="11" Foreground="#94A3B8" />
+          </Border>
 
-          <RadioButton Content="Voxels"
-                       IsChecked="{Binding CurrentViewMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static controls:ViewRenderMode.Voxels}}"
-                       GroupName="ViewModeGroup"
-                       Foreground="#E2E8F0"
-                       VerticalAlignment="Center" />
+          <Border Background="#1C212D" CornerRadius="4" Padding="6,2">
+            <TextBlock Text="{Binding StatusBBox}" FontSize="11" Foreground="#94A3B8" />
+          </Border>
+
+          <Border Background="{Binding WatertightBadgeBrush}" CornerRadius="4" Padding="6,2">
+            <TextBlock Text="{Binding WatertightText}" FontSize="11" Foreground="#FFFFFF" FontWeight="Medium" />
+          </Border>
+        </StackPanel>
+
+        <!-- Right Quick Info -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="{Binding CurrentProjectPath}"
+                     FontSize="11"
+                     Foreground="#64748B"
+                     VerticalAlignment="Center"
+                     MaxWidth="200"
+                     TextTrimming="CharacterEllipsis" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <!-- Main Content: Left Selection & Validation Panel + Central 3D Viewport -->
-    <Grid Grid.Row="1" ColumnDefinitions="320,*">
+    <!-- 2. Main Workspace: Left Stepper Panel + 3D Viewport Area -->
+    <Grid Grid.Row="1" ColumnDefinitions="360,*">
 
-      <!-- Left Panel: Selections, Diagnostics & Actions -->
+      <!-- Left Stepper Accordion Column -->
       <Border Grid.Column="0"
-              Background="#13161E"
-              BorderBrush="#252A36"
-              BorderThickness="0,0,1,0"
-              Padding="12">
-        <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+              Background="#12151D"
+              BorderBrush="#242936"
+              BorderThickness="0,0,1,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="6" Margin="10">
 
-          <!-- Angle Threshold Slider -->
-          <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Grid.Column="0"
-                         Text="Angle Threshold"
-                         FontSize="12"
-                         Foreground="#94A3B8" />
-              <TextBlock Grid.Column="1"
-                         Text="{Binding AngleThresholdDegrees, StringFormat='{}{0:F0}°'}"
-                         FontSize="12"
-                         FontWeight="SemiBold"
-                         Foreground="#E2E8F0" />
-            </Grid>
-            <Slider Minimum="1"
-                    Maximum="89"
-                    Value="{Binding AngleThresholdDegrees}" />
-          </StackPanel>
+            <!-- STEP 1: MODEL -->
+            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+              <StackPanel>
+                <!-- Step Header -->
+                <Button Command="{Binding SelectStepCommand}" CommandParameter="1"
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                      <Border Width="22" Height="22" CornerRadius="11" Background="#2563EB" VerticalAlignment="Center">
+                        <TextBlock Text="1" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Text="Model &amp; Geometry" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep1Completed}" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
 
-          <!-- Selections Header + Add Button -->
-          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-            <TextBlock Grid.Column="0"
-                       Text="SELECTIONS"
-                       FontSize="11"
-                       FontWeight="Bold"
-                       Foreground="#64748B"
-                       VerticalAlignment="Center" />
-            <Button Grid.Column="1"
-                    Content="+ Add"
-                    Command="{Binding AddSelectionCommand}"
-                    Background="#1F2430"
-                    Foreground="#E2E8F0"
-                    FontSize="12"
-                    Padding="10,4"
-                    CornerRadius="4" />
-          </Grid>
+                <!-- Step Body -->
+                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}">
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                    <TextBlock Text="Import Unit:" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableUnits}" SelectedItem="{Binding SelectedUnit}" Width="120" />
+                  </Grid>
 
-          <!-- Selections List -->
-          <ListBox Grid.Row="2"
-                   ItemsSource="{Binding Selections}"
-                   SelectedItem="{Binding ActiveSelection}"
-                   Background="Transparent"
-                   MinHeight="120">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:SelectionItemViewModel">
-                <Border Padding="6"
-                        CornerRadius="4"
-                        Background="#1A1E29"
-                        Margin="0,2">
-                  <StackPanel Spacing="6">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                      <!-- Colour Swatch Button -->
-                      <Button Grid.Column="0"
-                              Width="22"
-                              Height="22"
-                              Padding="0"
-                              Margin="0,0,6,0"
-                              CornerRadius="4"
-                              Background="{Binding ColorBrush}"
-                              Click="OnCycleColorClick"
-                              ToolTip.Tip="Click to cycle colour" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Triangles:" FontSize="12" Foreground="#94A3B8" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusTriangles}" FontSize="12" Foreground="#E2E8F0" />
+                  </Grid>
 
-                      <!-- Editable Name -->
-                      <TextBox Grid.Column="1"
-                               Text="{Binding Name}"
-                               FontSize="12"
-                               VerticalAlignment="Center"
-                               Padding="6,3" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Vertices:" FontSize="12" Foreground="#94A3B8" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusVertices}" FontSize="12" Foreground="#E2E8F0" />
+                  </Grid>
 
-                      <!-- Remove Button -->
-                      <Button Grid.Column="2"
-                              Content="✕"
-                              FontSize="11"
-                              Padding="6,2"
-                              Margin="6,0,0,0"
-                              Background="Transparent"
-                              Foreground="#94A3B8"
-                              Click="OnRemoveSelectionClick" />
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Bounding Box:" FontSize="12" Foreground="#94A3B8" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusBBox}" FontSize="12" Foreground="#E2E8F0" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Volume:" FontSize="12" Foreground="#94A3B8" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusVolume}" FontSize="12" Foreground="#E2E8F0" />
+                  </Grid>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- STEP 2: LOADS -->
+            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+              <StackPanel>
+                <!-- Step Header -->
+                <Button Command="{Binding SelectStepCommand}" CommandParameter="2"
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                      <Border Width="22" Height="22" CornerRadius="11" Background="#EA580C" VerticalAlignment="Center">
+                        <TextBlock Text="2" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Text="Applied Loads" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep2Completed}" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+
+                <!-- Step Body -->
+                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}">
+                  <Button Content="+ Add Load Region"
+                          Command="{Binding AddLoadCommand}"
+                          Background="#EA580C"
+                          Foreground="#FFFFFF"
+                          FontWeight="SemiBold"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center"
+                          Padding="0,6"
+                          CornerRadius="4" />
+
+                  <ItemsControl ItemsSource="{Binding Loads}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:LoadItemViewModel">
+                        <Border Background="#1F2432" CornerRadius="5" Padding="10" Margin="0,4" BorderBrush="#323B50" BorderThickness="1">
+                          <StackPanel Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBox Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="#E2E8F0" Background="#141720" Padding="4,2" />
+                              <Button Grid.Column="1" Content="✕"
+                                      Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).RemoveLoadCommand}"
+                                      CommandParameter="{Binding}"
+                                      Background="Transparent" Foreground="#EF4444" Padding="6,2" Margin="4,0,0,0" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock Text="Magnitude (N):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeNewtons}" Minimum="1" Maximum="1000000" Increment="50" Width="110" Height="26" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock Text="Direction:" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                              <ComboBox Grid.Column="1"
+                                        ItemsSource="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).AvailableLoadDirections}"
+                                        SelectedItem="{Binding DirectionMode}"
+                                        Width="150" />
+                            </Grid>
+
+                            <!-- Custom Vector Controls -->
+                            <StackPanel Spacing="4" IsVisible="{Binding DirectionMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static wf:LoadDirectionMode.CustomVector}}">
+                              <Grid ColumnDefinitions="*,*,*">
+                                <NumericUpDown Grid.Column="0" Value="{Binding CustomX}" Increment="0.1" Margin="1" />
+                                <NumericUpDown Grid.Column="1" Value="{Binding CustomY}" Increment="0.1" Margin="1" />
+                                <NumericUpDown Grid.Column="2" Value="{Binding CustomZ}" Increment="0.1" Margin="1" />
+                              </Grid>
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" />
+                              <ToggleButton Grid.Column="1" Content="Pick on Mesh"
+                                            IsChecked="{Binding IsPicking}"
+                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickLoadCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="#2D3748" Foreground="#E2E8F0" FontSize="11" Padding="8,4" CornerRadius="4" />
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- STEP 3: SUPPORTS -->
+            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+              <StackPanel>
+                <!-- Step Header -->
+                <Button Command="{Binding SelectStepCommand}" CommandParameter="3"
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                      <Border Width="22" Height="22" CornerRadius="11" Background="#2563EB" VerticalAlignment="Center">
+                        <TextBlock Text="3" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Text="Fixed Supports" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep3Completed}" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+
+                <!-- Step Body -->
+                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}">
+                  <Button Content="+ Add Fixed Support"
+                          Command="{Binding AddSupportCommand}"
+                          Background="#2563EB"
+                          Foreground="#FFFFFF"
+                          FontWeight="SemiBold"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center"
+                          Padding="0,6"
+                          CornerRadius="4" />
+
+                  <ItemsControl ItemsSource="{Binding Supports}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:SupportItemViewModel">
+                        <Border Background="#1F2432" CornerRadius="5" Padding="10" Margin="0,4" BorderBrush="#323B50" BorderThickness="1">
+                          <StackPanel Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBox Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="#E2E8F0" Background="#141720" Padding="4,2" />
+                              <Button Grid.Column="1" Content="✕"
+                                      Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).RemoveSupportCommand}"
+                                      CommandParameter="{Binding}"
+                                      Background="Transparent" Foreground="#EF4444" Padding="6,2" Margin="4,0,0,0" />
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                              <CheckBox Content="Fix X" IsChecked="{Binding FixX}" FontSize="11" Foreground="#CBD5E1" />
+                              <CheckBox Content="Fix Y" IsChecked="{Binding FixY}" FontSize="11" Foreground="#CBD5E1" />
+                              <CheckBox Content="Fix Z" IsChecked="{Binding FixZ}" FontSize="11" Foreground="#CBD5E1" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" />
+                              <ToggleButton Grid.Column="1" Content="Pick on Mesh"
+                                            IsChecked="{Binding IsPicking}"
+                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickSupportCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="#2D3748" Foreground="#E2E8F0" FontSize="11" Padding="8,4" CornerRadius="4" />
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- STEP 4: MATERIAL -->
+            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+              <StackPanel>
+                <!-- Step Header -->
+                <Button Command="{Binding SelectStepCommand}" CommandParameter="4"
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                      <Border Width="22" Height="22" CornerRadius="11" Background="#7C3AED" VerticalAlignment="Center">
+                        <TextBlock Text="4" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Text="Material" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep4Completed}" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+
+                <!-- Step Body -->
+                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Preset:" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableMaterialPresets}" SelectedItem="{Binding SelectedMaterialPreset}" Width="140" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Young's Modulus E (MPa):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialE}" Minimum="100" Maximum="50000" Increment="100" Width="110" Height="26" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Poisson's Ratio ν:" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialNu}" Minimum="0.05" Maximum="0.49" Increment="0.01" FormatString="F2" Width="110" Height="26" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Yield Strength XY (MPa):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldXy}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Yield Strength Z (MPa):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldZ}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26" />
+                  </Grid>
+
+                  <CheckBox Content="Conservative (use Z strength)"
+                            IsChecked="{Binding MaterialConservativeZ}"
+                            FontSize="11" Foreground="#CBD5E1" Margin="0,4,0,0" />
+
+                  <TextBlock Text="* Indicative manufacturer values from Polymaker / eSUN TDS"
+                             FontSize="10" Foreground="#64748B" FontStyle="Italic" TextWrapping="Wrap" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- STEP 5: RESOLUTION & PREVIEW -->
+            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+              <StackPanel>
+                <!-- Step Header -->
+                <Button Command="{Binding SelectStepCommand}" CommandParameter="5"
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                      <Border Width="22" Height="22" CornerRadius="11" Background="#0D9488" VerticalAlignment="Center">
+                        <TextBlock Text="5" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Text="Resolution &amp; Analysis" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <Border Background="#B45309" CornerRadius="3" Padding="4,1" IsVisible="{Binding IsResultOutdated}">
+                        <TextBlock Text="Outdated" FontSize="9" FontWeight="Bold" Foreground="#FEF3C7" />
+                      </Border>
+                      <TextBlock Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep5Completed}" />
+                    </StackPanel>
+                  </Grid>
+                </Button>
+
+                <!-- Step Body -->
+                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Preset:" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableResolutionPresets}" SelectedItem="{Binding SelectedResolutionPreset}" Width="140" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Target Elements:" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding TargetSolidElements}" Minimum="10000" Maximum="1000000" Increment="10000" Width="110" Height="26" />
+                  </Grid>
+
+                  <!-- Estimate Metrics -->
+                  <Border Background="#12151D" CornerRadius="4" Padding="8,6" Margin="0,2">
+                    <Grid ColumnDefinitions="*,*,*">
+                      <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                        <TextBlock Text="Voxel size" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding VoxelSizeHText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <TextBlock Text="Est. Memory" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding EstimatedMemoryText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                        <TextBlock Text="Est. Solve Time" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding EstimatedTimeText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+                      </StackPanel>
                     </Grid>
+                  </Border>
 
-                    <Grid ColumnDefinitions="*,Auto">
-                      <!-- Kind Selector -->
-                      <ComboBox Grid.Column="0"
-                                ItemsSource="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).AvailableKinds}"
-                                SelectedItem="{Binding Kind}"
-                                FontSize="11"
-                                HorizontalAlignment="Stretch" />
+                  <!-- Action: Prepare Model -->
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                    <Button Content="Prepare Model"
+                            Command="{Binding PrepareModelCommand}"
+                            IsEnabled="{Binding !IsPreparing}"
+                            Background="#0D9488" Foreground="#FFFFFF" FontWeight="SemiBold"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,6" CornerRadius="4" />
+                    <Button Grid.Column="1" Content="Cancel" Command="{Binding CancelPrepareCommand}"
+                            IsVisible="{Binding IsPreparing}" Background="#EF4444" Foreground="#FFFFFF" Margin="4,0,0,0" Padding="8,4" CornerRadius="4" />
+                  </Grid>
 
-                      <!-- Triangle Count Badge -->
-                      <TextBlock Grid.Column="1"
-                                 Text="{Binding TriangleCount, StringFormat='{}{0:N0} tris'}"
-                                 FontSize="11"
-                                 Foreground="#94A3B8"
-                                 VerticalAlignment="Center"
-                                 Margin="8,0,2,0" />
-                    </Grid>
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
+                  <ProgressBar Value="{Binding PrepareProgress}" Maximum="100" Height="4" IsVisible="{Binding IsPreparing}" />
 
-          <!-- Validation Issues Panel -->
-          <Border Grid.Row="3"
-                  Background="#181C26"
-                  BorderBrush="#252A36"
-                  BorderThickness="1"
-                  CornerRadius="4"
-                  Padding="8"
-                  Margin="0,8,0,8">
-            <StackPanel Spacing="4">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0"
-                           Text="VALIDATION &amp; PRE-FLIGHT"
-                           FontSize="10"
-                           FontWeight="Bold"
-                           Foreground="#94A3B8" />
-                <TextBlock Grid.Column="1"
-                           Text="{Binding ValidationIssues.Count, StringFormat='{}{0} issue(s)'}"
-                           FontSize="10"
-                           Foreground="#64748B" />
-              </Grid>
+                  <!-- Validation Issues Compact List -->
+                  <Border Background="#141720" CornerRadius="4" Padding="6" MaxHeight="100" BorderBrush="#242936" BorderThickness="1"
+                          IsVisible="{Binding ValidationIssues.Count, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter=0}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                      <ItemsControl ItemsSource="{Binding ValidationIssues}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate DataType="vox:ValidationIssue">
+                            <Button Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).FocusIssueCommand}"
+                                    CommandParameter="{Binding}"
+                                    Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="2">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="●" Foreground="{Binding SeverityColor}" FontSize="10" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Message}" FontSize="10" Foreground="#E2E8F0" TextTrimming="CharacterEllipsis" MaxWidth="280" />
+                              </StackPanel>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </Border>
 
-              <ItemsControl ItemsSource="{Binding ValidationIssues}"
-                            MaxHeight="140">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vox:ValidationIssue">
-                    <Border Margin="0,2" Padding="4,3" CornerRadius="3" Background="#11141D">
-                      <Grid ColumnDefinitions="Auto,*">
-                        <TextBlock Grid.Column="0"
-                                   Text="{Binding Severity}"
-                                   FontWeight="Bold"
-                                   FontSize="10"
-                                   Foreground="{Binding SeverityColor}"
-                                   Margin="0,0,6,0" />
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding Message}"
-                                   FontSize="10"
-                                   Foreground="#CBD5E1"
-                                   TextWrapping="Wrap" />
+                  <!-- Action: Run Static Analysis -->
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                    <Button Content="Run Static Analysis"
+                            Command="{Binding RunStaticAnalysisCommand}"
+                            IsEnabled="{Binding IsStep5Prepared}"
+                            Background="#4F46E5" Foreground="#FFFFFF" FontWeight="SemiBold"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,7" CornerRadius="4" />
+                    <Button Grid.Column="1" Content="Cancel" Command="{Binding CancelAnalysisCommand}"
+                            IsVisible="{Binding IsAnalyzing}" Background="#EF4444" Foreground="#FFFFFF" Margin="4,0,0,0" Padding="8,4" CornerRadius="4" />
+                  </Grid>
+
+                  <ProgressBar Value="{Binding AnalysisProgress}" Maximum="100" Height="4" IsVisible="{Binding IsAnalyzing}" />
+
+                  <!-- FEA Static Results Card -->
+                  <Border Background="#141720" CornerRadius="6" Padding="10" BorderBrush="#2E384D" BorderThickness="1" IsVisible="{Binding HasAnalysisResult}">
+                    <StackPanel Spacing="6">
+                      <TextBlock Text="Static Analysis Results" FontSize="11" FontWeight="Bold" Foreground="#818CF8" />
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Compliance (Work):" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Grid.Column="1" Text="{Binding ComplianceText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" />
                       </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </Border>
 
-          <!-- Start Optimisation Button (Placeholder for Step 3) -->
-          <StackPanel Grid.Row="4" Spacing="4">
-            <Button Content="Start Optimisation"
-                    IsEnabled="{Binding !HasValidationErrors}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    Background="#2563EB"
-                    Foreground="#FFFFFF"
-                    FontWeight="Bold"
-                    Padding="0,8"
-                    CornerRadius="4"
-                    ToolTip.Tip="Placeholder: Disabled if validation errors exist" />
-            <TextBlock Text="Click: Select · Shift: Add · Ctrl: Subtract&#x0a;Right-Drag: Orbit · Mid-Drag: Pan · Wheel: Zoom"
-                       FontSize="10"
-                       Foreground="#64748B"
-                       TextAlignment="Center"
-                       Margin="0,4,0,0" />
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Max Displacement:" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Grid.Column="1" Text="{Binding MaxDisplacementText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Max von Mises:" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Grid.Column="1" Text="{Binding MaxVonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="p99 von Mises (filtered):" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Grid.Column="1" Text="{Binding P99VonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="#38BDF8" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Safety Factor SF (max):" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Grid.Column="1" Text="{Binding SafetyFactorText}" FontSize="11" FontWeight="Bold" Foreground="{Binding SafetyFactorBrush}" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Safety Factor SF (p99):" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Grid.Column="1" Text="{Binding SafetyFactorP99Text}" FontSize="11" FontWeight="Bold" Foreground="{Binding SafetyFactorBrush}" />
+                      </Grid>
+
+                      <Separator Background="#262D3D" Margin="0,2" />
+                      <TextBlock Text="Indicative results. FDM parts are anisotropic and material data vary: verify load-bearing parts with physical tests."
+                                 FontSize="9" Foreground="#64748B" FontStyle="Italic" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
           </StackPanel>
-
-        </Grid>
+        </ScrollViewer>
       </Border>
 
-      <!-- Central 3D Viewport -->
-      <controls:Viewport3DControl Grid.Column="1"
-                                  Name="Viewport" />
-    </Grid>
+      <!-- Right 3D Viewport Column with Floating Overlays -->
+      <Grid Grid.Column="1">
+        <!-- The OpenGL Viewport -->
+        <controls:Viewport3DControl Name="Viewport" />
 
-    <!-- Thin Status Bar -->
-    <Border Grid.Row="2"
-            Background="#151821"
-            BorderBrush="#252A36"
-            BorderThickness="0,1,0,0"
-            Padding="12,0">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto">
-        <TextBlock Grid.Column="0"
-                   Text="{Binding StatusTriangles}"
-                   FontSize="11"
-                   Foreground="#CBD5E1"
-                   VerticalAlignment="Center"
-                   Margin="0,0,16,0" />
-
-        <TextBlock Grid.Column="1"
-                   Text="{Binding StatusBBox}"
-                   FontSize="11"
-                   Foreground="#94A3B8"
-                   VerticalAlignment="Center"
-                   Margin="0,0,16,0" />
-
-        <Border Grid.Column="2"
-                Background="{Binding WatertightBadgeBrush}"
-                CornerRadius="3"
-                Padding="6,1"
-                VerticalAlignment="Center"
-                Margin="0,0,16,0">
-          <TextBlock Text="{Binding WatertightText}"
-                     FontSize="10"
-                     FontWeight="SemiBold"
-                     Foreground="#FFFFFF" />
+        <!-- 1. Picking Mode Top Banner Overlay -->
+        <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"
+                Background="#D97706" CornerRadius="6" Padding="14,8"
+                IsVisible="{Binding IsPickingActive}"
+                BoxShadow="0 4 12 #60000000">
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <TextBlock Text="{Binding PickingBannerText}" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <TextBlock Text="Angle:" FontSize="11" Foreground="#FEF3C7" VerticalAlignment="Center" />
+              <Slider Value="{Binding AngleThresholdDegrees}" Minimum="5" Maximum="60" Width="100" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding AngleThresholdDegrees, StringFormat='{}{0:F0}°'}" FontSize="11" Foreground="#FFFFFF" Width="30" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button Content="Done (Esc)" Command="{Binding CancelPickingCommand}" Background="#B45309" Foreground="#FFFFFF" FontWeight="SemiBold" Padding="8,4" CornerRadius="4" />
+          </StackPanel>
         </Border>
 
-        <TextBlock Grid.Column="3"
-                   Text="{Binding VoxelStatusText}"
+        <!-- 2. Outdated Banner Overlay -->
+        <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"
+                Background="#92400E" CornerRadius="6" Padding="12,6"
+                IsVisible="{Binding IsResultOutdated}"
+                BoxShadow="0 4 12 #60000000">
+          <TextBlock Text="⚠ Parameters changed: Static analysis results are outdated. Re-run analysis to update."
+                     FontSize="11" FontWeight="SemiBold" Foreground="#FEF3C7" />
+        </Border>
+
+        <!-- 3. Floating FEA HUD & Color Legend (Top Right) -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,16,0"
+                Background="#E6151822" CornerRadius="8" BorderBrush="#2D3445" BorderThickness="1"
+                Padding="12" IsVisible="{Binding HasAnalysisResult}"
+                BoxShadow="0 6 16 #80000000">
+          <StackPanel Spacing="10" Width="170">
+            <!-- Scalar Mode Switcher -->
+            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+              <RadioButton Content="Stress (vM)" IsChecked="{Binding IsVonMisesMode}" GroupName="ScalarModeGroup" FontSize="11" Foreground="#CBD5E1" />
+              <RadioButton Content="Disp" IsChecked="{Binding !IsVonMisesMode}" GroupName="ScalarModeGroup" FontSize="11" Foreground="#CBD5E1" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Colormap:" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center" />
+              <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableLuts}" SelectedItem="{Binding SelectedLutKind}" Width="95" Height="24" FontSize="10" />
+            </Grid>
+
+            <!-- Vertical Color Legend Bar -->
+            <Grid ColumnDefinitions="24,*" Height="120">
+              <!-- Color Gradient Rect (Simulated 256 Turbo ramp) -->
+              <Border Grid.Column="0" CornerRadius="3" BorderBrush="#3B4254" BorderThickness="1">
+                <Border.Background>
+                  <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Offset="0.0" Color="#EF4444" />
+                    <GradientStop Offset="0.25" Color="#F59E0B" />
+                    <GradientStop Offset="0.50" Color="#10B981" />
+                    <GradientStop Offset="0.75" Color="#06B6D4" />
+                    <GradientStop Offset="1.0" Color="#3B82F6" />
+                  </LinearGradientBrush>
+                </Border.Background>
+              </Border>
+
+              <!-- Min, p99, Max Text Labels -->
+              <Grid Grid.Column="1" Margin="8,0,0,0">
+                <StackPanel VerticalAlignment="Top">
+                  <TextBlock Text="{Binding LegendMaxText}" FontSize="11" FontWeight="Bold" Foreground="#E2E8F0" />
+                  <TextBlock Text="{Binding LegendUnitsText}" FontSize="9" Foreground="#94A3B8" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding LegendP99Text}" FontSize="10" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+
+                <StackPanel VerticalAlignment="Bottom">
+                  <TextBlock Text="{Binding LegendMinText}" FontSize="11" FontWeight="Bold" Foreground="#E2E8F0" />
+                  <TextBlock Text="0.0" FontSize="9" Foreground="#64748B" />
+                </StackPanel>
+              </Grid>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- 4. STL Units Guard Modal Overlay -->
+        <Border Background="#A0000000" IsVisible="{Binding IsUnitGuardOpen}">
+          <Border Background="#1A1E29" BorderBrush="#3B4459" BorderThickness="1" CornerRadius="8"
+                  HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20" Width="400"
+                  BoxShadow="0 10 30 #A0000000">
+            <StackPanel Spacing="12">
+              <TextBlock Text="⚠ STL Unit Guard" FontSize="15" FontWeight="Bold" Foreground="#F59E0B" />
+              <TextBlock Text="The imported model bounding box appears to have unusual dimensions:"
+                         FontSize="12" Foreground="#CBD5E1" TextWrapping="Wrap" />
+              <Border Background="#12151E" CornerRadius="4" Padding="10,6">
+                <TextBlock Text="{Binding UnitGuardBboxText}" FontSize="12" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+              </Border>
+              <TextBlock Text="Please confirm the intended unit of measure to rescale to millimeters:"
+                         FontSize="12" Foreground="#94A3B8" TextWrapping="Wrap" />
+
+              <StackPanel Spacing="6" Margin="0,6,0,0">
+                <Button Content="Keep as Millimeters (mm)" Command="{Binding AcceptUnitAsMmCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2563EB" Foreground="#FFFFFF" Padding="0,6" CornerRadius="4" />
+                <Button Content="Rescale from Meters (×1000)" Command="{Binding RescaleFromMetersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1E2433" Foreground="#E2E8F0" Padding="0,6" CornerRadius="4" />
+                <Button Content="Rescale from Inches (×25.4)" Command="{Binding RescaleFromInchesCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1E2433" Foreground="#E2E8F0" Padding="0,6" CornerRadius="4" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- 3. Bottom Status Bar -->
+    <Border Grid.Row="2"
+            Background="#0E1017"
+            BorderBrush="#202430"
+            BorderThickness="0,1,0,0"
+            Padding="12,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="TopoOpt v1.0 — Ready"
                    FontSize="11"
-                   Foreground="#38BDF8"
+                   Foreground="#64748B"
                    VerticalAlignment="Center" />
 
-        <TextBlock Grid.Column="5"
+        <TextBlock Grid.Column="1"
                    Text="{Binding FpsText}"
                    FontSize="11"
-                   FontWeight="SemiBold"
-                   Foreground="#94A3B8"
+                   Foreground="#64748B"
                    VerticalAlignment="Center" />
       </Grid>
     </Border>

@@ -84,6 +84,12 @@ public sealed class Viewport3DControl : OpenGlControlBase
     private GpuVertex[]? _pendingPatchPoints;
     private bool _patchPointsUploadPending;
 
+    private uint _glyphVao;
+    private uint _glyphVbo;
+    private int _glyphVertexCount;
+    private GpuVertex[]? _pendingGlyphVertices;
+    private bool _glyphUploadPending;
+
     private ViewRenderMode _renderMode = ViewRenderMode.OriginalStl;
     public ViewRenderMode RenderMode
     {
@@ -298,10 +304,213 @@ public sealed class Viewport3DControl : OpenGlControlBase
         RequestNextFrameRendering();
     }
 
-    public void SetArrows(ReadOnlySpan<(Vector3 Origin, Vector3 Direction, uint Color)> arrows)
+    public sealed record BoundaryGlyphData(
+        bool IsLoad,
+        Vector3 Position,
+        Vector3 Direction,
+        float Magnitude);
+
+    public void SetBoundaryGlyphs(IReadOnlyList<BoundaryGlyphData>? glyphs, float bboxDiag)
     {
-        // Stub for Step 5 force preview gizmos
+        GpuVertex[]? arr = (glyphs != null && glyphs.Count > 0)
+            ? BuildGlyphMesh(glyphs, bboxDiag)
+            : null;
+
+        lock (_syncLock)
+        {
+            _pendingGlyphVertices = arr;
+            _glyphUploadPending = true;
+        }
         RequestNextFrameRendering();
+    }
+
+    public void SetFeaScalarField(ReadOnlySpan<float> values, LutKind lutKind, float min, float max)
+    {
+        lock (_syncLock)
+        {
+            if (_currentMesh is null || values.Length != _currentMesh.VertexCount)
+                return;
+
+            int vCount = _currentMesh.VertexCount;
+            _stagedVertices ??= new GpuVertex[vCount];
+            ReadOnlySpan<Vector3> pos = _currentMesh.Positions.Span;
+            ReadOnlySpan<Vector3> norm = _currentMesh.SmoothVertexNormals.Span;
+
+            for (int i = 0; i < vCount; i++)
+            {
+                Vector3 col = LutColorMap.Evaluate(lutKind, values[i], min, max);
+                _stagedVertices[i] = new GpuVertex
+                {
+                    Position = pos[i],
+                    Normal = i < norm.Length ? norm[i] : Vector3.UnitZ,
+                    Color = col
+                };
+            }
+
+            _useVertexColors = true;
+            _vertexColorUpdatePending = true;
+        }
+        RequestNextFrameRendering();
+    }
+
+    public void ClearFeaScalarField()
+    {
+        lock (_syncLock)
+        {
+            if (_currentMesh is not null)
+            {
+                PrepareStagedVerticesLocked(_currentMesh, null, ColorMapKind.Viridis, 0f, 1f);
+                _useVertexColors = false;
+                _vertexColorUpdatePending = true;
+            }
+        }
+        RequestNextFrameRendering();
+    }
+
+    private static GpuVertex[] BuildGlyphMesh(IReadOnlyList<BoundaryGlyphData> glyphs, float bboxDiag)
+    {
+        var vertices = new List<GpuVertex>();
+        float arrowLen = Math.Clamp(bboxDiag * 0.15f, 5.0f, 150.0f);
+        float shaftRadius = 0.08f * arrowLen;
+        float headLen = 0.35f * arrowLen;
+        float headRadius = 0.22f * arrowLen;
+
+        float anchorSize = Math.Clamp(bboxDiag * 0.06f, 3.0f, 60.0f);
+
+        Vector3 orangeColor = new(0.976f, 0.451f, 0.086f); // #F97316
+        Vector3 blueColor = new(0.231f, 0.510f, 0.965f);   // #3B82F6
+
+        foreach (var g in glyphs)
+        {
+            if (g.IsLoad)
+            {
+                Vector3 dir = g.Direction.LengthSquared() > 1e-6f ? Vector3.Normalize(g.Direction) : -Vector3.UnitZ;
+                // Position arrow pointing at the centroid: arrow starts at Position - dir * arrowLen and points to Position
+                Vector3 start = g.Position - dir * arrowLen;
+                Vector3 headBase = g.Position - dir * headLen;
+                Vector3 tip = g.Position;
+
+                AddCylinderTriangles(vertices, start, headBase, shaftRadius, dir, orangeColor);
+                AddConeTriangles(vertices, headBase, tip, headRadius, dir, orangeColor);
+            }
+            else
+            {
+                // Support anchor: 4-sided pyramid pointing at g.Position
+                AddPyramidAnchor(vertices, g.Position, anchorSize, blueColor);
+            }
+        }
+
+        return vertices.ToArray();
+    }
+
+    private static void AddCylinderTriangles(
+        List<GpuVertex> vertices,
+        Vector3 p0,
+        Vector3 p1,
+        float radius,
+        Vector3 axis,
+        Vector3 color)
+    {
+        // Build perpendicular basis
+        Vector3 up = Math.Abs(axis.Z) < 0.9f ? Vector3.UnitZ : Vector3.UnitX;
+        Vector3 side = Vector3.Normalize(Vector3.Cross(axis, up));
+        Vector3 normUp = Vector3.Cross(side, axis);
+
+        int segments = 8;
+        for (int i = 0; i < segments; i++)
+        {
+            float a0 = (float)(2.0 * Math.PI * i / segments);
+            float a1 = (float)(2.0 * Math.PI * (i + 1) / segments);
+
+            Vector3 r0 = side * (float)Math.Cos(a0) + normUp * (float)Math.Sin(a0);
+            Vector3 r1 = side * (float)Math.Cos(a1) + normUp * (float)Math.Sin(a1);
+
+            Vector3 v00 = p0 + r0 * radius;
+            Vector3 v01 = p0 + r1 * radius;
+            Vector3 v10 = p1 + r0 * radius;
+            Vector3 v11 = p1 + r1 * radius;
+
+            // Two triangles for cylinder quad
+            vertices.Add(new GpuVertex { Position = v00, Normal = r0, Color = color });
+            vertices.Add(new GpuVertex { Position = v10, Normal = r0, Color = color });
+            vertices.Add(new GpuVertex { Position = v11, Normal = r1, Color = color });
+
+            vertices.Add(new GpuVertex { Position = v00, Normal = r0, Color = color });
+            vertices.Add(new GpuVertex { Position = v11, Normal = r1, Color = color });
+            vertices.Add(new GpuVertex { Position = v01, Normal = r1, Color = color });
+        }
+    }
+
+    private static void AddConeTriangles(
+        List<GpuVertex> vertices,
+        Vector3 pBase,
+        Vector3 tip,
+        float radius,
+        Vector3 axis,
+        Vector3 color)
+    {
+        Vector3 up = Math.Abs(axis.Z) < 0.9f ? Vector3.UnitZ : Vector3.UnitX;
+        Vector3 side = Vector3.Normalize(Vector3.Cross(axis, up));
+        Vector3 normUp = Vector3.Cross(side, axis);
+
+        int segments = 8;
+        for (int i = 0; i < segments; i++)
+        {
+            float a0 = (float)(2.0 * Math.PI * i / segments);
+            float a1 = (float)(2.0 * Math.PI * (i + 1) / segments);
+
+            Vector3 r0 = side * (float)Math.Cos(a0) + normUp * (float)Math.Sin(a0);
+            Vector3 r1 = side * (float)Math.Cos(a1) + normUp * (float)Math.Sin(a1);
+
+            Vector3 b0 = pBase + r0 * radius;
+            Vector3 b1 = pBase + r1 * radius;
+
+            Vector3 coneNormal0 = Vector3.Normalize(r0 + axis * 0.5f);
+            Vector3 coneNormal1 = Vector3.Normalize(r1 + axis * 0.5f);
+
+            // Cone side triangle
+            vertices.Add(new GpuVertex { Position = b0, Normal = coneNormal0, Color = color });
+            vertices.Add(new GpuVertex { Position = tip, Normal = (coneNormal0 + coneNormal1) * 0.5f, Color = color });
+            vertices.Add(new GpuVertex { Position = b1, Normal = coneNormal1, Color = color });
+
+            // Base disk triangle
+            vertices.Add(new GpuVertex { Position = pBase, Normal = -axis, Color = color });
+            vertices.Add(new GpuVertex { Position = b1, Normal = -axis, Color = color });
+            vertices.Add(new GpuVertex { Position = b0, Normal = -axis, Color = color });
+        }
+    }
+
+    private static void AddPyramidAnchor(
+        List<GpuVertex> vertices,
+        Vector3 tip,
+        float size,
+        Vector3 color)
+    {
+        // 4-sided pyramid pointing at tip, elevated along +Z
+        float half = size * 0.5f;
+        Vector3 baseC = tip + Vector3.UnitZ * size;
+        Vector3 c0 = baseC + new Vector3(-half, -half, 0);
+        Vector3 c1 = baseC + new Vector3( half, -half, 0);
+        Vector3 c2 = baseC + new Vector3( half,  half, 0);
+        Vector3 c3 = baseC + new Vector3(-half,  half, 0);
+
+        // 4 side triangles
+        AddTri(vertices, tip, c0, c1, color);
+        AddTri(vertices, tip, c1, c2, color);
+        AddTri(vertices, tip, c2, c3, color);
+        AddTri(vertices, tip, c3, c0, color);
+
+        // Base square
+        AddTri(vertices, c0, c2, c1, color);
+        AddTri(vertices, c0, c3, c2, color);
+    }
+
+    private static void AddTri(List<GpuVertex> vertices, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 color)
+    {
+        Vector3 norm = Vector3.Normalize(Vector3.Cross(p1 - p0, p2 - p0));
+        vertices.Add(new GpuVertex { Position = p0, Normal = norm, Color = color });
+        vertices.Add(new GpuVertex { Position = p1, Normal = norm, Color = color });
+        vertices.Add(new GpuVertex { Position = p2, Normal = norm, Color = color });
     }
 
     public void FitView()
@@ -407,6 +616,18 @@ public sealed class Viewport3DControl : OpenGlControlBase
         _gl.EnableVertexAttribArray(2);
         _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
 
+        _gl.BindVertexArray(0);
+
+        _glyphVao = _gl.GenVertexArray();
+        _glyphVbo = _gl.GenBuffer();
+        _gl.BindVertexArray(_glyphVao);
+        _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _glyphVbo);
+        _gl.EnableVertexAttribArray(0);
+        _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+        _gl.EnableVertexAttribArray(1);
+        _gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
+        _gl.EnableVertexAttribArray(2);
+        _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
         _gl.BindVertexArray(0);
 
         BuildReferenceGrid(_gl, new Vector3(-50f, -50f, 0f), new Vector3(50f, 50f, 0f));
@@ -525,6 +746,19 @@ public sealed class Viewport3DControl : OpenGlControlBase
         }
 
         _gl.BindVertexArray(0);
+
+        // 6. Render 3D boundary condition glyphs (always-on load arrows & support anchors)
+        if (_glyphVertexCount > 0)
+        {
+            _gl.UseProgram(_meshShader);
+            _gl.UniformMatrix4(_uViewProjLoc, 1, false, (float*)&viewProj);
+            _gl.Uniform3(_uEyePosLoc, eyePos.X, eyePos.Y, eyePos.Z);
+            _gl.Uniform4(_uOverrideColorLoc, 0f, 0f, 0f, 0f);
+            _gl.Uniform1(_uUseVertexColorLoc, 1);
+
+            _gl.BindVertexArray(_glyphVao);
+            _gl.DrawArrays(PrimitiveType.Triangles, 0, (uint)_glyphVertexCount);
+        }
         _gl.UseProgram(0);
 
         UpdateFpsCounter();
@@ -730,6 +964,24 @@ public sealed class Viewport3DControl : OpenGlControlBase
                     _patchPointsCount = 0;
                 }
             }
+
+            if (_glyphUploadPending)
+            {
+                _glyphUploadPending = false;
+                if (_pendingGlyphVertices is not null && _pendingGlyphVertices.Length > 0)
+                {
+                    gl.BindBuffer(BufferTargetARB.ArrayBuffer, _glyphVbo);
+                    fixed (GpuVertex* gPtr = _pendingGlyphVertices)
+                    {
+                        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(_pendingGlyphVertices.Length * sizeof(GpuVertex)), gPtr, BufferUsageARB.DynamicDraw);
+                    }
+                    _glyphVertexCount = _pendingGlyphVertices.Length;
+                }
+                else
+                {
+                    _glyphVertexCount = 0;
+                }
+            }
         }
 
         completedTcs?.TrySetResult();
@@ -854,6 +1106,8 @@ public sealed class Viewport3DControl : OpenGlControlBase
                 _overlays.Clear();
             }
 
+            if (_glyphVbo != 0) _gl.DeleteBuffer(_glyphVbo);
+            if (_glyphVao != 0) _gl.DeleteVertexArray(_glyphVao);
             if (_voxelEbo != 0) _gl.DeleteBuffer(_voxelEbo);
             if (_voxelVbo != 0) _gl.DeleteBuffer(_voxelVbo);
             if (_voxelVao != 0) _gl.DeleteVertexArray(_voxelVao);
