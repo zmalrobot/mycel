@@ -1,5 +1,13 @@
 # TopoOpt Agent Development Rules
 
+## 0. Communication & Task Boot Protocol
+- **Language**: Talk to the user in Italian. Write code, identifiers, code comments, commit messages, and documentation in English.
+- **Task Startup Protocol**: At the start of every task, read:
+  1. `AGENTS.md`
+  2. `docs/ARCHITECTURE.md`
+  3. `docs/DECISIONS.md`
+  4. The latest `docs/STEPn.md` (where `n` is the most recent completed step).
+
 ## 1. Physical Units & Coordinate Conventions
 - Units: **mm**, **N**, **MPa** ($1\text{ MPa} = 1\text{ N/mm}^2$).
 - Coordinates: Right-handed system, **Z up** (Z = print build direction).
