@@ -88,4 +88,38 @@ public class StaticAnalysisTests
         int node111 = (int)grid.NodeIndex(1, 1, 1);
         Assert.Equal(nodalScalars[node111], sampled);
     }
+
+    [Fact]
+    public void SampleNodalScalar_InterpolatesUsingOnlyActiveNodes_WhenCellPartiallyActive()
+    {
+        // 2x1x1 grid: Element 0 is solid, element 1 is void
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 2, 1, 1);
+        byte[] domain = new byte[2] { 1, 0 };
+        var mat = new FeMaterial(1000.0, 0.3);
+        var model = new FeModel(grid, domain, mat, new int[] { 0, 1, 2, 3, 4, 5 });
+
+        // Total nodes: 3 x 2 x 2 = 12 nodes
+        // Nodes with ix=0 and ix=1 are active; ix=2 are inactive.
+        double[] nodalScalars = new double[model.TotalNodes];
+        for (int k = 0; k <= 1; k++)
+        {
+            for (int j = 0; j <= 1; j++)
+            {
+                for (int i = 0; i <= 2; i++)
+                {
+                    int n = (int)grid.NodeIndex(i, j, k);
+                    nodalScalars[n] = 10.0 * i + 5.0 * j + 2.0 * k;
+                }
+            }
+        }
+
+        // Query at (1.5, 0.5, 0.5), which is in cell 1 (the void cell)
+        // In cell 1, only the 4 nodes at x=1 are active.
+        Vector3 queryPoint = new(1.5f, 0.5f, 0.5f);
+        double sampled = StaticAnalysis.SampleNodalScalar(model, nodalScalars, queryPoint);
+
+        // At x=1, y=0.5, z=0.5, the interpolated scalar from the 4 nodes at x=1 is:
+        // 10*1 + 5*0.5 + 2*0.5 = 10 + 2.5 + 1.0 = 13.5
+        Assert.Equal(13.5, sampled, precision: 10);
+    }
 }

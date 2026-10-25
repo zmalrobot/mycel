@@ -133,7 +133,8 @@ public static class StaticAnalysis
     private static double[] ComputeElementVonMises(FeModel model, FemOperator op, ReadOnlySpan<double> u)
     {
         double[] vm = new double[model.TotalElements];
-        double[] bc = Hex8Element.CreateBc(model.Grid.H);
+        double invH = 1.0 / model.Grid.H;
+        double[] baseBc = Hex8Element.BaseBc;
         double[] d = Hex8Element.CreateConstitutiveMatrix(1.0, model.Material.Nu);
 
         Span<double> ue = stackalloc double[24];
@@ -158,16 +159,16 @@ public static class StaticAnalysis
                     ue[k] = u[dofs[dofBase + k]];
                 }
 
-                // ε = Bc * ue (6x24 by 24)
+                // ε = Bc * ue (6x24 by 24), where Bc = BaseBc * invH
                 for (int r = 0; r < 6; r++)
                 {
                     double sum = 0.0;
                     int rowOffset = r * 24;
                     for (int k = 0; k < 24; k++)
                     {
-                        sum += bc[rowOffset + k] * ue[k];
+                        sum += baseBc[rowOffset + k] * ue[k];
                     }
-                    eps[r] = sum;
+                    eps[r] = sum * invH;
                 }
 
                 // σ = E_e * D * ε (6x6 by 6)
@@ -261,7 +262,7 @@ public static class StaticAnalysis
 
     /// <summary>
     /// Samples a nodal scalar field at an arbitrary 3D point using trilinear interpolation within the containing cell
-    /// if all cell nodes are active. Falls back to nearest active node otherwise.
+    /// using only active nodes (fallback: nearest active node).
     /// </summary>
     public static double SampleNodalScalar(FeModel model, ReadOnlySpan<double> nodalScalar, Vector3 point)
     {
@@ -298,32 +299,36 @@ public static class StaticAnalysis
             int n7 = n4 + nx1;
             int n6 = n7 + 1;
 
-            if (model.ActiveNodes[n0] && model.ActiveNodes[n1] && model.ActiveNodes[n2] && model.ActiveNodes[n3] &&
-                model.ActiveNodes[n4] && model.ActiveNodes[n5] && model.ActiveNodes[n6] && model.ActiveNodes[n7])
+            // Local unit coordinates [0, 1]³
+            double xi = rx - ix;
+            double eta = ry - iy;
+            double zeta = rz - iz;
+
+            // Trilinear shape functions
+            double w0 = (1.0 - xi) * (1.0 - eta) * (1.0 - zeta);
+            double w1 = xi * (1.0 - eta) * (1.0 - zeta);
+            double w2 = xi * eta * (1.0 - zeta);
+            double w3 = (1.0 - xi) * eta * (1.0 - zeta);
+            double w4 = (1.0 - xi) * (1.0 - eta) * zeta;
+            double w5 = xi * (1.0 - eta) * zeta;
+            double w6 = xi * eta * zeta;
+            double w7 = (1.0 - xi) * eta * zeta;
+
+            double weightSum = 0.0;
+            double valSum = 0.0;
+
+            if (model.ActiveNodes[n0]) { weightSum += w0; valSum += w0 * nodalScalar[n0]; }
+            if (model.ActiveNodes[n1]) { weightSum += w1; valSum += w1 * nodalScalar[n1]; }
+            if (model.ActiveNodes[n2]) { weightSum += w2; valSum += w2 * nodalScalar[n2]; }
+            if (model.ActiveNodes[n3]) { weightSum += w3; valSum += w3 * nodalScalar[n3]; }
+            if (model.ActiveNodes[n4]) { weightSum += w4; valSum += w4 * nodalScalar[n4]; }
+            if (model.ActiveNodes[n5]) { weightSum += w5; valSum += w5 * nodalScalar[n5]; }
+            if (model.ActiveNodes[n6]) { weightSum += w6; valSum += w6 * nodalScalar[n6]; }
+            if (model.ActiveNodes[n7]) { weightSum += w7; valSum += w7 * nodalScalar[n7]; }
+
+            if (weightSum > 1e-12)
             {
-                // Local unit coordinates [0, 1]³
-                double xi = rx - ix;
-                double eta = ry - iy;
-                double zeta = rz - iz;
-
-                // Trilinear shape functions
-                double n0Val = (1.0 - xi) * (1.0 - eta) * (1.0 - zeta);
-                double n1Val = xi * (1.0 - eta) * (1.0 - zeta);
-                double n2Val = xi * eta * (1.0 - zeta);
-                double n3Val = (1.0 - xi) * eta * (1.0 - zeta);
-                double n4Val = (1.0 - xi) * (1.0 - eta) * zeta;
-                double n5Val = xi * (1.0 - eta) * zeta;
-                double n6Val = xi * eta * zeta;
-                double n7Val = (1.0 - xi) * eta * zeta;
-
-                return n0Val * nodalScalar[n0] +
-                       n1Val * nodalScalar[n1] +
-                       n2Val * nodalScalar[n2] +
-                       n3Val * nodalScalar[n3] +
-                       n4Val * nodalScalar[n4] +
-                       n5Val * nodalScalar[n5] +
-                       n6Val * nodalScalar[n6] +
-                       n7Val * nodalScalar[n7];
+                return valSum / weightSum;
             }
         }
 

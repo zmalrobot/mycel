@@ -118,5 +118,53 @@ public class FeModelTests
         // Fix using component list
         int[] dofsZ = FeModel.FixDofs(nodes, stackalloc int[] { 2 });
         Assert.Equal(new int[] { 32, 62 }, dofsZ);
+
+        // Fix SurfacePatch with components params
+        var patch = new SurfacePatch(Array.Empty<VoxelFace>(), nodes, new double[] { 1, 1 }, (Vector3.Zero, Vector3.One), true);
+        int[] dofsPatch = FeModel.FixDofs(patch, 1, 2);
+        Assert.Equal(new int[] { 31, 32, 61, 62 }, dofsPatch);
+    }
+
+    [Fact]
+    public void FeModel_AssembleForces_EmptyPatchWithForce_ThrowsInvalidOperationException()
+    {
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 2, 2, 2);
+        byte[] domain = new byte[8];
+        domain[0] = 1;
+        var mat = new FeMaterial(1000.0, 0.3);
+
+        var emptyPatch = new SurfacePatch(
+            Array.Empty<VoxelFace>(),
+            Array.Empty<int>(),
+            Array.Empty<double>(),
+            (Vector3.Zero, Vector3.Zero),
+            false);
+
+        var loadCase = new LoadCase(emptyPatch, new Vector3(100, 0, 0));
+        var model = new FeModel(grid, domain, mat, new int[] { 0, 1, 2, 3, 4, 5 }, new[] { loadCase });
+
+        Assert.Throws<InvalidOperationException>(() => model.AssembleForces());
+    }
+
+    [Fact]
+    public void FeModel_AssembleForces_EmptyPatchWithZeroForce_Succeeds()
+    {
+        var grid = new GridSpec(Vector3.Zero, 1.0f, 2, 2, 2);
+        byte[] domain = new byte[8];
+        domain[0] = 1;
+        var mat = new FeMaterial(1000.0, 0.3);
+
+        var emptyPatch = new SurfacePatch(
+            Array.Empty<VoxelFace>(),
+            Array.Empty<int>(),
+            Array.Empty<double>(),
+            (Vector3.Zero, Vector3.Zero),
+            false);
+
+        var loadCase = new LoadCase(emptyPatch, Vector3.Zero);
+        var model = new FeModel(grid, domain, mat, new int[] { 0, 1, 2, 3, 4, 5 }, new[] { loadCase });
+
+        double[] f = model.AssembleForces();
+        Assert.All(f, val => Assert.Equal(0.0, val));
     }
 }

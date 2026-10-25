@@ -100,6 +100,17 @@ public static class Hex8Element
         if (h <= 0)
             throw new ArgumentOutOfRangeException(nameof(h), "Element edge length h must be positive.");
 
+        // Fast path: if nu is default 0.3, directly scale BaseKe by h
+        if (Math.Abs(nu - 0.3) < 1e-15 && BaseKe != null)
+        {
+            double[] scaledKe = new double[24 * 24];
+            for (int i = 0; i < 24 * 24; i++)
+            {
+                scaledKe[i] = BaseKe[i] * h;
+            }
+            return scaledKe;
+        }
+
         // For h != 1, we can compute Ke(1) and multiply by h (proven above)
         double[] ke = new double[24 * 24];
         double[] d = CreateConstitutiveMatrix(1.0, nu);
@@ -208,9 +219,25 @@ public static class Hex8Element
     /// </summary>
     public static double[] CreateBc(double h)
     {
-        double[] bc = new double[6 * 24];
-        EvaluateB(0.0, 0.0, 0.0, h, bc);
-        return bc;
+        if (h <= 0)
+            throw new ArgumentOutOfRangeException(nameof(h), "Element edge length h must be positive.");
+
+        if (BaseBc != null)
+        {
+            double[] bc = new double[6 * 24];
+            double invH = 1.0 / h;
+            for (int i = 0; i < 6 * 24; i++)
+            {
+                bc[i] = BaseBc[i] * invH;
+            }
+            return bc;
+        }
+        else
+        {
+            double[] bc = new double[6 * 24];
+            EvaluateB(0.0, 0.0, 0.0, h, bc);
+            return bc;
+        }
     }
 
     public static double[] ExtractDiagonal(ReadOnlySpan<double> ke24x24)

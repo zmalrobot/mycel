@@ -201,6 +201,33 @@ public sealed class FeModel
     }
 
     /// <summary>
+    /// Helper to generate fixed DOF indices for a surface patch with specific coordinate components.
+    /// </summary>
+    public static int[] FixDofs(SurfacePatch patch, ReadOnlySpan<int> components)
+    {
+        ArgumentNullException.ThrowIfNull(patch);
+        return FixDofs(patch.Nodes, components);
+    }
+
+    /// <summary>
+    /// Helper to generate fixed DOF indices for a surface patch with specific coordinate components.
+    /// </summary>
+    public static int[] FixDofs(SurfacePatch patch, params int[] components)
+    {
+        ArgumentNullException.ThrowIfNull(patch);
+        return FixDofs(patch.Nodes, (ReadOnlySpan<int>)components);
+    }
+
+    /// <summary>
+    /// Helper to generate fixed DOF indices for nodes with specific coordinate components.
+    /// </summary>
+    public static int[] FixDofs(IEnumerable<int> nodes, params int[] components)
+    {
+        ArgumentNullException.ThrowIfNull(nodes);
+        return FixDofs(nodes, (ReadOnlySpan<int>)components);
+    }
+
+    /// <summary>
     /// Helper to generate fixed DOF indices for nodes with specific coordinate components.
     /// </summary>
     public static int[] FixDofs(IEnumerable<int> nodes, ReadOnlySpan<int> components)
@@ -232,7 +259,15 @@ public sealed class FeModel
         foreach (var load in Loads)
         {
             var patch = load.Patch;
-            if (patch.NodeCount == 0) continue;
+            if (patch.NodeCount == 0)
+            {
+                if (load.TotalForce != Vector3.Zero)
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot assemble load case with force {load.TotalForce}: surface patch contains 0 nodes.");
+                }
+                continue;
+            }
 
             double totalArea = 0.0;
             for (int i = 0; i < patch.NodeCount; i++)
@@ -251,6 +286,8 @@ public sealed class FeModel
                 for (int i = 0; i < patch.NodeCount; i++)
                 {
                     int node = patch.Nodes[i];
+                    if ((uint)node >= (uint)TotalNodes)
+                        throw new InvalidOperationException($"Patch node index {node} is out of bounds [0, {TotalNodes - 1}].");
                     f[3 * node + 0] += fx;
                     f[3 * node + 1] += fy;
                     f[3 * node + 2] += fz;
@@ -262,6 +299,8 @@ public sealed class FeModel
                 for (int i = 0; i < patch.NodeCount; i++)
                 {
                     int node = patch.Nodes[i];
+                    if ((uint)node >= (uint)TotalNodes)
+                        throw new InvalidOperationException($"Patch node index {node} is out of bounds [0, {TotalNodes - 1}].");
                     double weight = patch.NodeArea[i] * invTotalArea;
                     f[3 * node + 0] += load.TotalForce.X * weight;
                     f[3 * node + 1] += load.TotalForce.Y * weight;

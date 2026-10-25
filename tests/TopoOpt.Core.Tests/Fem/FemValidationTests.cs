@@ -571,6 +571,16 @@ public class FemValidationTests
 
         var resIsland = StaticAnalysis.Run(modelIsland, new StaticAnalysisOptions(Tolerance: 1e-6));
         Assert.True(resIsland.SolverInfo.Converged, "Solver did not converge with disconnected island.");
+
+        // 3. Model with zero applied loads returns zero displacement and 0 iterations
+        var modelZeroLoads = new FeModel(grid, domain, mat, new int[] { 0, 1, 2, 3, 4, 5 });
+        var resZero = StaticAnalysis.Run(modelZeroLoads);
+        Assert.True(resZero.SolverInfo.Converged);
+        Assert.Equal(0, resZero.SolverInfo.Iterations);
+        Assert.Equal(0.0, resZero.Compliance);
+        Assert.Equal(0.0, resZero.MaxDisplacement);
+        Assert.All(resZero.U, val => Assert.Equal(0.0, val));
+        Assert.All(resZero.Reactions, val => Assert.Equal(0.0, val));
     }
 
     [Fact]

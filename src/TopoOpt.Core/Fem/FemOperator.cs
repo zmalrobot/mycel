@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Threading.Tasks;
 
 namespace TopoOpt.Core.Fem;
@@ -200,25 +201,48 @@ public sealed class FemOperator
 
     /// <summary>
     /// Evaluates y = A * x = [P K P + (I - P)] * x.
+    /// If xIsAlreadyProjected is true (e.g. in PCG iterations where P*x == x),
+    /// redundant memory copying into scratch vectors is bypassed.
     /// </summary>
-    public void ApplyA(ReadOnlySpan<double> x, Span<double> y, bool parallel = true, int maxDegreeOfParallelism = -1)
+    public void ApplyA(
+        ReadOnlySpan<double> x,
+        Span<double> y,
+        bool parallel = true,
+        int maxDegreeOfParallelism = -1,
+        bool xIsAlreadyProjected = false)
     {
-        // 1. Zero out constrained DOFs: v = P * x
         var constrained = Model.ConstrainedDofs;
-        for (int i = 0; i < Model.TotalDofs; i++)
-        {
-            _vScratch[i] = constrained[i] ? 0.0 : x[i];
-        }
 
-        // 2. y = K * v
-        ApplyK(_vScratch, y, parallel, maxDegreeOfParallelism);
-
-        // 3. Project back: y = P * y + (I - P) * x
-        for (int i = 0; i < Model.TotalDofs; i++)
+        if (xIsAlreadyProjected)
         {
-            if (constrained[i])
+            ApplyK(x, y, parallel, maxDegreeOfParallelism);
+
+            for (int i = 0; i < Model.TotalDofs; i++)
             {
-                y[i] = x[i];
+                if (constrained[i])
+                {
+                    y[i] = x[i];
+                }
+            }
+        }
+        else
+        {
+            // 1. Zero out constrained DOFs: v = P * x
+            for (int i = 0; i < Model.TotalDofs; i++)
+            {
+                _vScratch[i] = constrained[i] ? 0.0 : x[i];
+            }
+
+            // 2. y = K * v
+            ApplyK(_vScratch, y, parallel, maxDegreeOfParallelism);
+
+            // 3. Project back: y = P * y + (I - P) * x
+            for (int i = 0; i < Model.TotalDofs; i++)
+            {
+                if (constrained[i])
+                {
+                    y[i] = x[i];
+                }
             }
         }
     }
@@ -315,17 +339,46 @@ public sealed class FemOperator
             ue[k] = x[dofs[dofBase + k]] * ee;
         }
 
-        // Multiply & scatter
-        for (int r = 0; r < 24; r++)
+        if (Vector256.IsHardwareAccelerated)
         {
-            double sum = 0.0;
-            int rowOffset = r * 24;
-            for (int c = 0; c < 24; c++)
+            fixed (double* pUe = ue)
             {
-                sum += ke[rowOffset + c] * ue[c];
-            }
+                Vector256<double> u0 = Vector256.Load(pUe + 0);
+                Vector256<double> u1 = Vector256.Load(pUe + 4);
+                Vector256<double> u2 = Vector256.Load(pUe + 8);
+                Vector256<double> u3 = Vector256.Load(pUe + 12);
+                Vector256<double> u4 = Vector256.Load(pUe + 16);
+                Vector256<double> u5 = Vector256.Load(pUe + 20);
 
-            y[dofs[dofBase + r]] += sum;
+                for (int r = 0; r < 24; r++)
+                {
+                    double* row = ke + r * 24;
+                    Vector256<double> k0 = Vector256.Load(row + 0);
+                    Vector256<double> k1 = Vector256.Load(row + 4);
+                    Vector256<double> k2 = Vector256.Load(row + 8);
+                    Vector256<double> k3 = Vector256.Load(row + 12);
+                    Vector256<double> k4 = Vector256.Load(row + 16);
+                    Vector256<double> k5 = Vector256.Load(row + 20);
+
+                    Vector256<double> acc = k0 * u0 + k1 * u1 + k2 * u2 + k3 * u3 + k4 * u4 + k5 * u5;
+                    y[dofs[dofBase + r]] += Vector256.Sum(acc);
+                }
+            }
+        }
+        else
+        {
+            // Scalar fallback
+            for (int r = 0; r < 24; r++)
+            {
+                double sum = 0.0;
+                int rowOffset = r * 24;
+                for (int c = 0; c < 24; c++)
+                {
+                    sum += ke[rowOffset + c] * ue[c];
+                }
+
+                y[dofs[dofBase + r]] += sum;
+            }
         }
     }
 }

@@ -80,6 +80,16 @@ public sealed class PcgSolver
         // Set up preconditioner
         preconditioner.Setup(op.Model, op.DiagA);
 
+        // Ensure initial x strictly satisfies constraints: x = P * x
+        var constrained = op.Model.ConstrainedDofs;
+        for (int i = 0; i < n; i++)
+        {
+            if (constrained[i])
+            {
+                x[i] = 0.0;
+            }
+        }
+
         // Check whether initial x is non-zero (warm start)
         bool hasNonZeroX = false;
         for (int i = 0; i < n; i++)
@@ -94,7 +104,7 @@ public sealed class PcgSolver
         if (hasNonZeroX)
         {
             // r = b - A * x
-            op.ApplyA(x, ap, parallel: true, maxDegreeOfParallelism);
+            op.ApplyA(x, ap, parallel: true, maxDegreeOfParallelism, xIsAlreadyProjected: true);
             for (int i = 0; i < n; i++)
             {
                 r[i] = b[i] - ap[i];
@@ -134,8 +144,8 @@ public sealed class PcgSolver
             ct.ThrowIfCancellationRequested();
             iter++;
 
-            // ap = A * p
-            op.ApplyA(p, ap, parallel: true, maxDegreeOfParallelism);
+            // ap = A * p (p is guaranteed to have p[i] == 0 on constrained DOFs)
+            op.ApplyA(p, ap, parallel: true, maxDegreeOfParallelism, xIsAlreadyProjected: true);
 
             double pAp = Dot(p, ap);
             if (pAp <= 1e-30)
