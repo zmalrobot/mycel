@@ -78,6 +78,14 @@ public sealed class Viewport3DControl : OpenGlControlBase
     private IndexedMesh? _pendingVoxelMesh;
     private bool _voxelMeshUploadPending;
 
+    private uint _ghostVao;
+    private uint _ghostVbo;
+    private uint _ghostEbo;
+    private int _ghostIndexCount;
+    private IndexedMesh? _pendingGhostMesh;
+    private bool _ghostMeshUploadPending;
+    private bool _showGhostOriginal;
+
     private uint _patchPointsVao;
     private uint _patchPointsVbo;
     private int _patchPointsCount;
@@ -198,6 +206,7 @@ public sealed class Viewport3DControl : OpenGlControlBase
             _currentMesh = mesh;
             _pendingMesh = mesh;
             _stagedVertices = staged;
+            _useVertexColors = false;
             _meshUploadPending = true;
             _pendingMeshTcs = tcs;
         }
@@ -278,6 +287,26 @@ public sealed class Viewport3DControl : OpenGlControlBase
         {
             _pendingVoxelMesh = mesh;
             _voxelMeshUploadPending = true;
+        }
+        RequestNextFrameRendering();
+    }
+
+    public void SetGhostOriginalMesh(IndexedMesh? mesh, bool visible)
+    {
+        lock (_syncLock)
+        {
+            _pendingGhostMesh = mesh;
+            _ghostMeshUploadPending = true;
+            _showGhostOriginal = visible;
+        }
+        RequestNextFrameRendering();
+    }
+
+    public void SetShowGhostOriginal(bool visible)
+    {
+        lock (_syncLock)
+        {
+            _showGhostOriginal = visible;
         }
         RequestNextFrameRendering();
     }
@@ -759,6 +788,24 @@ public sealed class Viewport3DControl : OpenGlControlBase
             _gl.BindVertexArray(_glyphVao);
             _gl.DrawArrays(PrimitiveType.Triangles, 0, (uint)_glyphVertexCount);
         }
+
+        // 7. Render translucent ghost original mesh if enabled
+        if (_showGhostOriginal && _ghostIndexCount > 0)
+        {
+            _gl.UseProgram(_meshShader);
+            _gl.UniformMatrix4(_uViewProjLoc, 1, false, (float*)&viewProj);
+            _gl.Uniform3(_uEyePosLoc, eyePos.X, eyePos.Y, eyePos.Z);
+            _gl.Uniform4(_uOverrideColorLoc, 0.35f, 0.65f, 0.95f, 0.18f);
+            _gl.Uniform1(_uUseVertexColorLoc, 0);
+
+            _gl.DepthMask(false);
+            _gl.BindVertexArray(_ghostVao);
+            _gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, _ghostEbo);
+            _gl.DrawElements(PrimitiveType.Triangles, (uint)_ghostIndexCount, DrawElementsType.UnsignedInt, null);
+            _gl.DepthMask(true);
+            _gl.BindVertexArray(0);
+        }
+
         _gl.UseProgram(0);
 
         UpdateFpsCounter();
@@ -982,6 +1029,51 @@ public sealed class Viewport3DControl : OpenGlControlBase
                     _glyphVertexCount = 0;
                 }
             }
+
+            if (_ghostMeshUploadPending)
+            {
+                _ghostMeshUploadPending = false;
+                if (_pendingGhostMesh is not null && _pendingGhostMesh.TriangleCount > 0)
+                {
+                    if (_ghostVao == 0)
+                    {
+                        _ghostVao = gl.GenVertexArray();
+                        _ghostVbo = gl.GenBuffer();
+                        _ghostEbo = gl.GenBuffer();
+                    }
+
+                    GpuVertex[] vList = BuildGpuVertices(_pendingGhostMesh);
+                    gl.BindVertexArray(_ghostVao);
+
+                    gl.BindBuffer(BufferTargetARB.ArrayBuffer, _ghostVbo);
+                    fixed (GpuVertex* vPtr = vList)
+                    {
+                        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vList.Length * sizeof(GpuVertex)), vPtr, BufferUsageARB.StaticDraw);
+                    }
+
+                    int[] indArr = _pendingGhostMesh.Indices.ToArray();
+                    gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, _ghostEbo);
+                    fixed (int* iPtr = indArr)
+                    {
+                        gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(indArr.Length * sizeof(int)), iPtr, BufferUsageARB.StaticDraw);
+                    }
+
+                    uint stride = (uint)sizeof(GpuVertex);
+                    gl.EnableVertexAttribArray(0);
+                    gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+                    gl.EnableVertexAttribArray(1);
+                    gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
+                    gl.EnableVertexAttribArray(2);
+                    gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+
+                    gl.BindVertexArray(0);
+                    _ghostIndexCount = indArr.Length;
+                }
+                else
+                {
+                    _ghostIndexCount = 0;
+                }
+            }
         }
 
         completedTcs?.TrySetResult();
@@ -1108,6 +1200,9 @@ public sealed class Viewport3DControl : OpenGlControlBase
 
             if (_glyphVbo != 0) _gl.DeleteBuffer(_glyphVbo);
             if (_glyphVao != 0) _gl.DeleteVertexArray(_glyphVao);
+            if (_ghostEbo != 0) _gl.DeleteBuffer(_ghostEbo);
+            if (_ghostVbo != 0) _gl.DeleteBuffer(_ghostVbo);
+            if (_ghostVao != 0) _gl.DeleteVertexArray(_ghostVao);
             if (_voxelEbo != 0) _gl.DeleteBuffer(_voxelEbo);
             if (_voxelVbo != 0) _gl.DeleteBuffer(_voxelVbo);
             if (_voxelVao != 0) _gl.DeleteVertexArray(_voxelVao);

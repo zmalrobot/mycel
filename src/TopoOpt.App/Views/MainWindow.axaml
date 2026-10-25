@@ -526,6 +526,252 @@
               </StackPanel>
             </Border>
 
+            <!-- ========================================================== -->
+            <!-- STEP 6: OPTIMISE                                           -->
+            <!-- ========================================================== -->
+            <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
+              <StackPanel>
+                <!-- Step Header -->
+                <Button Command="{Binding SelectStepCommand}" CommandParameter="6"
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="{DynamicResource Pad12}"
+                        ToolTip.Tip="{DynamicResource Stepper.Optimise.Tooltip}">
+                  <Grid ColumnDefinitions="24,*,Auto">
+                    <Border Grid.Column="0" Width="20" Height="20" CornerRadius="{DynamicResource CornerRadius}" Background="{DynamicResource Accent}">
+                      <TextBlock Text="{DynamicResource Stepper.Common.Step6Number}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="{DynamicResource Stepper.Optimise.Title}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin8L}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{DynamicResource Stepper.Common.CompletedCheck}" FontWeight="Bold" Foreground="{DynamicResource Preserve}" IsVisible="{Binding IsStep6Completed}" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+
+                <!-- Step Body -->
+                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=6}">
+                  <!-- Basic Parameters -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Optimise.VolumeFraction}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding OptVolumePercent, StringFormat='{}{0:F0}%'}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
+                  </Grid>
+                  <Slider Value="{Binding OptVolumePercent}" Minimum="10" Maximum="80" TickFrequency="5" IsSnapToTickEnabled="False"
+                          IsEnabled="{Binding !IsOptimising}"
+                          ToolTip.Tip="{DynamicResource Stepper.Optimise.VolumeFraction.Tooltip}" />
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Optimise.MinFeatureSize}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding OptMinFeatureSizeMm}" Minimum="0.2" Maximum="25.0" Increment="0.2" FormatString="F2" Width="105" Height="26"
+                                   IsEnabled="{Binding !IsOptimising}"
+                                   ToolTip.Tip="{DynamicResource Stepper.Optimise.MinFeatureSize.Tooltip}" />
+                  </Grid>
+                  <TextBlock Text="{DynamicResource Stepper.Optimise.MinFeatureHint}" FontSize="9" Foreground="{DynamicResource TextSecondary}" FontStyle="Italic" />
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Optimise.MaxIterations}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding OptMaxIterations}" Minimum="5" Maximum="1000" Increment="10" Width="105" Height="26"
+                                   IsEnabled="{Binding !IsOptimising}"
+                                   ToolTip.Tip="{DynamicResource Stepper.Optimise.MaxIterations.Tooltip}" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Optimise.KeepEveryN}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding OptKeepEveryN}" Minimum="1" Maximum="50" Increment="1" Width="105" Height="26"
+                                   IsEnabled="{Binding !IsOptimising}"
+                                   ToolTip.Tip="{DynamicResource Stepper.Optimise.KeepEveryN.Tooltip}" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Optimise.EstDisk}" FontSize="10" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding OptEstimatedDiskText}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Support}" VerticalAlignment="Center" />
+                  </Grid>
+
+                  <!-- Collapsible Advanced Parameters -->
+                  <Expander Header="{DynamicResource Stepper.Optimise.AdvancedTitle}" HorizontalAlignment="Stretch" Padding="{DynamicResource Pad4}"
+                            ToolTip.Tip="{DynamicResource Stepper.Optimise.AdvancedTitle.Tooltip}">
+                    <StackPanel Spacing="{DynamicResource Spacing8}" Margin="{DynamicResource Margin4T}">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.Penalisation}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding OptPenal}" Minimum="1.0" Maximum="5.0" Increment="0.5" FormatString="F1" Width="95" Height="26"
+                                       IsEnabled="{Binding !IsOptimising}"
+                                       ToolTip.Tip="{DynamicResource Stepper.Optimise.Penalisation.Tooltip}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MoveLimit}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding OptMoveLimit}" Minimum="0.05" Maximum="0.50" Increment="0.05" FormatString="F2" Width="95" Height="26"
+                                       IsEnabled="{Binding !IsOptimising}"
+                                       ToolTip.Tip="{DynamicResource Stepper.Optimise.MoveLimit.Tooltip}" />
+                      </Grid>
+                      <CheckBox Content="{DynamicResource Stepper.Optimise.Projection}" IsChecked="{Binding OptEnableHeaviside}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
+                                IsEnabled="{Binding !IsOptimising}"
+                                ToolTip.Tip="{DynamicResource Stepper.Optimise.Projection.Tooltip}" />
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.EminRatio}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding OptEminRatio}" Minimum="1e-12" Maximum="1e-3" FormatString="E1" Width="95" Height="26"
+                                       IsEnabled="{Binding !IsOptimising}"
+                                       ToolTip.Tip="{DynamicResource Stepper.Optimise.EminRatio.Tooltip}" />
+                      </Grid>
+                    </StackPanel>
+                  </Expander>
+
+                  <!-- Disabled Explanation Banner -->
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8}" BorderBrush="{DynamicResource Warning}" BorderThickness="1"
+                          IsVisible="{Binding HasStartOptimisationBlockingReason}">
+                    <TextBlock Text="{Binding StartOptimisationBlockingReason}" FontSize="10" Foreground="{DynamicResource Warning}" TextWrapping="Wrap" />
+                  </Border>
+
+                  <!-- Start / Pause / Resume / Stop / Open Run Buttons -->
+                  <Button Content="{DynamicResource Stepper.Optimise.Start}"
+                          Command="{Binding StartOptimisationCommand}"
+                          IsEnabled="{Binding CanStartOptimisation}"
+                          IsVisible="{Binding !IsOptimising}"
+                          Background="{DynamicResource Preserve}" Foreground="{DynamicResource Bg0}" FontWeight="Bold"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                          ToolTip.Tip="{DynamicResource Stepper.Optimise.Start.Tooltip}" />
+
+                  <Grid ColumnDefinitions="*,*" IsVisible="{Binding IsOptimising}">
+                    <Button Grid.Column="0" Content="{DynamicResource Stepper.Optimise.Pause}"
+                            Command="{Binding PauseOptimisationCommand}"
+                            IsVisible="{Binding !IsOptimisationPaused}"
+                            Background="{DynamicResource Warning}" Foreground="{DynamicResource Bg0}" FontWeight="SemiBold"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                            ToolTip.Tip="{DynamicResource Stepper.Optimise.Pause.Tooltip}" />
+                    <Button Grid.Column="0" Content="{DynamicResource Stepper.Optimise.Resume}"
+                            Command="{Binding ResumeOptimisationCommand}"
+                            IsVisible="{Binding IsOptimisationPaused}"
+                            Background="{DynamicResource Preserve}" Foreground="{DynamicResource Bg0}" FontWeight="SemiBold"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                            ToolTip.Tip="{DynamicResource Stepper.Optimise.Resume.Tooltip}" />
+                    <Button Grid.Column="1" Content="{DynamicResource Stepper.Optimise.Stop}"
+                            Command="{Binding StopOptimisationCommand}"
+                            Background="{DynamicResource Danger}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"
+                            Margin="{DynamicResource Margin4L}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                            ToolTip.Tip="{DynamicResource Stepper.Optimise.Stop.Tooltip}" />
+                  </Grid>
+
+                  <Button Content="{DynamicResource Stepper.Optimise.ContinueRun}"
+                          Command="{Binding ContinueInterruptedRunCommand}"
+                          IsVisible="{Binding CanContinueInterruptedRun}"
+                          Background="{DynamicResource Warning}" Foreground="{DynamicResource Bg0}" FontWeight="SemiBold"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                          ToolTip.Tip="{DynamicResource Stepper.Optimise.ContinueRun.Tooltip}" />
+
+                  <Button Content="{DynamicResource Stepper.Optimise.OpenRun}"
+                          Click="OnOpenRunClick"
+                          IsEnabled="{Binding !IsOptimising}"
+                          Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                          ToolTip.Tip="{DynamicResource Stepper.Optimise.OpenRun.Tooltip}" />
+
+                  <!-- Live Metrics & Custom Compliance Chart -->
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
+                    <StackPanel Spacing="{DynamicResource Spacing8}">
+                      <TextBlock Text="{DynamicResource Stepper.Optimise.LiveMetricsTitle}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Support}" />
+
+                      <controls:ComplianceChartControl Name="ComplianceChart"
+                                                       Height="95"
+                                                       ComplianceHistory="{Binding ComplianceHistory}"
+                                                       SelectedIteration="{Binding SelectedIteration}"
+                                                       MaxIterations="{Binding OptMaxIterations}" />
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricIteration}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveIterationText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricCompliance}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveComplianceText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Support}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricVolume}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveVolumeText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricChange}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveChangeText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricGrey}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveGreyText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricMsPerIter}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveMsPerIterText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricEta}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveEtaText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricSolverIters}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveSolverItersText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.MetricDiskUsed}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding OptLiveDiskUsedText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+
+                  <!-- Verify & Export Design Card -->
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                          IsVisible="{Binding HasLoadedRun}">
+                    <StackPanel Spacing="{DynamicResource Spacing8}">
+                      <TextBlock Text="{DynamicResource Stepper.Optimise.VerifyExportTitle}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Preserve}" />
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.Threshold}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding VerifyThreshold}" Minimum="0.10" Maximum="0.90" Increment="0.05" FormatString="F2" Width="95" Height="26"
+                                       ToolTip.Tip="{DynamicResource Stepper.Optimise.Threshold.Tooltip}" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.SmoothIters}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding ExportSmoothIterations}" Minimum="0" Maximum="10" Increment="1" Width="95" Height="26"
+                                       ToolTip.Tip="{DynamicResource Stepper.Optimise.SmoothIters.Tooltip}" />
+                      </Grid>
+
+                      <Button Content="{DynamicResource Stepper.Optimise.VerifyBtn}"
+                              Command="{Binding VerifyDesignCommand}"
+                              IsEnabled="{Binding !IsVerifyingDesign}"
+                              Background="{DynamicResource Accent}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"
+                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                              ToolTip.Tip="{DynamicResource Stepper.Optimise.VerifyBtn.Tooltip}" />
+
+                      <StackPanel Spacing="{DynamicResource Spacing4}" IsVisible="{Binding HasVerificationResult}">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{DynamicResource Stepper.Optimise.MaterialSaved}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Grid.Column="1" Text="{Binding VerifyMaterialSavedText}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Preserve}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{DynamicResource Stepper.Optimise.ComplianceRatio}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Grid.Column="1" Text="{Binding VerifyComplianceRatioText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{DynamicResource Stepper.Analysis.MaxVonMises}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Grid.Column="1" Text="{Binding MaxVonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{DynamicResource Stepper.Analysis.P99VonMises}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Grid.Column="1" Text="{Binding P99VonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Support}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{DynamicResource Stepper.Analysis.SafetyFactorMax}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Grid.Column="1" Text="{Binding SafetyFactorText}" FontSize="11" FontWeight="Bold" Foreground="{Binding SafetyFactorBrush}" />
+                        </Grid>
+                        <TextBlock Text="{DynamicResource Stepper.Analysis.FdmDisclaimer}" FontSize="9" Foreground="{DynamicResource TextSecondary}" FontStyle="Italic" TextWrapping="Wrap" />
+                      </StackPanel>
+
+                      <Button Content="{DynamicResource Stepper.Optimise.ExportStlBtn}"
+                              Click="OnExportStlClick"
+                              Background="{DynamicResource Preserve}" Foreground="{DynamicResource Bg0}" FontWeight="SemiBold"
+                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                              ToolTip.Tip="{DynamicResource Stepper.Optimise.ExportStlBtn.Tooltip}" />
+
+                      <TextBlock Text="{Binding ExportStlStatusText}" FontSize="10" Foreground="{DynamicResource Support}" TextWrapping="Wrap"
+                                 IsVisible="{Binding ExportStlStatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
           </StackPanel>
         </ScrollViewer>
       </Border>
@@ -635,6 +881,78 @@
                 <Button Content="{DynamicResource UnitGuard.RescaleInches}" Command="{Binding RescaleFromInchesCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                         Background="{DynamicResource Bg2}" Foreground="{DynamicResource TextPrimary}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
                         ToolTip.Tip="{DynamicResource UnitGuard.RescaleInches.Tooltip}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Border>
+
+        <!-- 5. Bottom Iteration Timeline & Playback Bar -->
+        <Border HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                Background="{DynamicResource Bg1}" BorderBrush="{DynamicResource Border}" BorderThickness="0,1,0,0"
+                Padding="{DynamicResource Pad12_8}" IsVisible="{Binding HasLoadedRun}">
+          <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto">
+            <Button Grid.Column="0" Content="{DynamicResource Timeline.StepBack}"
+                    Command="{Binding StepBackwardTimelineCommand}"
+                    Background="{DynamicResource Bg2}" Foreground="{DynamicResource TextPrimary}"
+                    Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                    ToolTip.Tip="{DynamicResource Timeline.StepBack.Tooltip}" />
+
+            <Button Grid.Column="1" Content="{DynamicResource Timeline.Play}"
+                    Command="{Binding TogglePlayTimelineCommand}"
+                    Background="{DynamicResource Accent}" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold"
+                    Margin="{DynamicResource Margin4L}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                    ToolTip.Tip="{DynamicResource Timeline.Play.Tooltip}" />
+
+            <Button Grid.Column="2" Content="{DynamicResource Timeline.StepForward}"
+                    Command="{Binding StepForwardTimelineCommand}"
+                    Background="{DynamicResource Bg2}" Foreground="{DynamicResource TextPrimary}"
+                    Margin="{DynamicResource Margin4L}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                    ToolTip.Tip="{DynamicResource Timeline.StepForward.Tooltip}" />
+
+            <ComboBox Grid.Column="3" ItemsSource="{Binding AvailablePlaybackSpeeds}" SelectedItem="{Binding SelectedPlaybackSpeed}"
+                      Width="68" Height="28" Margin="{DynamicResource Margin8L}" VerticalAlignment="Center"
+                      ToolTip.Tip="{DynamicResource Timeline.Speed.Tooltip}" />
+
+            <Slider Grid.Column="4" Minimum="1" Maximum="{Binding MaxAvailableIteration}" Value="{Binding SelectedIteration}"
+                    Margin="{DynamicResource Pad12H}" VerticalAlignment="Center"
+                    ToolTip.Tip="{DynamicResource Timeline.Slider.Tooltip}" />
+
+            <TextBlock Grid.Column="5" Text="{Binding TimelineIterationLabel}" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimary}" Width="115" VerticalAlignment="Center" />
+
+            <CheckBox Grid.Column="6" Content="{DynamicResource Timeline.Live}" IsChecked="{Binding IsLiveFollow}"
+                      FontSize="11" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin8L}" VerticalAlignment="Center"
+                      ToolTip.Tip="{DynamicResource Timeline.Live.Tooltip}" />
+
+            <CheckBox Grid.Column="7" Content="{DynamicResource Timeline.Ghost}" IsChecked="{Binding ShowGhostOriginal}"
+                      FontSize="11" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin8L}" VerticalAlignment="Center"
+                      ToolTip.Tip="{DynamicResource Timeline.Ghost.Tooltip}" />
+
+            <Button Grid.Column="8" Content="{DynamicResource Stepper.Optimise.OpenRun}"
+                    Click="OnOpenRunClick"
+                    IsEnabled="{Binding !IsOptimising}"
+                    Background="{DynamicResource Bg2}" Foreground="{DynamicResource TextPrimary}"
+                    Margin="{DynamicResource Margin8L}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                    ToolTip.Tip="{DynamicResource Stepper.Optimise.OpenRun.Tooltip}" />
+          </Grid>
+        </Border>
+
+        <!-- 6. Window Close Confirmation Modal Overlay during active run -->
+        <Border Name="CloseConfirmOverlay" Background="{DynamicResource Bg0}" IsVisible="False">
+          <Border Background="{DynamicResource Bg1}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="{DynamicResource CornerRadius}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center" Padding="{DynamicResource Pad24}" Width="400">
+            <StackPanel Spacing="{DynamicResource Spacing12}">
+              <TextBlock Text="{DynamicResource CloseConfirm.Title}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Warning}" />
+              <TextBlock Text="{DynamicResource CloseConfirm.Description}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+              <StackPanel Spacing="{DynamicResource Spacing8}" Margin="{DynamicResource Margin8T}">
+                <Button Content="{DynamicResource CloseConfirm.StopAndExit}" Click="OnConfirmStopAndExitClick"
+                        Background="{DynamicResource Danger}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                        ToolTip.Tip="{DynamicResource CloseConfirm.StopAndExit.Tooltip}" />
+                <Button Content="{DynamicResource CloseConfirm.KeepRunning}" Click="OnCancelCloseClick"
+                        Background="{DynamicResource Bg2}" Foreground="{DynamicResource TextPrimary}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                        ToolTip.Tip="{DynamicResource CloseConfirm.KeepRunning.Tooltip}" />
               </StackPanel>
             </StackPanel>
           </Border>

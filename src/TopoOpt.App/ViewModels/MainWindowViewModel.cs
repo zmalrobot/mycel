@@ -13,7 +13,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TopoOpt.App.Controls;
 using TopoOpt.App.Rendering;
+using TopoOpt.Core.Fem;
 using TopoOpt.Core.Geometry;
+using TopoOpt.Core.Optimization;
+using TopoOpt.Core.Persistence;
+using TopoOpt.Core.PostProcessing;
 using TopoOpt.Core.Voxelization;
 using TopoOpt.Core.Workflow;
 
@@ -228,8 +232,140 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _currentProjectPath = string.Empty;
 
+    // Step 6: Optimisation Parameters & Live State
+    private OptimizationCoordinator? _optCoordinator;
+    private RunWriter? _activeRunWriter;
+    private RunReader? _activeRunReader;
+    private readonly PlaybackScrubber _playbackScrubber = new();
+    private readonly DispatcherTimer _liveDisplayTimer;
+    private readonly DispatcherTimer _playbackTimer;
+    private int _isLiveExtractionRunning;
+    private readonly List<double> _complianceHistoryList = new();
+    private double _avgIterMs = 150.0;
+
+    public string[] AvailablePlaybackSpeeds { get; } = ["1×", "2×", "5×"];
+
+    [ObservableProperty]
+    private double _optVolumePercent = 30.0;
+
+    [ObservableProperty]
+    private double _optMinFeatureSizeMm = 1.2;
+
+    [ObservableProperty]
+    private int _optMaxIterations = 100;
+
+    [ObservableProperty]
+    private int _optKeepEveryN = 1;
+
+    [ObservableProperty]
+    private string _optEstimatedDiskText = "~4.5 MB";
+
+    [ObservableProperty]
+    private double _optPenal = 3.0;
+
+    [ObservableProperty]
+    private double _optMoveLimit = 0.2;
+
+    [ObservableProperty]
+    private bool _optEnableHeaviside;
+
+    [ObservableProperty]
+    private double _optEminRatio = 1e-9;
+
+    [ObservableProperty]
+    private bool _isOptimising;
+
+    [ObservableProperty]
+    private bool _isOptimisationPaused;
+
+    [ObservableProperty]
+    private bool _canContinueInterruptedRun;
+
+    [ObservableProperty]
+    private string _optLiveIterationText = "0 / 100";
+
+    [ObservableProperty]
+    private string _optLiveComplianceText = "—";
+
+    [ObservableProperty]
+    private string _optLiveVolumeText = "—";
+
+    [ObservableProperty]
+    private string _optLiveChangeText = "—";
+
+    [ObservableProperty]
+    private string _optLiveGreyText = "—";
+
+    [ObservableProperty]
+    private string _optLiveMsPerIterText = "—";
+
+    [ObservableProperty]
+    private string _optLiveEtaText = "—";
+
+    [ObservableProperty]
+    private string _optLiveSolverItersText = "—";
+
+    [ObservableProperty]
+    private string _optLiveDiskUsedText = "0.0 MB";
+
+    [ObservableProperty]
+    private IReadOnlyList<double> _complianceHistory = Array.Empty<double>();
+
+    // Timeline & Playback State
+    [ObservableProperty]
+    private bool _hasLoadedRun;
+
+    [ObservableProperty]
+    private int _selectedIteration = 1;
+
+    [ObservableProperty]
+    private int _maxAvailableIteration = 1;
+
+    [ObservableProperty]
+    private string _timelineIterationLabel = "iteration 0 / 0";
+
+    [ObservableProperty]
+    private bool _isPlayingTimeline;
+
+    [ObservableProperty]
+    private string _selectedPlaybackSpeed = "1×";
+
+    [ObservableProperty]
+    private bool _isLiveFollow = true;
+
+    [ObservableProperty]
+    private bool _showGhostOriginal = true;
+
+    private bool _suppressScrubOnSliderChange;
+
+    // Verify & Export State
+    [ObservableProperty]
+    private float _verifyThreshold = 0.5f;
+
+    [ObservableProperty]
+    private int _exportSmoothIterations = 3;
+
+    [ObservableProperty]
+    private bool _isVerifyingDesign;
+
+    [ObservableProperty]
+    private bool _hasVerificationResult;
+
+    [ObservableProperty]
+    private string _verifyMaterialSavedText = "—";
+
+    [ObservableProperty]
+    private string _verifyComplianceRatioText = "—";
+
+    [ObservableProperty]
+    private string _exportStlStatusText = string.Empty;
+
     // Events for Viewport
     public event Action<IndexedMesh?>? MeshLoaded;
+    public event Action<IndexedMesh?, bool>? GhostOriginalMeshUpdated;
+    public event Action<bool>? ShowGhostOriginalChanged;
+    public event Func<IndexedMesh, Task>? AsyncIsoMeshUpdated;
+    public event Action? ComplianceChartUpdated;
     public event Action<IReadOnlyList<Viewport3DControl.BoundaryGlyphData>?, float>? GlyphsUpdated;
     public event Action<ReadOnlyMemory<float>, LutKind, float, float>? FeaScalarFieldUpdated;
     public event Action? FeaScalarFieldCleared;
@@ -248,6 +384,20 @@ public partial class MainWindowViewModel : ObservableObject
             Interval = TimeSpan.FromMilliseconds(500)
         };
         _autosaveTimer.Tick += OnAutosaveTick;
+
+        _liveDisplayTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(125) // ~8 Hz UI display slot polling
+        };
+        _liveDisplayTimer.Tick += OnLiveDisplayTimerTick;
+
+        _playbackTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(200) // 1x = 5 fps
+        };
+        _playbackTimer.Tick += OnPlaybackTimerTick;
+
+        RefreshOptimisationDiskEstimate();
     }
 
     // Step Completion Badges
@@ -257,6 +407,20 @@ public partial class MainWindowViewModel : ObservableObject
     public bool IsStep4Completed => Workflow.State.Material != null;
     public bool IsStep5Completed => Workflow.State.AnalysisResult != null && !Workflow.State.AnalysisResult.IsOutdated;
     public bool IsStep5Prepared => Workflow.State.PreparedModel != null && !Workflow.State.PreparedModel.IsOutdated;
+    public bool IsStep6Completed => HasLoadedRun && !IsOptimising;
+    public bool HasValidationErrors => Workflow.State.PreparedModel?.ValidationIssues.Any(i => i.Severity == ValidationSeverity.Error) ?? false;
+    public bool CanStartOptimisation => IsStep5Prepared && !HasValidationErrors && !IsOptimising;
+    public string StartOptimisationBlockingReason
+    {
+        get
+        {
+            if (IsOptimising) return string.Empty;
+            if (!IsStep5Prepared) return "Prepare the voxel model in Step 5 before starting optimisation.";
+            if (HasValidationErrors) return "Resolve validation errors in Step 5 before starting optimisation.";
+            return string.Empty;
+        }
+    }
+    public bool HasStartOptimisationBlockingReason => !string.IsNullOrEmpty(StartOptimisationBlockingReason);
 
     [RelayCommand]
     public void SelectStep(int step)
@@ -286,6 +450,7 @@ public partial class MainWindowViewModel : ObservableObject
             AllOverlaysCleared?.Invoke();
 
             MeshLoaded?.Invoke(mesh);
+            GhostOriginalMeshUpdated?.Invoke(mesh, false);
             RefreshBoundaryGlyphs();
             RefreshResolutionMetrics();
 
@@ -325,6 +490,7 @@ public partial class MainWindowViewModel : ObservableObject
         Preserves.Clear();
         AllOverlaysCleared?.Invoke();
         MeshLoaded?.Invoke(mesh);
+        GhostOriginalMeshUpdated?.Invoke(mesh, false);
         RefreshBoundaryGlyphs();
         RefreshResolutionMetrics();
         ActiveStep = 1;
@@ -346,6 +512,7 @@ public partial class MainWindowViewModel : ObservableObject
         CurrentBvh = new Bvh(Workflow.State.Mesh!);
         CurrentSelector = new RegionSelector(Workflow.State.Mesh!);
         MeshLoaded?.Invoke(Workflow.State.Mesh);
+        GhostOriginalMeshUpdated?.Invoke(Workflow.State.Mesh, false);
         RefreshBoundaryGlyphs();
         RefreshResolutionMetrics();
         IsUnitGuardOpen = false;
@@ -360,6 +527,7 @@ public partial class MainWindowViewModel : ObservableObject
         CurrentBvh = new Bvh(Workflow.State.Mesh!);
         CurrentSelector = new RegionSelector(Workflow.State.Mesh!);
         MeshLoaded?.Invoke(Workflow.State.Mesh);
+        GhostOriginalMeshUpdated?.Invoke(Workflow.State.Mesh, false);
         RefreshBoundaryGlyphs();
         RefreshResolutionMetrics();
         IsUnitGuardOpen = false;
@@ -583,6 +751,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         EstimatedMemoryText = $"~{ResolutionConfig.EstimateMemoryMb(TargetSolidElements):F0} MB";
         EstimatedTimeText = $"~{ResolutionConfig.EstimateSolveTimeSeconds(TargetSolidElements):F1} s";
+        RefreshOptimisationDiskEstimate();
     }
 
     [RelayCommand]
@@ -810,6 +979,11 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsStep4Completed));
         OnPropertyChanged(nameof(IsStep5Completed));
         OnPropertyChanged(nameof(IsStep5Prepared));
+        OnPropertyChanged(nameof(IsStep6Completed));
+        OnPropertyChanged(nameof(HasValidationErrors));
+        OnPropertyChanged(nameof(CanStartOptimisation));
+        OnPropertyChanged(nameof(StartOptimisationBlockingReason));
+        OnPropertyChanged(nameof(HasStartOptimisationBlockingReason));
     }
 
     private void UpdateModelMetricsUI()
@@ -948,6 +1122,7 @@ public partial class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(TargetSolidElements));
 
             MeshLoaded?.Invoke(state.Mesh);
+            GhostOriginalMeshUpdated?.Invoke(state.Mesh, false);
             RefreshBoundaryGlyphs();
             RefreshResolutionMetrics();
             NotifyStepBadges();
@@ -995,5 +1170,609 @@ public partial class MainWindowViewModel : ObservableObject
     public void UpdateDiagnostics(double fps, string glSummary)
     {
         FpsText = $"{fps:F0} FPS";
+    }
+
+    // -------------------------------------------------------------------------
+    // Step 6: Live Topology Optimisation, Run Storage, Playback, Verify & Export
+    // -------------------------------------------------------------------------
+
+    partial void OnOptMaxIterationsChanged(int value) => RefreshOptimisationDiskEstimate();
+    partial void OnOptKeepEveryNChanged(int value) => RefreshOptimisationDiskEstimate();
+
+    partial void OnShowGhostOriginalChanged(bool value)
+    {
+        ShowGhostOriginalChanged?.Invoke(value);
+    }
+
+    partial void OnSelectedPlaybackSpeedChanged(string value)
+    {
+        double fps = value switch
+        {
+            "2×" => 10.0,
+            "5×" => 25.0,
+            _ => 5.0
+        };
+        _playbackTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / fps);
+    }
+
+    partial void OnSelectedIterationChanged(int value)
+    {
+        TimelineIterationLabel = $"iteration {value} / {MaxAvailableIteration}";
+        ComplianceChartUpdated?.Invoke();
+
+        if (_suppressScrubOnSliderChange)
+            return;
+
+        if (IsOptimising && value < MaxAvailableIteration)
+        {
+            IsLiveFollow = false;
+        }
+
+        _ = ScrubToIterationAsync(value);
+    }
+
+    private void RefreshOptimisationDiskEstimate()
+    {
+        int totalElements = Workflow.State.PreparedModel != null
+            ? Workflow.State.PreparedModel.FeModel.TotalElements
+            : Math.Max(10_000, TargetSolidElements * 2);
+
+        int keepEvery = Math.Max(1, OptKeepEveryN);
+        int savedFrames = Math.Max(1, OptMaxIterations / keepEvery);
+
+        // Brotli-compressed 1-byte physical density is typically ~0.35 bytes/voxel + 72B header
+        double bytesPerIter = 72.0 + totalElements * 0.35;
+        double totalMb = (bytesPerIter * savedFrames + 65536.0) / (1024.0 * 1024.0);
+        double kbPerIter = bytesPerIter / 1024.0;
+        OptEstimatedDiskText = $"~{kbPerIter:F0} KB/it → ~{totalMb:F1} MB";
+    }
+
+    private OptimizerOptions BuildOptimizerOptions(int startIteration = 1, float[]? initialDensity = null)
+    {
+        return new OptimizerOptions
+        {
+            VolumeFraction = Math.Clamp(OptVolumePercent / 100.0, 0.05, 0.95),
+            FilterRadiusMm = Math.Max(0.1, OptMinFeatureSizeMm),
+            StartIteration = startIteration,
+            MaxIterations = Math.Max(startIteration, OptMaxIterations),
+            Penal = Math.Clamp(OptPenal, 1.0, 5.0),
+            MoveLimit = Math.Clamp(OptMoveLimit, 0.02, 0.5),
+            EnableHeaviside = OptEnableHeaviside,
+            EminRatio = Math.Clamp(OptEminRatio, 1e-12, 1e-3),
+            PassiveMask = Workflow.State.PreparedModel?.PassiveShell,
+            InitialDensity = initialDensity
+        };
+    }
+
+    [RelayCommand]
+    public async Task StartOptimisationAsync()
+    {
+        if (!CanStartOptimisation || Workflow.State.PreparedModel == null)
+            return;
+
+        await ExecuteOptimisationRunAsync(isResume: false);
+    }
+
+    [RelayCommand]
+    public async Task ContinueInterruptedRunAsync()
+    {
+        if (!CanContinueInterruptedRun || _activeRunReader == null || Workflow.State.PreparedModel == null)
+            return;
+
+        await ExecuteOptimisationRunAsync(isResume: true);
+    }
+
+    private async Task ExecuteOptimisationRunAsync(bool isResume)
+    {
+        var prep = Workflow.State.PreparedModel!;
+        var baseFe = prep.FeModel;
+        var mat = new FeMaterial(Workflow.State.Material.E, Workflow.State.Material.Nu, Math.Clamp(OptEminRatio, 1e-12, 1e-3));
+        var feModel = new FeModel(baseFe.Grid, baseFe.Domain, mat, baseFe.FixedDofs, baseFe.Loads);
+
+        string runFolder;
+        OptimizerOptions opts;
+        RunMetadata meta;
+
+        if (isResume && _activeRunReader != null)
+        {
+            runFolder = _activeRunReader.RunFolder;
+            var ckpt = _activeRunReader.ReadLatestCheckpoint();
+            int[] avail = _activeRunReader.GetAvailableIterations();
+            int lastIt = ckpt?.Iteration ?? (avail.Length > 0 ? avail[^1] : 0);
+            int startIt = lastIt + 1;
+            opts = BuildOptimizerOptions(startIt, ckpt?.DesignDensity);
+            meta = _activeRunReader.Metadata;
+            meta.Status = RunStatus.Running;
+        }
+        else
+        {
+            string baseRunsDir = !string.IsNullOrWhiteSpace(CurrentProjectPath)
+                ? Path.Combine(CurrentProjectPath, "runs")
+                : Path.Combine(Environment.CurrentDirectory, "runs");
+            Directory.CreateDirectory(baseRunsDir);
+
+            string safeModelName = Path.GetFileNameWithoutExtension(ModelFileName);
+            if (string.IsNullOrWhiteSpace(safeModelName) || safeModelName == "No File Loaded")
+                safeModelName = "model";
+            foreach (char c in Path.GetInvalidFileNameChars())
+                safeModelName = safeModelName.Replace(c, '_');
+
+            string folderName = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{safeModelName}";
+            runFolder = Path.Combine(baseRunsDir, folderName);
+
+            opts = BuildOptimizerOptions(1, null);
+            meta = Workflow.CreateRunMetadata(opts, Math.Max(1, OptKeepEveryN));
+
+            _complianceHistoryList.Clear();
+            ComplianceHistory = Array.Empty<double>();
+            ComplianceChartUpdated?.Invoke();
+        }
+
+        byte[] passiveMask = prep.PassiveShell ?? new byte[baseFe.TotalElements];
+
+        _optCoordinator?.Dispose();
+        _optCoordinator = new OptimizationCoordinator();
+        _activeRunWriter?.Dispose();
+        _activeRunWriter = new RunWriter(runFolder, meta, baseFe.Domain, passiveMask, isResume);
+        _activeRunReader = RunReader.Open(runFolder, isLiveActiveRun: true);
+
+        IsOptimising = true;
+        IsOptimisationPaused = false;
+        CanContinueInterruptedRun = false;
+        HasLoadedRun = true;
+        IsLiveFollow = true;
+        HasVerificationResult = false;
+        FeaScalarFieldCleared?.Invoke();
+        AllOverlaysCleared?.Invoke();
+
+        if (Workflow.State.Mesh != null)
+        {
+            GhostOriginalMeshUpdated?.Invoke(Workflow.State.Mesh, ShowGhostOriginal);
+        }
+
+        ActiveStep = 6;
+        NotifyStepBadges();
+        _liveDisplayTimer.Start();
+
+        try
+        {
+            await _optCoordinator.StartRunAsync(feModel, opts, _activeRunWriter);
+        }
+        catch (OperationCanceledException)
+        {
+            Trace.WriteLine("Optimisation run stopped.");
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"Optimisation run failed: {ex.Message}");
+        }
+        finally
+        {
+            _liveDisplayTimer.Stop();
+
+            // Drain any remaining snapshot in the display slot
+            await PollDisplaySlotOnceAsync();
+
+            if (_activeRunReader != null)
+            {
+                int[] avail = _activeRunReader.GetAvailableIterations();
+                if (avail.Length > 0)
+                {
+                    MaxAvailableIteration = avail[^1];
+                    _suppressScrubOnSliderChange = true;
+                    SelectedIteration = MaxAvailableIteration;
+                    _suppressScrubOnSliderChange = false;
+                    TimelineIterationLabel = $"iteration {SelectedIteration} / {MaxAvailableIteration}";
+                }
+            }
+
+            IsOptimising = false;
+            IsOptimisationPaused = false;
+            NotifyStepBadges();
+        }
+    }
+
+    [RelayCommand]
+    public void PauseOptimisation()
+    {
+        if (!IsOptimising || IsOptimisationPaused) return;
+        _optCoordinator?.Pause();
+        IsOptimisationPaused = true;
+    }
+
+    [RelayCommand]
+    public void ResumeOptimisation()
+    {
+        if (!IsOptimising || !IsOptimisationPaused) return;
+        _optCoordinator?.Resume();
+        IsOptimisationPaused = false;
+    }
+
+    [RelayCommand]
+    public async Task StopOptimisationAsync()
+    {
+        if (!IsOptimising || _optCoordinator == null) return;
+        await _optCoordinator.StopAndFinalizeAsync();
+    }
+
+    public async Task StopAndFinalizeActiveRunAsync()
+    {
+        if (_optCoordinator != null && IsOptimising)
+        {
+            await _optCoordinator.StopAndFinalizeAsync();
+        }
+    }
+
+    private async void OnLiveDisplayTimerTick(object? sender, EventArgs e)
+    {
+        await PollDisplaySlotOnceAsync();
+    }
+
+    private async Task PollDisplaySlotOnceAsync()
+    {
+        if (_optCoordinator == null || Workflow.State.PreparedModel == null)
+            return;
+
+        if (Interlocked.CompareExchange(ref _isLiveExtractionRunning, 1, 0) != 0)
+            return;
+
+        try
+        {
+            IterationSnapshot? snap = _optCoordinator.DisplaySlot.TryTakeLatest();
+            if (snap == null)
+                return;
+
+            UpdateLiveMetricsFromSnapshot(snap);
+
+            if (IsLiveFollow)
+            {
+                var grid = Workflow.State.PreparedModel.FeModel.Grid;
+                float threshold = VerifyThreshold;
+                float[] rhoPhys = snap.PhysicalDensity;
+
+                IndexedMesh isoMesh = await Task.Run(() =>
+                    SurfaceNetsExtractor.Extract(grid, rhoPhys, threshold));
+
+                if (AsyncIsoMeshUpdated != null)
+                {
+                    await AsyncIsoMeshUpdated.Invoke(isoMesh);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"Live display extraction error: {ex.Message}");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isLiveExtractionRunning, 0);
+        }
+    }
+
+    private void UpdateLiveMetricsFromSnapshot(IterationSnapshot snap)
+    {
+        if (_complianceHistoryList.Count < snap.Iteration - 1 && _activeRunReader != null)
+        {
+            var metrics = _activeRunReader.ReadMetrics();
+            while (_complianceHistoryList.Count < snap.Iteration - 1)
+            {
+                int targetIt = _complianceHistoryList.Count + 1;
+                var m = metrics.FirstOrDefault(r => r.Iteration == targetIt);
+                _complianceHistoryList.Add(m != null && m.Compliance > 0 ? m.Compliance : snap.Compliance);
+            }
+        }
+        if (_complianceHistoryList.Count == snap.Iteration - 1)
+        {
+            _complianceHistoryList.Add(snap.Compliance);
+        }
+        else if (snap.Iteration - 1 >= 0 && snap.Iteration - 1 < _complianceHistoryList.Count)
+        {
+            _complianceHistoryList[snap.Iteration - 1] = snap.Compliance;
+        }
+
+        ComplianceHistory = _complianceHistoryList.ToArray();
+
+        _avgIterMs = _avgIterMs * 0.7 + snap.TotalMs * 0.3;
+        int remIters = Math.Max(0, OptMaxIterations - snap.Iteration);
+        double etaSec = (remIters * _avgIterMs) / 1000.0;
+
+        OptLiveIterationText = $"{snap.Iteration} / {OptMaxIterations}";
+        OptLiveComplianceText = $"{snap.Compliance:G5} mJ";
+        OptLiveVolumeText = $"{snap.VolumeFraction * 100.0:F1} %";
+        OptLiveChangeText = $"{snap.MaxChange:F4}";
+        OptLiveGreyText = $"{snap.GreyLevel * 100.0:F1} %";
+        OptLiveMsPerIterText = $"{snap.TotalMs:F0} ms";
+        OptLiveEtaText = etaSec >= 60.0 ? $"{etaSec / 60.0:F1} min" : $"{etaSec:F1} s";
+        OptLiveSolverItersText = $"{snap.SolverIterations}";
+
+        long diskBytes = _activeRunWriter?.RunningDiskBytes ?? ComputeFolderBytes(_activeRunReader?.RunFolder);
+        OptLiveDiskUsedText = $"{diskBytes / (1024.0 * 1024.0):F2} MB";
+
+        MaxAvailableIteration = Math.Max(MaxAvailableIteration, snap.Iteration);
+        if (IsLiveFollow)
+        {
+            _suppressScrubOnSliderChange = true;
+            SelectedIteration = snap.Iteration;
+            _suppressScrubOnSliderChange = false;
+            TimelineIterationLabel = $"iteration {SelectedIteration} / {MaxAvailableIteration}";
+        }
+
+        ComplianceChartUpdated?.Invoke();
+    }
+
+    private static long ComputeFolderBytes(string? folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+            return 0L;
+
+        try
+        {
+            long sum = 0L;
+            foreach (string file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
+            {
+                sum += new FileInfo(file).Length;
+            }
+            return sum;
+        }
+        catch
+        {
+            return 0L;
+        }
+    }
+
+    public async Task OpenRunFolderAsync(string runFolder)
+    {
+        if (string.IsNullOrWhiteSpace(runFolder) || !Directory.Exists(runFolder))
+            return;
+
+        try
+        {
+            var reader = await Task.Run(() => RunReader.Open(runFolder, isLiveActiveRun: false));
+            _activeRunReader = reader;
+
+            var metrics = reader.ReadMetrics();
+            _complianceHistoryList.Clear();
+            foreach (var row in metrics)
+            {
+                _complianceHistoryList.Add(row.Compliance);
+            }
+            ComplianceHistory = _complianceHistoryList.ToArray();
+
+            int[] avail = reader.GetAvailableIterations();
+            HasLoadedRun = avail.Length > 0;
+            CanContinueInterruptedRun = reader.Metadata.Status == RunStatus.Interrupted && Workflow.State.PreparedModel != null;
+            MaxAvailableIteration = avail.Length > 0 ? avail[^1] : 1;
+            OptLiveDiskUsedText = $"{ComputeFolderBytes(reader.RunFolder) / (1024.0 * 1024.0):F2} MB";
+
+            if (metrics.Count > 0)
+            {
+                var last = metrics[^1];
+                OptLiveIterationText = $"{last.Iteration} / {reader.Metadata.Options.MaxIterations}";
+                OptLiveComplianceText = $"{last.Compliance:G5} mJ";
+                OptLiveVolumeText = $"{last.VolumeFraction * 100.0:F1} %";
+                OptLiveChangeText = $"{last.MaxChange:F4}";
+                OptLiveGreyText = $"{last.GreyLevel * 100.0:F1} %";
+                OptLiveMsPerIterText = $"{last.TotalMs:F0} ms";
+                OptLiveSolverItersText = $"{last.SolverIterations}";
+                OptLiveEtaText = reader.Metadata.Status == RunStatus.Interrupted ? "Interrupted" : "Done";
+            }
+
+            if (Workflow.State.Mesh != null)
+            {
+                GhostOriginalMeshUpdated?.Invoke(Workflow.State.Mesh, ShowGhostOriginal);
+            }
+
+            ActiveStep = 6;
+            SelectedIteration = MaxAvailableIteration;
+            await ScrubToIterationAsync(SelectedIteration);
+            NotifyStepBadges();
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"Failed to open run folder: {ex.Message}");
+        }
+    }
+
+    public async Task ScrubToIterationAsync(int targetIteration)
+    {
+        if (_activeRunReader == null) return;
+
+        int[] avail = _activeRunReader.GetAvailableIterations();
+        if (avail.Length == 0) return;
+
+        // Snap to nearest available saved iteration
+        int snapped = avail[0];
+        int minDiff = Math.Abs(targetIteration - snapped);
+        for (int i = 1; i < avail.Length; i++)
+        {
+            int diff = Math.Abs(targetIteration - avail[i]);
+            if (diff < minDiff)
+            {
+                minDiff = diff;
+                snapped = avail[i];
+            }
+        }
+
+        var metrics = _activeRunReader.ReadMetrics();
+        var row = metrics.FirstOrDefault(m => m.Iteration == snapped);
+        if (row != null)
+        {
+            OptLiveIterationText = $"{row.Iteration} / {_activeRunReader.Metadata.Options.MaxIterations}";
+            OptLiveComplianceText = $"{row.Compliance:G5} mJ";
+            OptLiveVolumeText = $"{row.VolumeFraction * 100.0:F1} %";
+            OptLiveChangeText = $"{row.MaxChange:F4}";
+            OptLiveGreyText = $"{row.GreyLevel * 100.0:F1} %";
+            OptLiveMsPerIterText = $"{row.TotalMs:F0} ms";
+            OptLiveSolverItersText = $"{row.SolverIterations}";
+        }
+
+        float threshold = VerifyThreshold;
+        var reader = _activeRunReader;
+
+        await _playbackScrubber.SeekIterationAsync(
+            snapped,
+            (it, ct) => Task.FromResult(reader.GetOrExtractMesh(it, threshold, ct)),
+            async (_, mesh) =>
+            {
+                if (AsyncIsoMeshUpdated != null)
+                {
+                    await AsyncIsoMeshUpdated.Invoke(mesh);
+                }
+            });
+    }
+
+    public void ScrubFromChart(int iteration)
+    {
+        if (!HasLoadedRun) return;
+        IsPlayingTimeline = false;
+        _playbackTimer.Stop();
+        if (IsOptimising) IsLiveFollow = false;
+        SelectedIteration = Math.Clamp(iteration, 1, MaxAvailableIteration);
+    }
+
+    [RelayCommand]
+    public void TogglePlayTimeline()
+    {
+        if (!HasLoadedRun) return;
+
+        if (IsPlayingTimeline)
+        {
+            IsPlayingTimeline = false;
+            _playbackTimer.Stop();
+        }
+        else
+        {
+            IsLiveFollow = false;
+            if (SelectedIteration >= MaxAvailableIteration)
+            {
+                SelectedIteration = 1;
+            }
+            IsPlayingTimeline = true;
+            _playbackTimer.Start();
+        }
+    }
+
+    [RelayCommand]
+    public void StepBackwardTimeline()
+    {
+        if (!HasLoadedRun) return;
+        IsPlayingTimeline = false;
+        _playbackTimer.Stop();
+        IsLiveFollow = false;
+        SelectedIteration = Math.Max(1, SelectedIteration - 1);
+    }
+
+    [RelayCommand]
+    public void StepForwardTimeline()
+    {
+        if (!HasLoadedRun) return;
+        IsPlayingTimeline = false;
+        _playbackTimer.Stop();
+        SelectedIteration = Math.Min(MaxAvailableIteration, SelectedIteration + 1);
+    }
+
+    private void OnPlaybackTimerTick(object? sender, EventArgs e)
+    {
+        if (!IsPlayingTimeline || !HasLoadedRun)
+        {
+            _playbackTimer.Stop();
+            IsPlayingTimeline = false;
+            return;
+        }
+
+        if (SelectedIteration < MaxAvailableIteration)
+        {
+            SelectedIteration++;
+        }
+        else
+        {
+            IsPlayingTimeline = false;
+            _playbackTimer.Stop();
+        }
+    }
+
+    [RelayCommand]
+    public async Task VerifyDesignAsync()
+    {
+        if (_activeRunReader == null || IsVerifyingDesign)
+            return;
+
+        IsVerifyingDesign = true;
+        try
+        {
+            int it = SelectedIteration;
+            float threshold = VerifyThreshold;
+            float[] rhoPhys = await Task.Run(() => _activeRunReader.ReadIterationDensity(it));
+            var verResult = await Workflow.VerifyIterationAsync(it, rhoPhys, threshold);
+
+            if (AsyncIsoMeshUpdated != null)
+            {
+                await AsyncIsoMeshUpdated.Invoke(verResult.IsoMesh);
+            }
+
+            HasVerificationResult = true;
+            HasAnalysisResult = true;
+            IsResultOutdated = false;
+
+            ComplianceText = $"{verResult.Compliance:F1} mJ";
+            MaxDisplacementText = $"{verResult.MaxDisplacement:F4} mm";
+            MaxVonMisesText = $"{verResult.MaxVonMises:F1} MPa";
+            P99VonMisesText = $"{verResult.P99VonMises:F1} MPa";
+            SafetyFactorText = $"{verResult.SafetyFactorMax:F2}";
+            SafetyFactorP99Text = $"{verResult.SafetyFactorP99:F2}";
+            VerifyMaterialSavedText = $"{verResult.MaterialSavedPercent:F1} %";
+            VerifyComplianceRatioText = $"{verResult.ComplianceRatio:F2}×";
+
+            SafetyFactorBrush = verResult.SafetyFactorMax >= 3.0
+                ? new SolidColorBrush(Color.FromRgb(16, 185, 129))
+                : verResult.SafetyFactorMax >= 2.0
+                    ? new SolidColorBrush(Color.FromRgb(245, 158, 11))
+                    : new SolidColorBrush(Color.FromRgb(239, 68, 68));
+
+            LegendUnitsText = "MPa";
+            LegendMinText = "0.0";
+            LegendP99Text = $"p99: {verResult.P99VonMises:F1}";
+            LegendMaxText = $"{verResult.MaxVonMises:F1}";
+            FeaScalarFieldUpdated?.Invoke(verResult.VertexVonMises, SelectedLutKind, 0f, (float)verResult.P99VonMises);
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"Verify design failed: {ex.Message}");
+        }
+        finally
+        {
+            IsVerifyingDesign = false;
+        }
+    }
+
+    public async Task ExportCurrentIterationStlAsync(string outputStlPath)
+    {
+        if (_activeRunReader == null || string.IsNullOrWhiteSpace(outputStlPath))
+            return;
+
+        try
+        {
+            int it = SelectedIteration;
+            float threshold = VerifyThreshold;
+            int smooth = Math.Clamp(ExportSmoothIterations, 0, 10);
+            var grid = _activeRunReader.Grid;
+            float[] rhoPhys = await Task.Run(() => _activeRunReader.ReadIterationDensity(it));
+
+            var (_, reReadMesh, report, vol) = await WorkflowService.ExportIterationStlAsync(
+                outputStlPath,
+                grid,
+                it,
+                rhoPhys,
+                threshold,
+                smooth);
+
+            string wt = report.IsWatertight ? "Watertight" : "Non-Watertight";
+            ExportStlStatusText = $"Exported {Path.GetFileName(outputStlPath)}: {wt}, {reReadMesh.TriangleCount:N0} tris, Vol = {vol:N0} mm³";
+        }
+        catch (Exception ex)
+        {
+            ExportStlStatusText = $"Export failed: {ex.Message}";
+            Trace.WriteLine($"Export STL failed: {ex.Message}");
+        }
     }
 }

@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private int _lastHoverSeedTriangle = -1;
     private float _lastHoverAngle = -1f;
     private int[] _currentHoveredTriangles = [];
+    private bool _allowClose;
 
     public MainWindow() : this([])
     {
@@ -36,6 +37,28 @@ public partial class MainWindow : Window
             _lastHoverSeedTriangle = -1;
             _currentHoveredTriangles = [];
             Viewport.SetMesh(mesh);
+        };
+
+        vm.GhostOriginalMeshUpdated += (mesh, visible) =>
+        {
+            Viewport.SetGhostOriginalMesh(mesh, visible);
+        };
+
+        vm.ShowGhostOriginalChanged += visible =>
+        {
+            Viewport.SetShowGhostOriginal(visible);
+        };
+
+        vm.AsyncIsoMeshUpdated += mesh => Viewport.UpdateMeshAsync(mesh);
+
+        vm.ComplianceChartUpdated += () =>
+        {
+            ComplianceChart.NotifyDataUpdated();
+        };
+
+        ComplianceChart.IterationScrubbed += it =>
+        {
+            vm.ScrubFromChart(it);
         };
 
         vm.SelectionOverlayUpdated += (id, triangles, color) =>
@@ -366,6 +389,68 @@ public partial class MainWindow : Window
                 break;
             }
         }
+    }
+
+    private async void OnOpenRunClick(object? sender, RoutedEventArgs e)
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Open Optimisation Run Folder"
+        });
+
+        if (folders.Count > 0)
+        {
+            string? localPath = folders[0].TryGetLocalPath();
+            if (!string.IsNullOrWhiteSpace(localPath))
+            {
+                await ViewModel.OpenRunFolderAsync(localPath);
+            }
+        }
+    }
+
+    private async void OnExportStlClick(object? sender, RoutedEventArgs e)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export Optimised Iso-Surface as Binary STL",
+            DefaultExtension = "stl",
+            SuggestedFileName = $"optimised_it{ViewModel.SelectedIteration:D4}.stl",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Binary STL File") { Patterns = ["*.stl"] }
+            ]
+        });
+
+        string? localPath = file?.TryGetLocalPath();
+        if (!string.IsNullOrWhiteSpace(localPath))
+        {
+            await ViewModel.ExportCurrentIterationStlAsync(localPath);
+        }
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        if (ViewModel.IsOptimising && !_allowClose)
+        {
+            e.Cancel = true;
+            CloseConfirmOverlay.IsVisible = true;
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
+    private async void OnConfirmStopAndExitClick(object? sender, RoutedEventArgs e)
+    {
+        CloseConfirmOverlay.IsVisible = false;
+        await ViewModel.StopAndFinalizeActiveRunAsync();
+        _allowClose = true;
+        Close();
+    }
+
+    private void OnCancelCloseClick(object? sender, RoutedEventArgs e)
+    {
+        CloseConfirmOverlay.IsVisible = false;
     }
 }
 

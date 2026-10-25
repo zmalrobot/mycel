@@ -359,4 +359,228 @@
   <data name="StatusBar.Ready" xml:space="preserve">
     <value>TopoOpt v1.0 — Ready</value>
   </data>
+
+  <!-- Step 6 Strings -->
+  <data name="Stepper.Common.Step6Number" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="Stepper.Optimise.Title" xml:space="preserve">
+    <value>Optimise</value>
+  </data>
+  <data name="Stepper.Optimise.Tooltip" xml:space="preserve">
+    <value>Expand topology optimisation settings, live metrics, verification and export</value>
+  </data>
+  <data name="Stepper.Optimise.VolumeFraction" xml:space="preserve">
+    <value>Target Volume (%):</value>
+  </data>
+  <data name="Stepper.Optimise.VolumeFraction.Tooltip" xml:space="preserve">
+    <value>Target fraction of the design volume to retain (10% to 80%)</value>
+  </data>
+  <data name="Stepper.Optimise.MinFeatureSize" xml:space="preserve">
+    <value>Min Feature Size (mm):</value>
+  </data>
+  <data name="Stepper.Optimise.MinFeatureSize.Tooltip" xml:space="preserve">
+    <value>Minimum filter radius in millimeters (default ~3 extrusion widths)</value>
+  </data>
+  <data name="Stepper.Optimise.MinFeatureHint" xml:space="preserve">
+    <value>about 3 extrusion widths (3 × 0.4 mm nozzle)</value>
+  </data>
+  <data name="Stepper.Optimise.MaxIterations" xml:space="preserve">
+    <value>Max Iterations:</value>
+  </data>
+  <data name="Stepper.Optimise.MaxIterations.Tooltip" xml:space="preserve">
+    <value>Maximum number of SIMP-OC optimisation iterations</value>
+  </data>
+  <data name="Stepper.Optimise.KeepEveryN" xml:space="preserve">
+    <value>Save Every N Iterations:</value>
+  </data>
+  <data name="Stepper.Optimise.KeepEveryN.Tooltip" xml:space="preserve">
+    <value>Store every Nth iteration to disk (1 = store all iterations)</value>
+  </data>
+  <data name="Stepper.Optimise.EstDisk" xml:space="preserve">
+    <value>Estimated Disk Usage:</value>
+  </data>
+  <data name="Stepper.Optimise.AdvancedTitle" xml:space="preserve">
+    <value>Advanced Parameters</value>
+  </data>
+  <data name="Stepper.Optimise.AdvancedTitle.Tooltip" xml:space="preserve">
+    <value>Toggle advanced SIMP and OC solver parameters</value>
+  </data>
+  <data name="Stepper.Optimise.Penalisation" xml:space="preserve">
+    <value>Penalisation p:</value>
+  </data>
+  <data name="Stepper.Optimise.Penalisation.Tooltip" xml:space="preserve">
+    <value>SIMP power-law penalisation exponent (default 3.0)</value>
+  </data>
+  <data name="Stepper.Optimise.MoveLimit" xml:space="preserve">
+    <value>Move Limit m:</value>
+  </data>
+  <data name="Stepper.Optimise.MoveLimit.Tooltip" xml:space="preserve">
+    <value>Maximum density change per iteration (default 0.2)</value>
+  </data>
+  <data name="Stepper.Optimise.Projection" xml:space="preserve">
+    <value>Heaviside Projection (β continuation)</value>
+  </data>
+  <data name="Stepper.Optimise.Projection.Tooltip" xml:space="preserve">
+    <value>Enable Heaviside projection for sharper 0/1 boundaries</value>
+  </data>
+  <data name="Stepper.Optimise.EminRatio" xml:space="preserve">
+    <value>Emin / E0 Ratio:</value>
+  </data>
+  <data name="Stepper.Optimise.EminRatio.Tooltip" xml:space="preserve">
+    <value>Ersatz void stiffness ratio (default 1e-9)</value>
+  </data>
+  <data name="Stepper.Optimise.Start" xml:space="preserve">
+    <value>Start Optimisation</value>
+  </data>
+  <data name="Stepper.Optimise.Start.Tooltip" xml:space="preserve">
+    <value>Start live topology optimisation and save iterations to disk</value>
+  </data>
+  <data name="Stepper.Optimise.Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Stepper.Optimise.Pause.Tooltip" xml:space="preserve">
+    <value>Pause the running optimisation after the current iteration</value>
+  </data>
+  <data name="Stepper.Optimise.Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Stepper.Optimise.Resume.Tooltip" xml:space="preserve">
+    <value>Resume the paused optimisation run</value>
+  </data>
+  <data name="Stepper.Optimise.Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Stepper.Optimise.Stop.Tooltip" xml:space="preserve">
+    <value>Cooperatively stop and finalise the current run</value>
+  </data>
+  <data name="Stepper.Optimise.ContinueRun" xml:space="preserve">
+    <value>Continue Interrupted Run</value>
+  </data>
+  <data name="Stepper.Optimise.ContinueRun.Tooltip" xml:space="preserve">
+    <value>Continue an interrupted run from its last saved checkpoint</value>
+  </data>
+  <data name="Stepper.Optimise.OpenRun" xml:space="preserve">
+    <value>Open Run…</value>
+  </data>
+  <data name="Stepper.Optimise.OpenRun.Tooltip" xml:space="preserve">
+    <value>Open a saved optimisation run folder for playback and export</value>
+  </data>
+  <data name="Stepper.Optimise.LiveMetricsTitle" xml:space="preserve">
+    <value>Live Metrics &amp; Convergence</value>
+  </data>
+  <data name="Stepper.Optimise.MetricIteration" xml:space="preserve">
+    <value>Iteration:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricCompliance" xml:space="preserve">
+    <value>Compliance:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricVolume" xml:space="preserve">
+    <value>Volume Fraction:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricChange" xml:space="preserve">
+    <value>Max Change:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricGrey" xml:space="preserve">
+    <value>Grey Level:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricMsPerIter" xml:space="preserve">
+    <value>Time / Iter:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricEta" xml:space="preserve">
+    <value>ETA:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricSolverIters" xml:space="preserve">
+    <value>PCG Iters:</value>
+  </data>
+  <data name="Stepper.Optimise.MetricDiskUsed" xml:space="preserve">
+    <value>Disk Used:</value>
+  </data>
+  <data name="Stepper.Optimise.VerifyExportTitle" xml:space="preserve">
+    <value>Verify &amp; Export Design</value>
+  </data>
+  <data name="Stepper.Optimise.VerifyBtn" xml:space="preserve">
+    <value>Verify Design (FEA)</value>
+  </data>
+  <data name="Stepper.Optimise.VerifyBtn.Tooltip" xml:space="preserve">
+    <value>Run static FEA on thresholded design and map von Mises stress</value>
+  </data>
+  <data name="Stepper.Optimise.Threshold" xml:space="preserve">
+    <value>Density Threshold:</value>
+  </data>
+  <data name="Stepper.Optimise.Threshold.Tooltip" xml:space="preserve">
+    <value>Iso-surface density cut-off threshold (default 0.50)</value>
+  </data>
+  <data name="Stepper.Optimise.SmoothIters" xml:space="preserve">
+    <value>Taubin Smoothing Iters:</value>
+  </data>
+  <data name="Stepper.Optimise.SmoothIters.Tooltip" xml:space="preserve">
+    <value>Volume-preserving Taubin smoothing iterations (0 to 10, default 3)</value>
+  </data>
+  <data name="Stepper.Optimise.ExportStlBtn" xml:space="preserve">
+    <value>Export STL…</value>
+  </data>
+  <data name="Stepper.Optimise.ExportStlBtn.Tooltip" xml:space="preserve">
+    <value>Export current iteration iso-surface as binary STL and verify watertightness</value>
+  </data>
+  <data name="Stepper.Optimise.MaterialSaved" xml:space="preserve">
+    <value>Material Saved:</value>
+  </data>
+  <data name="Stepper.Optimise.ComplianceRatio" xml:space="preserve">
+    <value>Compliance vs Solid:</value>
+  </data>
+  <data name="Timeline.Play" xml:space="preserve">
+    <value>▶</value>
+  </data>
+  <data name="Timeline.Play.Tooltip" xml:space="preserve">
+    <value>Play or pause iteration history playback</value>
+  </data>
+  <data name="Timeline.StepBack" xml:space="preserve">
+    <value>⏮</value>
+  </data>
+  <data name="Timeline.StepBack.Tooltip" xml:space="preserve">
+    <value>Step backward 1 iteration</value>
+  </data>
+  <data name="Timeline.StepForward" xml:space="preserve">
+    <value>⏭</value>
+  </data>
+  <data name="Timeline.StepForward.Tooltip" xml:space="preserve">
+    <value>Step forward 1 iteration</value>
+  </data>
+  <data name="Timeline.Slider.Tooltip" xml:space="preserve">
+    <value>Scrub across saved optimisation iterations</value>
+  </data>
+  <data name="Timeline.Speed.Tooltip" xml:space="preserve">
+    <value>Playback speed multiplier (1×, 2×, 5×)</value>
+  </data>
+  <data name="Timeline.Live" xml:space="preserve">
+    <value>Live</value>
+  </data>
+  <data name="Timeline.Live.Tooltip" xml:space="preserve">
+    <value>Follow the latest iteration during a running optimisation</value>
+  </data>
+  <data name="Timeline.Ghost" xml:space="preserve">
+    <value>Ghost Original</value>
+  </data>
+  <data name="Timeline.Ghost.Tooltip" xml:space="preserve">
+    <value>Overlay a faint translucent outline of the original STL mesh</value>
+  </data>
+  <data name="CloseConfirm.Title" xml:space="preserve">
+    <value>⚠ Optimisation in Progress</value>
+  </data>
+  <data name="CloseConfirm.Description" xml:space="preserve">
+    <value>An optimisation run is currently active. Do you want to cooperatively stop the solver and finalise the run folder before closing?</value>
+  </data>
+  <data name="CloseConfirm.StopAndExit" xml:space="preserve">
+    <value>Stop, Finalise &amp; Exit</value>
+  </data>
+  <data name="CloseConfirm.StopAndExit.Tooltip" xml:space="preserve">
+    <value>Stop the solver, flush the run folder cleanly, and close the window</value>
+  </data>
+  <data name="CloseConfirm.KeepRunning" xml:space="preserve">
+    <value>Keep Running</value>
+  </data>
+  <data name="CloseConfirm.KeepRunning.Tooltip" xml:space="preserve">
+    <value>Dismiss dialog and continue the optimisation run</value>
+  </data>
 </root>

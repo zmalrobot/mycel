@@ -10,14 +10,23 @@ namespace TopoOpt.Core.Geometry;
 /// </summary>
 public static class StlWriter
 {
-    public static void WriteBinary(Stream stream, IndexedMesh mesh)
+    public static void WriteBinary(Stream stream, IndexedMesh mesh, string? customHeader = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(mesh);
 
         Span<byte> header = stackalloc byte[80];
         header.Clear();
-        "TopoOpt Binary STL (mm)"u8.CopyTo(header);
+        if (!string.IsNullOrEmpty(customHeader))
+        {
+            byte[] customBytes = System.Text.Encoding.ASCII.GetBytes(customHeader);
+            int copyLen = Math.Min(customBytes.Length, 80);
+            customBytes.AsSpan(0, copyLen).CopyTo(header);
+        }
+        else
+        {
+            "TopoOpt Binary STL (mm)"u8.CopyTo(header);
+        }
         stream.Write(header);
 
         int triCount = mesh.TriangleCount;

@@ -174,4 +174,81 @@
 
   <x:String x:Key="StatusBar.Ready">TopoOpt v1.0 — Ready</x:String>
 
+  <x:String x:Key="Stepper.Common.Step6Number">6</x:String>
+  <x:String x:Key="Stepper.Optimise.Title">Optimise</x:String>
+  <x:String x:Key="Stepper.Optimise.Tooltip">Expand topology optimisation settings, live metrics, verification and export</x:String>
+  <x:String x:Key="Stepper.Optimise.VolumeFraction">Target Volume (%):</x:String>
+  <x:String x:Key="Stepper.Optimise.VolumeFraction.Tooltip">Target fraction of the design volume to retain (10% to 80%)</x:String>
+  <x:String x:Key="Stepper.Optimise.MinFeatureSize">Min Feature Size (mm):</x:String>
+  <x:String x:Key="Stepper.Optimise.MinFeatureSize.Tooltip">Minimum filter radius in millimeters (default ~3 extrusion widths)</x:String>
+  <x:String x:Key="Stepper.Optimise.MinFeatureHint">about 3 extrusion widths (3 × 0.4 mm nozzle)</x:String>
+  <x:String x:Key="Stepper.Optimise.MaxIterations">Max Iterations:</x:String>
+  <x:String x:Key="Stepper.Optimise.MaxIterations.Tooltip">Maximum number of SIMP-OC optimisation iterations</x:String>
+  <x:String x:Key="Stepper.Optimise.KeepEveryN">Save Every N Iterations:</x:String>
+  <x:String x:Key="Stepper.Optimise.KeepEveryN.Tooltip">Store every Nth iteration to disk (1 = store all iterations)</x:String>
+  <x:String x:Key="Stepper.Optimise.EstDisk">Estimated Disk Usage:</x:String>
+  <x:String x:Key="Stepper.Optimise.AdvancedTitle">Advanced Parameters</x:String>
+  <x:String x:Key="Stepper.Optimise.AdvancedTitle.Tooltip">Toggle advanced SIMP and OC solver parameters</x:String>
+  <x:String x:Key="Stepper.Optimise.Penalisation">Penalisation p:</x:String>
+  <x:String x:Key="Stepper.Optimise.Penalisation.Tooltip">SIMP power-law penalisation exponent (default 3.0)</x:String>
+  <x:String x:Key="Stepper.Optimise.MoveLimit">Move Limit m:</x:String>
+  <x:String x:Key="Stepper.Optimise.MoveLimit.Tooltip">Maximum density change per iteration (default 0.2)</x:String>
+  <x:String x:Key="Stepper.Optimise.Projection">Heaviside Projection (β continuation)</x:String>
+  <x:String x:Key="Stepper.Optimise.Projection.Tooltip">Enable Heaviside projection for sharper 0/1 boundaries</x:String>
+  <x:String x:Key="Stepper.Optimise.EminRatio">Emin / E0 Ratio:</x:String>
+  <x:String x:Key="Stepper.Optimise.EminRatio.Tooltip">Ersatz void stiffness ratio (default 1e-9)</x:String>
+  <x:String x:Key="Stepper.Optimise.Start">Start Optimisation</x:String>
+  <x:String x:Key="Stepper.Optimise.Start.Tooltip">Start live topology optimisation and save iterations to disk</x:String>
+  <x:String x:Key="Stepper.Optimise.Pause">Pause</x:String>
+  <x:String x:Key="Stepper.Optimise.Pause.Tooltip">Pause the running optimisation after the current iteration</x:String>
+  <x:String x:Key="Stepper.Optimise.Resume">Resume</x:String>
+  <x:String x:Key="Stepper.Optimise.Resume.Tooltip">Resume the paused optimisation run</x:String>
+  <x:String x:Key="Stepper.Optimise.Stop">Stop</x:String>
+  <x:String x:Key="Stepper.Optimise.Stop.Tooltip">Cooperatively stop and finalise the current run</x:String>
+  <x:String x:Key="Stepper.Optimise.ContinueRun">Continue Interrupted Run</x:String>
+  <x:String x:Key="Stepper.Optimise.ContinueRun.Tooltip">Continue an interrupted run from its last saved checkpoint</x:String>
+  <x:String x:Key="Stepper.Optimise.OpenRun">Open Run…</x:String>
+  <x:String x:Key="Stepper.Optimise.OpenRun.Tooltip">Open a saved optimisation run folder for playback and export</x:String>
+  <x:String x:Key="Stepper.Optimise.LiveMetricsTitle">Live Metrics &amp; Convergence</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricIteration">Iteration:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricCompliance">Compliance:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricVolume">Volume Fraction:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricChange">Max Change:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricGrey">Grey Level:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricMsPerIter">Time / Iter:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricEta">ETA:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricSolverIters">PCG Iters:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricDiskUsed">Disk Used:</x:String>
+  <x:String x:Key="Stepper.Optimise.VerifyExportTitle">Verify &amp; Export Design</x:String>
+  <x:String x:Key="Stepper.Optimise.VerifyBtn">Verify Design (FEA)</x:String>
+  <x:String x:Key="Stepper.Optimise.VerifyBtn.Tooltip">Run static FEA on thresholded design and map von Mises stress</x:String>
+  <x:String x:Key="Stepper.Optimise.Threshold">Density Threshold:</x:String>
+  <x:String x:Key="Stepper.Optimise.Threshold.Tooltip">Iso-surface density cut-off threshold (default 0.50)</x:String>
+  <x:String x:Key="Stepper.Optimise.SmoothIters">Taubin Smoothing Iters:</x:String>
+  <x:String x:Key="Stepper.Optimise.SmoothIters.Tooltip">Volume-preserving Taubin smoothing iterations (0 to 10, default 3)</x:String>
+  <x:String x:Key="Stepper.Optimise.ExportStlBtn">Export STL…</x:String>
+  <x:String x:Key="Stepper.Optimise.ExportStlBtn.Tooltip">Export current iteration iso-surface as binary STL and verify watertightness</x:String>
+  <x:String x:Key="Stepper.Optimise.MaterialSaved">Material Saved:</x:String>
+  <x:String x:Key="Stepper.Optimise.ComplianceRatio">Compliance vs Solid:</x:String>
+
+  <x:String x:Key="Timeline.Play">▶</x:String>
+  <x:String x:Key="Timeline.Play.Tooltip">Play or pause iteration history playback</x:String>
+  <x:String x:Key="Timeline.StepBack">⏮</x:String>
+  <x:String x:Key="Timeline.StepBack.Tooltip">Step backward 1 iteration</x:String>
+  <x:String x:Key="Timeline.StepForward">⏭</x:String>
+  <x:String x:Key="Timeline.StepForward.Tooltip">Step forward 1 iteration</x:String>
+  <x:String x:Key="Timeline.Slider.Tooltip">Scrub across saved optimisation iterations</x:String>
+  <x:String x:Key="Timeline.Speed.Tooltip">Playback speed multiplier (1×, 2×, 5×)</x:String>
+  <x:String x:Key="Timeline.Live">Live</x:String>
+  <x:String x:Key="Timeline.Live.Tooltip">Follow the latest iteration during a running optimisation</x:String>
+  <x:String x:Key="Timeline.Ghost">Ghost Original</x:String>
+  <x:String x:Key="Timeline.Ghost.Tooltip">Overlay a faint translucent outline of the original STL mesh</x:String>
+
+  <x:String x:Key="CloseConfirm.Title">⚠ Optimisation in Progress</x:String>
+  <x:String x:Key="CloseConfirm.Description">An optimisation run is currently active. Do you want to cooperatively stop the solver and finalise the run folder before closing?</x:String>
+  <x:String x:Key="CloseConfirm.StopAndExit">Stop, Finalise &amp; Exit</x:String>
+  <x:String x:Key="CloseConfirm.StopAndExit.Tooltip">Stop the solver, flush the run folder cleanly, and close the window</x:String>
+  <x:String x:Key="CloseConfirm.KeepRunning">Keep Running</x:String>
+  <x:String x:Key="CloseConfirm.KeepRunning.Tooltip">Dismiss dialog and continue the optimisation run</x:String>
+
 </ResourceDictionary>

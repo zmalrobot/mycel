@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -8,6 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using TopoOpt.Core.Fem;
 using TopoOpt.Core.Geometry;
+using TopoOpt.Core.Optimization;
+using TopoOpt.Core.Persistence;
+using TopoOpt.Core.PostProcessing;
 using TopoOpt.Core.Voxelization;
 
 namespace TopoOpt.Core.Workflow;
@@ -418,5 +422,303 @@ public sealed class WorkflowService
             State.AnalysisResult = result;
             return result;
         }, ct);
+    }
+
+    public RunMetadata CreateRunMetadata(OptimizerOptions options, int keepEveryN = 1)
+    {
+        var prep = State.PreparedModel ?? throw new InvalidOperationException("Model must be prepared first.");
+        var feModel = prep.FeModel;
+
+        var loadsDto = new List<CompactLoadNodeSetDto>(feModel.Loads.Count);
+        for (int i = 0; i < feModel.Loads.Count; i++)
+        {
+            var l = feModel.Loads[i];
+            string name = i < State.Loads.Count ? State.Loads[i].Name : $"Load {i + 1}";
+            loadsDto.Add(new CompactLoadNodeSetDto(
+                name,
+                l.Patch.Nodes,
+                l.Patch.NodeArea,
+                l.TotalForce.X,
+                l.TotalForce.Y,
+                l.TotalForce.Z));
+        }
+
+        string runName = !string.IsNullOrWhiteSpace(State.FilePath)
+            ? Path.GetFileNameWithoutExtension(State.FilePath)
+            : "model";
+
+        return new RunMetadata
+        {
+            FormatVersion = 1,
+            AppVersion = "1.0.0",
+            RunName = runName,
+            InputStlSha256 = State.StlSha256 ?? string.Empty,
+            Grid = GridSpecDto.FromGrid(feModel.Grid),
+            Material = State.Material,
+            Options = new OptimizerOptionsDto(
+                options.VolumeFraction,
+                options.FilterRadiusMm,
+                options.Penal,
+                options.MoveLimit,
+                options.MaxIterations,
+                feModel.Material.EminRatio,
+                options.Continuation,
+                options.EnableHeaviside,
+                options.ProtectBoundaryHinges,
+                Math.Max(1, keepEveryN)),
+            NodeSets = new CompactRunNodeSetsDto(feModel.FixedDofs, loadsDto),
+            Status = RunStatus.Running,
+            StartedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+            OriginalSolidCompliance = State.AnalysisResult?.Compliance ?? 0.0
+        };
+    }
+
+    public async Task<VerificationResult> VerifyIterationAsync(
+        int iteration,
+        float[] physicalDensity,
+        float threshold = 0.5f,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(physicalDensity);
+        var prep = State.PreparedModel ?? throw new InvalidOperationException("Model must be prepared before verification.");
+
+        return await Task.Run(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            var baseFe = prep.FeModel;
+            int totalElements = baseFe.TotalElements;
+
+            // 1. Ensure we have baseline original solid compliance (rho = 1 everywhere in Domain)
+            double originalCompliance = State.AnalysisResult is { IsOutdated: false } ar && ar.Compliance > 0.0
+                ? ar.Compliance
+                : ComputeBaselineSolidCompliance(baseFe);
+
+            // 2. Threshold physical density: rho >= threshold -> 1.0 (solid), else 0.0 (void evaluated with Emin)
+            double[] binaryDensity = new double[totalElements];
+            int solidCount = 0;
+            int domainCount = baseFe.ActiveElementCount;
+            int[] activeElements = baseFe.ActiveElements;
+
+            for (int i = 0; i < domainCount; i++)
+            {
+                int e = activeElements[i];
+                if (e < physicalDensity.Length && physicalDensity[e] >= threshold)
+                {
+                    binaryDensity[e] = 1.0;
+                    solidCount++;
+                }
+                else
+                {
+                    binaryDensity[e] = 0.0;
+                }
+            }
+
+            // Ensure boundary nodes stay connected so thresholded solve is well-posed
+            if (prep.PassiveShell != null)
+            {
+                for (int i = 0; i < domainCount; i++)
+                {
+                    int e = activeElements[i];
+                    if (e < prep.PassiveShell.Length && prep.PassiveShell[e] != 0 && binaryDensity[e] < 1.0)
+                    {
+                        binaryDensity[e] = 1.0;
+                        solidCount++;
+                    }
+                }
+            }
+
+            var mat = new FeMaterial(State.Material.E, State.Material.Nu, 1e-6);
+            var verifyModel = new FeModel(
+                baseFe.Grid,
+                baseFe.Domain,
+                mat,
+                baseFe.FixedDofs,
+                baseFe.Loads,
+                binaryDensity,
+                penal: 1.0);
+
+            var feaResult = StaticAnalysis.Run(verifyModel, new StaticAnalysisOptions(
+                Tolerance: 1e-6,
+                MaxIterations: 10000,
+                ThrowOnNonConvergence: true));
+
+            ct.ThrowIfCancellationRequested();
+
+            // 3. Extract iso-surface mesh for the verified iteration
+            IndexedMesh isoMesh = SurfaceNetsExtractor.Extract(baseFe.Grid, physicalDensity, threshold, ct);
+
+            // 4. Compute nodal von Mises (averaging only over solid thresholded elements) and nodal displacements
+            double[] solidElemVm = new double[totalElements];
+            for (int i = 0; i < domainCount; i++)
+            {
+                int e = activeElements[i];
+                if (binaryDensity[e] >= 0.5)
+                {
+                    solidElemVm[e] = feaResult.VonMisesPerElement[e];
+                }
+            }
+
+            double[] nodalVm = StaticAnalysis.AverageElementToNode(verifyModel, solidElemVm);
+            double[] nodalDisp = new double[verifyModel.TotalNodes];
+            double[] u = feaResult.U;
+            for (int n = 0; n < verifyModel.TotalNodes; n++)
+            {
+                if (verifyModel.ActiveNodes[n])
+                {
+                    double ux = u[3 * n + 0];
+                    double uy = u[3 * n + 1];
+                    double uz = u[3 * n + 2];
+                    nodalDisp[n] = Math.Sqrt(ux * ux + uy * uz * 0 + uy * uy + uz * uz);
+                }
+            }
+
+            // 5. Sample nodal fields at the iso-surface mesh vertices
+            int vCount = isoMesh.VertexCount;
+            float[] vertexVm = new float[vCount];
+            float[] vertexDisp = new float[vCount];
+            ReadOnlySpan<Vector3> pos = isoMesh.Positions.Span;
+
+            double minVm = double.MaxValue;
+            double maxVm = 0.0;
+            double minDisp = double.MaxValue;
+            double maxDisp = 0.0;
+            var vmSamples = new List<double>(vCount);
+
+            for (int v = 0; v < vCount; v++)
+            {
+                Vector3 pt = pos[v];
+                double vm = StaticAnalysis.SampleNodalScalar(verifyModel, nodalVm, pt);
+                double disp = StaticAnalysis.SampleNodalScalar(verifyModel, nodalDisp, pt);
+
+                vertexVm[v] = (float)vm;
+                vertexDisp[v] = (float)disp;
+
+                if (vm < minVm) minVm = vm;
+                if (vm > maxVm) maxVm = vm;
+                if (disp < minDisp) minDisp = disp;
+                if (disp > maxDisp) maxDisp = disp;
+
+                if (vm > 1e-6) vmSamples.Add(vm);
+            }
+
+            // Also include solid element centroid stresses so maxVm reflects interior peaks
+            for (int i = 0; i < domainCount; i++)
+            {
+                int e = activeElements[i];
+                if (binaryDensity[e] >= 0.5)
+                {
+                    double evm = solidElemVm[e];
+                    if (evm > maxVm) maxVm = evm;
+                    if (evm > 1e-6) vmSamples.Add(evm);
+                }
+            }
+
+            if (minVm == double.MaxValue) minVm = 0.0;
+            if (minDisp == double.MaxValue) minDisp = 0.0;
+
+            double p99Vm = maxVm;
+            if (vmSamples.Count > 10)
+            {
+                vmSamples.Sort();
+                int idx99 = (int)Math.Floor(vmSamples.Count * 0.99);
+                p99Vm = vmSamples[Math.Clamp(idx99, 0, vmSamples.Count - 1)];
+            }
+
+            double materialSavedPct = domainCount > 0
+                ? Math.Clamp((1.0 - (double)solidCount / domainCount) * 100.0, 0.0, 100.0)
+                : 0.0;
+
+            double compRatio = originalCompliance > 1e-12
+                ? feaResult.Compliance / originalCompliance
+                : 1.0;
+
+            return new VerificationResult
+            {
+                Iteration = iteration,
+                Threshold = threshold,
+                IsoMesh = isoMesh,
+                VertexVonMises = vertexVm,
+                VertexDisplacements = vertexDisp,
+                MaxVonMises = maxVm,
+                MinVonMises = minVm,
+                P99VonMises = p99Vm,
+                MaxDisplacement = Math.Max(maxDisp, feaResult.MaxDisplacement),
+                MinDisplacement = minDisp,
+                Compliance = feaResult.Compliance,
+                OriginalSolidCompliance = originalCompliance,
+                ComplianceRatio = compRatio,
+                MaterialSavedPercent = materialSavedPct,
+                SafetyFactorMax = State.Material.ComputeSafetyFactor(maxVm),
+                SafetyFactorP99 = State.Material.ComputeSafetyFactor(p99Vm),
+                SolidElementCount = solidCount,
+                DomainElementCount = domainCount
+            };
+        }, ct);
+    }
+
+    public static async Task<(IndexedMesh ExportedMesh, IndexedMesh ReReadMesh, MeshReport ReReadReport, double ReReadVolume)> ExportIterationStlAsync(
+        string filePath,
+        GridSpec grid,
+        int iteration,
+        float[] physicalDensity,
+        float threshold = 0.5f,
+        int smoothingIterations = 3,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(physicalDensity);
+
+        return await Task.Run(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            IndexedMesh rawMesh = SurfaceNetsExtractor.Extract(grid, physicalDensity, threshold, ct);
+
+            int smoothIters = Math.Clamp(smoothingIterations, 0, 10);
+            IndexedMesh finalMesh = smoothIters > 0
+                ? TaubinSmoother.Smooth(rawMesh, smoothIters, lambda: 0.50f, mu: -0.53f, ct: ct)
+                : rawMesh;
+
+            string header = string.Create(
+                CultureInfo.InvariantCulture,
+                $"TopoOpt it={iteration} th={threshold:0.##}");
+
+            string fullPath = Path.GetFullPath(filePath);
+            string? dir = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            string tmpPath = fullPath + ".tmp";
+            using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                StlWriter.WriteBinary(fs, finalMesh, header);
+                fs.Flush(flushToDisk: true);
+            }
+            File.Move(tmpPath, fullPath, overwrite: true);
+
+            // Re-read with StlReader to verify watertightness and volume
+            using var readStream = File.OpenRead(fullPath);
+            var (reReadMesh, report) = StlReader.Read(readStream);
+            return (finalMesh, reReadMesh, report, Math.Abs(reReadMesh.SignedVolume));
+        }, ct);
+    }
+
+    private double ComputeBaselineSolidCompliance(FeModel baseFe)
+    {
+        var mat = new FeMaterial(State.Material.E, State.Material.Nu, 1e-6);
+        var solidModel = new FeModel(
+            baseFe.Grid,
+            baseFe.Domain,
+            mat,
+            baseFe.FixedDofs,
+            baseFe.Loads);
+
+        var res = StaticAnalysis.Run(solidModel, new StaticAnalysisOptions(
+            Tolerance: 1e-6,
+            MaxIterations: 10000,
+            ThrowOnNonConvergence: false));
+        return res.Compliance;
     }
 }

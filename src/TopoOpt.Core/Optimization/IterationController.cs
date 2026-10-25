@@ -34,6 +34,13 @@ public sealed class IterationController
         _pauseEvent.Set();
     }
 
+    public void Reset()
+    {
+        _isStopped = false;
+        _isPaused = false;
+        _pauseEvent.Set();
+    }
+
     /// <summary>
     /// Waits if paused, and returns true if execution should stop.
     /// </summary>
