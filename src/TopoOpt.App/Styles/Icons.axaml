@@ -1,0 +1,42 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- 24x24 viewbox, stroke-based StreamGeometry icons -->
+  <StreamGeometry x:Key="Icon.Open">M0,0 M24,24 M3,7 V19 A2,2 0 0,0 5,21 H19 A2,2 0 0,0 21,19 V9 A2,2 0 0,0 19,7 H12 L10,5 H5 A2,2 0 0,0 3,7 Z</StreamGeometry>
+  <StreamGeometry x:Key="Open">M0,0 M24,24 M3,7 V19 A2,2 0 0,0 5,21 H19 A2,2 0 0,0 21,19 V9 A2,2 0 0,0 19,7 H12 L10,5 H5 A2,2 0 0,0 3,7 Z</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Fit">M0,0 M24,24 M4,9 V4 H9 M15,4 H20 V9 M20,15 V20 H15 M9,20 H4 V15 M12,9 V15 M9,12 H15</StreamGeometry>
+  <StreamGeometry x:Key="Fit">M0,0 M24,24 M4,9 V4 H9 M15,4 H20 V9 M20,15 V20 H15 M9,20 H4 V15 M12,9 V15 M9,12 H15</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Load">M0,0 M24,24 M12,3 V16 M7,11 L12,16 L17,11 M4,20 H20</StreamGeometry>
+  <StreamGeometry x:Key="LoadIcon">M0,0 M24,24 M12,3 V16 M7,11 L12,16 L17,11 M4,20 H20</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Support">M0,0 M24,24 M12,5 L5,17 H19 Z M3,17 H21 M6,17 L4,21 M11,17 L9,21 M16,17 L14,21 M20,17 L18,21</StreamGeometry>
+  <StreamGeometry x:Key="SupportIcon">M0,0 M24,24 M12,5 L5,17 H19 Z M3,17 H21 M6,17 L4,21 M11,17 L9,21 M16,17 L14,21 M20,17 L18,21</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Preserve">M0,0 M24,24 M12,3 L4,7 V12 C4,16.5 7.5,20.5 12,22 C16.5,20.5 20,16.5 20,12 V7 L12,3 Z</StreamGeometry>
+  <StreamGeometry x:Key="PreserveIcon">M0,0 M24,24 M12,3 L4,7 V12 C4,16.5 7.5,20.5 12,22 C16.5,20.5 20,16.5 20,12 V7 L12,3 Z</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Material">M0,0 M24,24 M12,3 L20,7.5 V16.5 L12,21 L4,16.5 V7.5 L12,3 Z M12,12 L20,7.5 M12,12 L4,7.5 M12,12 V21</StreamGeometry>
+  <StreamGeometry x:Key="Material">M0,0 M24,24 M12,3 L20,7.5 V16.5 L12,21 L4,16.5 V7.5 L12,3 Z M12,12 L20,7.5 M12,12 L4,7.5 M12,12 V21</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Resolution">M0,0 M24,24 M4,4 H20 V20 H4 Z M4,10 H20 M4,15 H20 M10,4 V20 M15,4 V20</StreamGeometry>
+  <StreamGeometry x:Key="Resolution">M0,0 M24,24 M4,4 H20 V20 H4 Z M4,10 H20 M4,15 H20 M10,4 V20 M15,4 V20</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Run">M0,0 M24,24 M6,4 L20,12 L6,20 Z</StreamGeometry>
+  <StreamGeometry x:Key="Run">M0,0 M24,24 M6,4 L20,12 L6,20 Z</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Cancel">M0,0 M24,24 M6,6 L18,18 M18,6 L6,18</StreamGeometry>
+  <StreamGeometry x:Key="Cancel">M0,0 M24,24 M6,6 L18,18 M18,6 L6,18</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Save">M0,0 M24,24 M5,4 H16 L20,8 V19 A1,1 0 0,1 19,20 H5 A1,1 0 0,1 4,19 V5 A1,1 0 0,1 5,4 Z M8,4 V9 H15 V4 M7,20 V13 H17 V20</StreamGeometry>
+  <StreamGeometry x:Key="Save">M0,0 M24,24 M5,4 H16 L20,8 V19 A1,1 0 0,1 19,20 H5 A1,1 0 0,1 4,19 V5 A1,1 0 0,1 5,4 Z M8,4 V9 H15 V4 M7,20 V13 H17 V20</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Warning">M0,0 M24,24 M12,3 L2,20 H22 Z M12,9 V14 M12,17 V17.5</StreamGeometry>
+  <StreamGeometry x:Key="WarningIcon">M0,0 M24,24 M12,3 L2,20 H22 Z M12,9 V14 M12,17 V17.5</StreamGeometry>
+
+  <StreamGeometry x:Key="Icon.Check">M0,0 M24,24 M4,12.5 L9.5,18 L20,6</StreamGeometry>
+  <StreamGeometry x:Key="Check">M0,0 M24,24 M4,12.5 L9.5,18 L20,6</StreamGeometry>
+
+</ResourceDictionary>
+

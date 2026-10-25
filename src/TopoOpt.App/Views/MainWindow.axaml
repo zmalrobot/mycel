@@ -7,87 +7,87 @@
         xmlns:wf="using:TopoOpt.Core.Workflow"
         x:Class="TopoOpt.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="TopoOpt — Topology Optimization"
+        Title="{DynamicResource App.Title}"
         Width="1340"
         Height="840"
         MinWidth="960"
         MinHeight="620"
-        Background="#0D0F14"
+        Background="{DynamicResource Bg0}"
         DragDrop.AllowDrop="True">
 
   <Grid RowDefinitions="44,*,26">
 
     <!-- 1. Top Bar -->
     <Border Grid.Row="0"
-            Background="#141720"
-            BorderBrush="#242936"
+            Background="{DynamicResource Bg1}"
+            BorderBrush="{DynamicResource Border}"
             BorderThickness="0,0,0,1"
-            Padding="12,0">
+            Padding="{DynamicResource Pad12H}">
       <Grid ColumnDefinitions="Auto,*,Auto">
         <!-- Action Buttons -->
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button Content="Open STL"
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="{DynamicResource Spacing8}" VerticalAlignment="Center">
+          <Button Content="{DynamicResource Toolbar.OpenStl}"
                   Click="OnOpenStlClick"
-                  Background="#2563EB"
-                  Foreground="#FFFFFF"
+                  Background="{DynamicResource Accent}"
+                  Foreground="{DynamicResource TextPrimary}"
                   FontWeight="SemiBold"
-                  Padding="12,5"
-                  CornerRadius="4"
-                  ToolTip.Tip="Open STL file (Ctrl+O)" />
+                  Padding="{DynamicResource Pad12_8}"
+                  CornerRadius="{DynamicResource CornerRadius}"
+                  ToolTip.Tip="{DynamicResource Toolbar.OpenStl.Tooltip}" />
 
-          <Button Content="Open Project"
+          <Button Content="{DynamicResource Toolbar.OpenProject}"
                   Click="OnOpenProjectClick"
-                  Background="#1E2330"
-                  Foreground="#E2E8F0"
-                  Padding="10,5"
-                  CornerRadius="4"
-                  ToolTip.Tip="Open existing project folder" />
+                  Background="{DynamicResource Bg2}"
+                  Foreground="{DynamicResource TextPrimary}"
+                  Padding="{DynamicResource Pad12_8}"
+                  CornerRadius="{DynamicResource CornerRadius}"
+                  ToolTip.Tip="{DynamicResource Toolbar.OpenProject.Tooltip}" />
 
-          <Button Content="Save Project"
+          <Button Content="{DynamicResource Toolbar.SaveProject}"
                   Click="OnSaveProjectClick"
-                  Background="#1E2330"
-                  Foreground="#E2E8F0"
-                  Padding="10,5"
-                  CornerRadius="4"
-                  ToolTip.Tip="Save project into folder" />
+                  Background="{DynamicResource Bg2}"
+                  Foreground="{DynamicResource TextPrimary}"
+                  Padding="{DynamicResource Pad12_8}"
+                  CornerRadius="{DynamicResource CornerRadius}"
+                  ToolTip.Tip="{DynamicResource Toolbar.SaveProject.Tooltip}" />
 
-          <Rectangle Width="1" Height="20" Fill="#2A3040" Margin="4,0" />
+          <Rectangle Width="1" Height="20" Fill="{DynamicResource Border}" Margin="{DynamicResource Margin4H}" />
 
-          <Button Content="Fit View"
+          <Button Content="{DynamicResource Toolbar.FitView}"
                   Click="OnFitViewClick"
-                  Background="#1E2330"
-                  Foreground="#E2E8F0"
-                  Padding="10,5"
-                  CornerRadius="4"
-                  ToolTip.Tip="Fit camera to geometry (F)" />
+                  Background="{DynamicResource Bg2}"
+                  Foreground="{DynamicResource TextPrimary}"
+                  Padding="{DynamicResource Pad12_8}"
+                  CornerRadius="{DynamicResource CornerRadius}"
+                  ToolTip.Tip="{DynamicResource Toolbar.FitView.Tooltip}" />
         </StackPanel>
 
         <!-- Center Model Header Summary -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="{DynamicResource Spacing12}">
           <TextBlock Text="{Binding ModelFileName}"
                      FontWeight="SemiBold"
                      FontSize="12"
-                     Foreground="#E2E8F0"
+                     Foreground="{DynamicResource TextPrimary}"
                      VerticalAlignment="Center" />
 
-          <Border Background="#1C212D" CornerRadius="4" Padding="6,2">
-            <TextBlock Text="{Binding StatusTriangles}" FontSize="11" Foreground="#94A3B8" />
+          <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8_4}">
+            <TextBlock Text="{Binding StatusTriangles}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
           </Border>
 
-          <Border Background="#1C212D" CornerRadius="4" Padding="6,2">
-            <TextBlock Text="{Binding StatusBBox}" FontSize="11" Foreground="#94A3B8" />
+          <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8_4}">
+            <TextBlock Text="{Binding StatusBBox}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
           </Border>
 
-          <Border Background="{Binding WatertightBadgeBrush}" CornerRadius="4" Padding="6,2">
-            <TextBlock Text="{Binding WatertightText}" FontSize="11" Foreground="#FFFFFF" FontWeight="Medium" />
+          <Border Background="{Binding WatertightBadgeBrush}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8_4}">
+            <TextBlock Text="{Binding WatertightText}" FontSize="11" Foreground="{DynamicResource TextPrimary}" FontWeight="Medium" />
           </Border>
         </StackPanel>
 
         <!-- Right Quick Info -->
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource Spacing8}" VerticalAlignment="Center">
           <TextBlock Text="{Binding CurrentProjectPath}"
                      FontSize="11"
-                     Foreground="#64748B"
+                     Foreground="{DynamicResource TextSecondary}"
                      VerticalAlignment="Center"
                      MaxWidth="200"
                      TextTrimming="CharacterEllipsis" />
@@ -100,108 +100,115 @@
 
       <!-- Left Stepper Accordion Column -->
       <Border Grid.Column="0"
-              Background="#12151D"
-              BorderBrush="#242936"
+              Background="{DynamicResource Bg0}"
+              BorderBrush="{DynamicResource Border}"
               BorderThickness="0,0,1,0">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <StackPanel Spacing="6" Margin="10">
+          <StackPanel Spacing="{DynamicResource Spacing8}" Margin="{DynamicResource Pad12}">
 
             <!-- STEP 1: MODEL -->
-            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+            <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
                 <Button Command="{Binding SelectStepCommand}" CommandParameter="1"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Padding="{DynamicResource Pad12_8}"
+                        ToolTip.Tip="{DynamicResource Stepper.Model.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                      <Border Width="22" Height="22" CornerRadius="11" Background="#2563EB" VerticalAlignment="Center">
-                        <TextBlock Text="1" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="{DynamicResource Spacing8}">
+                      <Border Width="22" Height="22" CornerRadius="{DynamicResource CornerRadius}" Background="{DynamicResource Accent}" VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Stepper.Common.Step1Number}" Foreground="{DynamicResource TextPrimary}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
-                      <TextBlock Text="Model &amp; Geometry" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource Stepper.Model.Title}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep1Completed}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{DynamicResource Stepper.Common.CompletedCheck}" Foreground="{DynamicResource Preserve}" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep1Completed}" VerticalAlignment="Center" />
                   </Grid>
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}">
-                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-                    <TextBlock Text="Import Unit:" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" />
+                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}">
+                  <Grid ColumnDefinitions="*,Auto" Margin="{DynamicResource Margin4T}">
+                    <TextBlock Text="{DynamicResource Stepper.Model.ImportUnit}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableUnits}" SelectedItem="{Binding SelectedUnit}" Width="120" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Triangles:" FontSize="12" Foreground="#94A3B8" />
-                    <TextBlock Grid.Column="1" Text="{Binding StatusTriangles}" FontSize="12" Foreground="#E2E8F0" />
+                    <TextBlock Text="{DynamicResource Stepper.Model.Triangles}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusTriangles}" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Vertices:" FontSize="12" Foreground="#94A3B8" />
-                    <TextBlock Grid.Column="1" Text="{Binding StatusVertices}" FontSize="12" Foreground="#E2E8F0" />
+                    <TextBlock Text="{DynamicResource Stepper.Model.Vertices}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusVertices}" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Bounding Box:" FontSize="12" Foreground="#94A3B8" />
-                    <TextBlock Grid.Column="1" Text="{Binding StatusBBox}" FontSize="12" Foreground="#E2E8F0" />
+                    <TextBlock Text="{DynamicResource Stepper.Model.BoundingBox}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusBBox}" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Volume:" FontSize="12" Foreground="#94A3B8" />
-                    <TextBlock Grid.Column="1" Text="{Binding StatusVolume}" FontSize="12" Foreground="#E2E8F0" />
+                    <TextBlock Text="{DynamicResource Stepper.Model.Volume}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusVolume}" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
                   </Grid>
                 </StackPanel>
               </StackPanel>
             </Border>
 
             <!-- STEP 2: LOADS -->
-            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+            <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
                 <Button Command="{Binding SelectStepCommand}" CommandParameter="2"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Padding="{DynamicResource Pad12_8}"
+                        ToolTip.Tip="{DynamicResource Stepper.Loads.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                      <Border Width="22" Height="22" CornerRadius="11" Background="#EA580C" VerticalAlignment="Center">
-                        <TextBlock Text="2" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="{DynamicResource Spacing8}">
+                      <Border Width="22" Height="22" CornerRadius="{DynamicResource CornerRadius}" Background="{DynamicResource Load}" VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Stepper.Common.Step2Number}" Foreground="{DynamicResource TextPrimary}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
-                      <TextBlock Text="Applied Loads" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource Stepper.Loads.Title}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep2Completed}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{DynamicResource Stepper.Common.CompletedCheck}" Foreground="{DynamicResource Preserve}" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep2Completed}" VerticalAlignment="Center" />
                   </Grid>
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}">
-                  <Button Content="+ Add Load Region"
+                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}">
+                  <Button Content="{DynamicResource Stepper.Loads.Add}"
                           Command="{Binding AddLoadCommand}"
-                          Background="#EA580C"
-                          Foreground="#FFFFFF"
+                          Background="{DynamicResource Load}"
+                          Foreground="{DynamicResource TextPrimary}"
                           FontWeight="SemiBold"
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Center"
-                          Padding="0,6"
-                          CornerRadius="4" />
+                          Padding="{DynamicResource Pad8_4}"
+                          CornerRadius="{DynamicResource CornerRadius}"
+                          ToolTip.Tip="{DynamicResource Stepper.Loads.Add.Tooltip}" />
 
                   <ItemsControl ItemsSource="{Binding Loads}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate DataType="vm:LoadItemViewModel">
-                        <Border Background="#1F2432" CornerRadius="5" Padding="10" Margin="0,4" BorderBrush="#323B50" BorderThickness="1">
-                          <StackPanel Spacing="6">
+                        <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8}" Margin="{DynamicResource Margin4V}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
+                          <StackPanel Spacing="{DynamicResource Spacing8}">
                             <Grid ColumnDefinitions="*,Auto">
-                              <TextBox Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="#E2E8F0" Background="#141720" Padding="4,2" />
-                              <Button Grid.Column="1" Content="✕"
+                              <TextBox Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Background="{DynamicResource Bg1}" Padding="{DynamicResource Pad4}" />
+                              <Button Grid.Column="1" Content="{DynamicResource Stepper.Common.RemoveSymbol}"
                                       Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).RemoveLoadCommand}"
                                       CommandParameter="{Binding}"
-                                      Background="Transparent" Foreground="#EF4444" Padding="6,2" Margin="4,0,0,0" />
+                                      Background="Transparent" Foreground="{DynamicResource Danger}" Padding="{DynamicResource Pad8_4}" Margin="{DynamicResource Margin4L}"
+                                      ToolTip.Tip="{DynamicResource Stepper.Loads.Remove.Tooltip}" />
                             </Grid>
 
                             <Grid ColumnDefinitions="*,Auto">
-                              <TextBlock Text="Magnitude (N):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
-                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeNewtons}" Minimum="1" Maximum="1000000" Increment="50" Width="110" Height="26" />
+                              <TextBlock Text="{DynamicResource Stepper.Loads.Magnitude}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeNewtons}" Minimum="1" Maximum="1000000" Increment="50" Width="110" Height="26"
+                                             ToolTip.Tip="{DynamicResource Stepper.Loads.Magnitude.Tooltip}" />
                             </Grid>
 
                             <Grid ColumnDefinitions="*,Auto">
-                              <TextBlock Text="Direction:" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
+                              <TextBlock Text="{DynamicResource Stepper.Loads.Direction}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
                               <ComboBox Grid.Column="1"
                                         ItemsSource="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).AvailableLoadDirections}"
                                         SelectedItem="{Binding DirectionMode}"
@@ -209,21 +216,25 @@
                             </Grid>
 
                             <!-- Custom Vector Controls -->
-                            <StackPanel Spacing="4" IsVisible="{Binding DirectionMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static wf:LoadDirectionMode.CustomVector}}">
+                            <StackPanel Spacing="{DynamicResource Spacing4}" IsVisible="{Binding DirectionMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static wf:LoadDirectionMode.CustomVector}}">
                               <Grid ColumnDefinitions="*,*,*">
-                                <NumericUpDown Grid.Column="0" Value="{Binding CustomX}" Increment="0.1" Margin="1" />
-                                <NumericUpDown Grid.Column="1" Value="{Binding CustomY}" Increment="0.1" Margin="1" />
-                                <NumericUpDown Grid.Column="2" Value="{Binding CustomZ}" Increment="0.1" Margin="1" />
+                                <NumericUpDown Grid.Column="0" Value="{Binding CustomX}" Increment="0.1" Margin="{DynamicResource Pad4}"
+                                               ToolTip.Tip="{DynamicResource Stepper.Loads.CustomX.Tooltip}" />
+                                <NumericUpDown Grid.Column="1" Value="{Binding CustomY}" Increment="0.1" Margin="{DynamicResource Pad4}"
+                                               ToolTip.Tip="{DynamicResource Stepper.Loads.CustomY.Tooltip}" />
+                                <NumericUpDown Grid.Column="2" Value="{Binding CustomZ}" Increment="0.1" Margin="{DynamicResource Pad4}"
+                                               ToolTip.Tip="{DynamicResource Stepper.Loads.CustomZ.Tooltip}" />
                               </Grid>
                             </StackPanel>
 
                             <Grid ColumnDefinitions="*,Auto">
-                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" />
-                              <ToggleButton Grid.Column="1" Content="Pick on Mesh"
+                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                              <ToggleButton Grid.Column="1" Content="{DynamicResource Stepper.Common.PickOnMesh}"
                                             IsChecked="{Binding IsPicking}"
                                             Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickLoadCommand}"
                                             CommandParameter="{Binding}"
-                                            Background="#2D3748" Foreground="#E2E8F0" FontSize="11" Padding="8,4" CornerRadius="4" />
+                                            Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                                            ToolTip.Tip="{DynamicResource Stepper.Common.PickOnMesh.Tooltip}" />
                             </Grid>
                           </StackPanel>
                         </Border>
@@ -235,60 +246,65 @@
             </Border>
 
             <!-- STEP 3: SUPPORTS -->
-            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+            <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
                 <Button Command="{Binding SelectStepCommand}" CommandParameter="3"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Padding="{DynamicResource Pad12_8}"
+                        ToolTip.Tip="{DynamicResource Stepper.Supports.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                      <Border Width="22" Height="22" CornerRadius="11" Background="#2563EB" VerticalAlignment="Center">
-                        <TextBlock Text="3" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="{DynamicResource Spacing8}">
+                      <Border Width="22" Height="22" CornerRadius="{DynamicResource CornerRadius}" Background="{DynamicResource Support}" VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Stepper.Common.Step3Number}" Foreground="{DynamicResource TextPrimary}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
-                      <TextBlock Text="Fixed Supports" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource Stepper.Supports.Title}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep3Completed}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{DynamicResource Stepper.Common.CompletedCheck}" Foreground="{DynamicResource Preserve}" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep3Completed}" VerticalAlignment="Center" />
                   </Grid>
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}">
-                  <Button Content="+ Add Fixed Support"
+                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}">
+                  <Button Content="{DynamicResource Stepper.Supports.Add}"
                           Command="{Binding AddSupportCommand}"
-                          Background="#2563EB"
-                          Foreground="#FFFFFF"
+                          Background="{DynamicResource Support}"
+                          Foreground="{DynamicResource TextPrimary}"
                           FontWeight="SemiBold"
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Center"
-                          Padding="0,6"
-                          CornerRadius="4" />
+                          Padding="{DynamicResource Pad8_4}"
+                          CornerRadius="{DynamicResource CornerRadius}"
+                          ToolTip.Tip="{DynamicResource Stepper.Supports.Add.Tooltip}" />
 
                   <ItemsControl ItemsSource="{Binding Supports}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate DataType="vm:SupportItemViewModel">
-                        <Border Background="#1F2432" CornerRadius="5" Padding="10" Margin="0,4" BorderBrush="#323B50" BorderThickness="1">
-                          <StackPanel Spacing="6">
+                        <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8}" Margin="{DynamicResource Margin4V}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
+                          <StackPanel Spacing="{DynamicResource Spacing8}">
                             <Grid ColumnDefinitions="*,Auto">
-                              <TextBox Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="#E2E8F0" Background="#141720" Padding="4,2" />
-                              <Button Grid.Column="1" Content="✕"
+                              <TextBox Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Background="{DynamicResource Bg1}" Padding="{DynamicResource Pad4}" />
+                              <Button Grid.Column="1" Content="{DynamicResource Stepper.Common.RemoveSymbol}"
                                       Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).RemoveSupportCommand}"
                                       CommandParameter="{Binding}"
-                                      Background="Transparent" Foreground="#EF4444" Padding="6,2" Margin="4,0,0,0" />
+                                      Background="Transparent" Foreground="{DynamicResource Danger}" Padding="{DynamicResource Pad8_4}" Margin="{DynamicResource Margin4L}"
+                                      ToolTip.Tip="{DynamicResource Stepper.Supports.Remove.Tooltip}" />
                             </Grid>
 
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                              <CheckBox Content="Fix X" IsChecked="{Binding FixX}" FontSize="11" Foreground="#CBD5E1" />
-                              <CheckBox Content="Fix Y" IsChecked="{Binding FixY}" FontSize="11" Foreground="#CBD5E1" />
-                              <CheckBox Content="Fix Z" IsChecked="{Binding FixZ}" FontSize="11" Foreground="#CBD5E1" />
+                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing12}">
+                              <CheckBox Content="{DynamicResource Stepper.Supports.FixX}" IsChecked="{Binding FixX}" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                              <CheckBox Content="{DynamicResource Stepper.Supports.FixY}" IsChecked="{Binding FixY}" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                              <CheckBox Content="{DynamicResource Stepper.Supports.FixZ}" IsChecked="{Binding FixZ}" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
                             </StackPanel>
 
                             <Grid ColumnDefinitions="*,Auto">
-                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" />
-                              <ToggleButton Grid.Column="1" Content="Pick on Mesh"
+                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                              <ToggleButton Grid.Column="1" Content="{DynamicResource Stepper.Common.PickOnMesh}"
                                             IsChecked="{Binding IsPicking}"
                                             Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickSupportCommand}"
                                             CommandParameter="{Binding}"
-                                            Background="#2D3748" Foreground="#E2E8F0" FontSize="11" Padding="8,4" CornerRadius="4" />
+                                            Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                                            ToolTip.Tip="{DynamicResource Stepper.Common.PickOnMesh.Tooltip}" />
                             </Grid>
                           </StackPanel>
                         </Border>
@@ -300,126 +316,137 @@
             </Border>
 
             <!-- STEP 4: MATERIAL -->
-            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+            <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
                 <Button Command="{Binding SelectStepCommand}" CommandParameter="4"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Padding="{DynamicResource Pad12_8}"
+                        ToolTip.Tip="{DynamicResource Stepper.Material.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                      <Border Width="22" Height="22" CornerRadius="11" Background="#7C3AED" VerticalAlignment="Center">
-                        <TextBlock Text="4" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="{DynamicResource Spacing8}">
+                      <Border Width="22" Height="22" CornerRadius="{DynamicResource CornerRadius}" Background="{DynamicResource Accent}" VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Stepper.Common.Step4Number}" Foreground="{DynamicResource TextPrimary}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
-                      <TextBlock Text="Material" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource Stepper.Material.Title}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep4Completed}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{DynamicResource Stepper.Common.CompletedCheck}" Foreground="{DynamicResource Preserve}" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep4Completed}" VerticalAlignment="Center" />
                   </Grid>
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}">
+                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}">
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Preset:" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <TextBlock Text="{DynamicResource Stepper.Material.Preset}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableMaterialPresets}" SelectedItem="{Binding SelectedMaterialPreset}" Width="140" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Young's Modulus E (MPa):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialE}" Minimum="100" Maximum="50000" Increment="100" Width="110" Height="26" />
+                    <TextBlock Text="{DynamicResource Stepper.Material.YoungModulus}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialE}" Minimum="100" Maximum="50000" Increment="100" Width="110" Height="26"
+                                   ToolTip.Tip="{DynamicResource Stepper.Material.YoungModulus.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Poisson's Ratio ν:" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialNu}" Minimum="0.05" Maximum="0.49" Increment="0.01" FormatString="F2" Width="110" Height="26" />
+                    <TextBlock Text="{DynamicResource Stepper.Material.PoissonRatio}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialNu}" Minimum="0.05" Maximum="0.49" Increment="0.01" FormatString="F2" Width="110" Height="26"
+                                   ToolTip.Tip="{DynamicResource Stepper.Material.PoissonRatio.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Yield Strength XY (MPa):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldXy}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26" />
+                    <TextBlock Text="{DynamicResource Stepper.Material.YieldStrengthXy}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldXy}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26"
+                                   ToolTip.Tip="{DynamicResource Stepper.Material.YieldStrengthXy.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Yield Strength Z (MPa):" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldZ}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26" />
+                    <TextBlock Text="{DynamicResource Stepper.Material.YieldStrengthZ}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldZ}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26"
+                                   ToolTip.Tip="{DynamicResource Stepper.Material.YieldStrengthZ.Tooltip}" />
                   </Grid>
 
-                  <CheckBox Content="Conservative (use Z strength)"
+                  <CheckBox Content="{DynamicResource Stepper.Material.ConservativeZ}"
                             IsChecked="{Binding MaterialConservativeZ}"
-                            FontSize="11" Foreground="#CBD5E1" Margin="0,4,0,0" />
+                            FontSize="11" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4T}" />
 
-                  <TextBlock Text="* Indicative manufacturer values from Polymaker / eSUN TDS"
-                             FontSize="10" Foreground="#64748B" FontStyle="Italic" TextWrapping="Wrap" />
+                  <TextBlock Text="{DynamicResource Stepper.Material.TdsDisclaimer}"
+                             FontSize="10" Foreground="{DynamicResource TextSecondary}" FontStyle="Italic" TextWrapping="Wrap" />
                 </StackPanel>
               </StackPanel>
             </Border>
 
             <!-- STEP 5: RESOLUTION & PREVIEW -->
-            <Border Background="#181C26" CornerRadius="6" BorderBrush="#262D3D" BorderThickness="1">
+            <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
                 <Button Command="{Binding SelectStepCommand}" CommandParameter="5"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,10">
+                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Padding="{DynamicResource Pad12_8}"
+                        ToolTip.Tip="{DynamicResource Stepper.Resolution.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                      <Border Width="22" Height="22" CornerRadius="11" Background="#0D9488" VerticalAlignment="Center">
-                        <TextBlock Text="5" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="{DynamicResource Spacing8}">
+                      <Border Width="22" Height="22" CornerRadius="{DynamicResource CornerRadius}" Background="{DynamicResource Preserve}" VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Stepper.Common.Step5Number}" Foreground="{DynamicResource TextPrimary}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
-                      <TextBlock Text="Resolution &amp; Analysis" FontWeight="SemiBold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource Stepper.Resolution.Title}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                      <Border Background="#B45309" CornerRadius="3" Padding="4,1" IsVisible="{Binding IsResultOutdated}">
-                        <TextBlock Text="Outdated" FontSize="9" FontWeight="Bold" Foreground="#FEF3C7" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource Spacing4}" VerticalAlignment="Center">
+                      <Border Background="{DynamicResource Warning}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad4}" IsVisible="{Binding IsResultOutdated}">
+                        <TextBlock Text="{DynamicResource Stepper.Resolution.Outdated}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource Bg0}" />
                       </Border>
-                      <TextBlock Text="✓" Foreground="#10B981" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep5Completed}" />
+                      <TextBlock Text="{DynamicResource Stepper.Common.CompletedCheck}" Foreground="{DynamicResource Preserve}" FontWeight="Bold" FontSize="14" IsVisible="{Binding IsStep5Completed}" />
                     </StackPanel>
                   </Grid>
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="12,0,12,12" Spacing="8" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}">
+                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}">
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Preset:" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    <TextBlock Text="{DynamicResource Stepper.Resolution.Preset}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableResolutionPresets}" SelectedItem="{Binding SelectedResolutionPreset}" Width="140" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="Target Elements:" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding TargetSolidElements}" Minimum="10000" Maximum="1000000" Increment="10000" Width="110" Height="26" />
+                    <TextBlock Text="{DynamicResource Stepper.Resolution.TargetElements}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding TargetSolidElements}" Minimum="10000" Maximum="1000000" Increment="10000" Width="110" Height="26"
+                                   ToolTip.Tip="{DynamicResource Stepper.Resolution.TargetElements.Tooltip}" />
                   </Grid>
 
                   <!-- Estimate Metrics -->
-                  <Border Background="#12151D" CornerRadius="4" Padding="8,6" Margin="0,2">
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8}" Margin="{DynamicResource Margin4V}">
                     <Grid ColumnDefinitions="*,*,*">
                       <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                        <TextBlock Text="Voxel size" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding VoxelSizeHText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource Stepper.Resolution.VoxelSize}" FontSize="9" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding VoxelSizeHText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
                       </StackPanel>
                       <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                        <TextBlock Text="Est. Memory" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding EstimatedMemoryText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource Stepper.Resolution.EstMemory}" FontSize="9" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding EstimatedMemoryText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
                       </StackPanel>
                       <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                        <TextBlock Text="Est. Solve Time" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding EstimatedTimeText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource Stepper.Resolution.EstSolveTime}" FontSize="9" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding EstimatedTimeText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
                       </StackPanel>
                     </Grid>
                   </Border>
 
                   <!-- Action: Prepare Model -->
-                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-                    <Button Content="Prepare Model"
+                  <Grid ColumnDefinitions="*,Auto" Margin="{DynamicResource Margin4T}">
+                    <Button Content="{DynamicResource Stepper.Resolution.PrepareModel}"
                             Command="{Binding PrepareModelCommand}"
                             IsEnabled="{Binding !IsPreparing}"
-                            Background="#0D9488" Foreground="#FFFFFF" FontWeight="SemiBold"
-                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,6" CornerRadius="4" />
-                    <Button Grid.Column="1" Content="Cancel" Command="{Binding CancelPrepareCommand}"
-                            IsVisible="{Binding IsPreparing}" Background="#EF4444" Foreground="#FFFFFF" Margin="4,0,0,0" Padding="8,4" CornerRadius="4" />
+                            Background="{DynamicResource Preserve}" Foreground="{DynamicResource Bg0}" FontWeight="SemiBold"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                            ToolTip.Tip="{DynamicResource Stepper.Resolution.PrepareModel.Tooltip}" />
+                    <Button Grid.Column="1" Content="{DynamicResource Common.Cancel}" Command="{Binding CancelPrepareCommand}"
+                            IsVisible="{Binding IsPreparing}" Background="{DynamicResource Danger}" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4L}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                            ToolTip.Tip="{DynamicResource Common.Cancel.Tooltip}" />
                   </Grid>
 
                   <ProgressBar Value="{Binding PrepareProgress}" Maximum="100" Height="4" IsVisible="{Binding IsPreparing}" />
 
                   <!-- Validation Issues Compact List -->
-                  <Border Background="#141720" CornerRadius="4" Padding="6" MaxHeight="100" BorderBrush="#242936" BorderThickness="1"
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8}" MaxHeight="100" BorderBrush="{DynamicResource Border}" BorderThickness="1"
                           IsVisible="{Binding ValidationIssues.Count, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter=0}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                       <ItemsControl ItemsSource="{Binding ValidationIssues}">
@@ -427,10 +454,11 @@
                           <DataTemplate DataType="vox:ValidationIssue">
                             <Button Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).FocusIssueCommand}"
                                     CommandParameter="{Binding}"
-                                    Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="2">
-                              <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="●" Foreground="{Binding SeverityColor}" FontSize="10" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Message}" FontSize="10" Foreground="#E2E8F0" TextTrimming="CharacterEllipsis" MaxWidth="280" />
+                                    Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="{DynamicResource Pad4}"
+                                    ToolTip.Tip="{DynamicResource Stepper.Resolution.FocusIssue.Tooltip}">
+                              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing8}">
+                                <TextBlock Text="{DynamicResource Stepper.Resolution.IssueBullet}" Foreground="{Binding SeverityColor}" FontSize="10" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Message}" FontSize="10" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis" MaxWidth="280" />
                               </StackPanel>
                             </Button>
                           </DataTemplate>
@@ -440,56 +468,58 @@
                   </Border>
 
                   <!-- Action: Run Static Analysis -->
-                  <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-                    <Button Content="Run Static Analysis"
+                  <Grid ColumnDefinitions="*,Auto" Margin="{DynamicResource Margin8T}">
+                    <Button Content="{DynamicResource Stepper.Analysis.Run}"
                             Command="{Binding RunStaticAnalysisCommand}"
                             IsEnabled="{Binding IsStep5Prepared}"
-                            Background="#4F46E5" Foreground="#FFFFFF" FontWeight="SemiBold"
-                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="0,7" CornerRadius="4" />
-                    <Button Grid.Column="1" Content="Cancel" Command="{Binding CancelAnalysisCommand}"
-                            IsVisible="{Binding IsAnalyzing}" Background="#EF4444" Foreground="#FFFFFF" Margin="4,0,0,0" Padding="8,4" CornerRadius="4" />
+                            Background="{DynamicResource Accent}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                            ToolTip.Tip="{DynamicResource Stepper.Analysis.Run.Tooltip}" />
+                    <Button Grid.Column="1" Content="{DynamicResource Common.Cancel}" Command="{Binding CancelAnalysisCommand}"
+                            IsVisible="{Binding IsAnalyzing}" Background="{DynamicResource Danger}" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4L}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                            ToolTip.Tip="{DynamicResource Common.Cancel.Tooltip}" />
                   </Grid>
 
                   <ProgressBar Value="{Binding AnalysisProgress}" Maximum="100" Height="4" IsVisible="{Binding IsAnalyzing}" />
 
                   <!-- FEA Static Results Card -->
-                  <Border Background="#141720" CornerRadius="6" Padding="10" BorderBrush="#2E384D" BorderThickness="1" IsVisible="{Binding HasAnalysisResult}">
-                    <StackPanel Spacing="6">
-                      <TextBlock Text="Static Analysis Results" FontSize="11" FontWeight="Bold" Foreground="#818CF8" />
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}" BorderBrush="{DynamicResource Border}" BorderThickness="1" IsVisible="{Binding HasAnalysisResult}">
+                    <StackPanel Spacing="{DynamicResource Spacing8}">
+                      <TextBlock Text="{DynamicResource Stepper.Analysis.ResultsTitle}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Support}" />
 
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Compliance (Work):" FontSize="11" Foreground="#94A3B8" />
-                        <TextBlock Grid.Column="1" Text="{Binding ComplianceText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" />
+                        <TextBlock Text="{DynamicResource Stepper.Analysis.Compliance}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding ComplianceText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
                       </Grid>
 
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Max Displacement:" FontSize="11" Foreground="#94A3B8" />
-                        <TextBlock Grid.Column="1" Text="{Binding MaxDisplacementText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" />
+                        <TextBlock Text="{DynamicResource Stepper.Analysis.MaxDisplacement}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding MaxDisplacementText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
                       </Grid>
 
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Max von Mises:" FontSize="11" Foreground="#94A3B8" />
-                        <TextBlock Grid.Column="1" Text="{Binding MaxVonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0" />
+                        <TextBlock Text="{DynamicResource Stepper.Analysis.MaxVonMises}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding MaxVonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
                       </Grid>
 
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="p99 von Mises (filtered):" FontSize="11" Foreground="#94A3B8" />
-                        <TextBlock Grid.Column="1" Text="{Binding P99VonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="#38BDF8" />
+                        <TextBlock Text="{DynamicResource Stepper.Analysis.P99VonMises}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding P99VonMisesText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Support}" />
                       </Grid>
 
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Safety Factor SF (max):" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Text="{DynamicResource Stepper.Analysis.SafetyFactorMax}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
                         <TextBlock Grid.Column="1" Text="{Binding SafetyFactorText}" FontSize="11" FontWeight="Bold" Foreground="{Binding SafetyFactorBrush}" />
                       </Grid>
 
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="Safety Factor SF (p99):" FontSize="11" Foreground="#94A3B8" />
+                        <TextBlock Text="{DynamicResource Stepper.Analysis.SafetyFactorP99}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
                         <TextBlock Grid.Column="1" Text="{Binding SafetyFactorP99Text}" FontSize="11" FontWeight="Bold" Foreground="{Binding SafetyFactorBrush}" />
                       </Grid>
 
-                      <Separator Background="#262D3D" Margin="0,2" />
-                      <TextBlock Text="Indicative results. FDM parts are anisotropic and material data vary: verify load-bearing parts with physical tests."
-                                 FontSize="9" Foreground="#64748B" FontStyle="Italic" TextWrapping="Wrap" />
+                      <Separator Background="{DynamicResource Border}" Margin="{DynamicResource Margin4V}" />
+                      <TextBlock Text="{DynamicResource Stepper.Analysis.FdmDisclaimer}"
+                                 FontSize="9" Foreground="{DynamicResource TextSecondary}" FontStyle="Italic" TextWrapping="Wrap" />
                     </StackPanel>
                   </Border>
                 </StackPanel>
@@ -506,74 +536,75 @@
         <controls:Viewport3DControl Name="Viewport" />
 
         <!-- 1. Picking Mode Top Banner Overlay -->
-        <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"
-                Background="#D97706" CornerRadius="6" Padding="14,8"
-                IsVisible="{Binding IsPickingActive}"
-                BoxShadow="0 4 12 #60000000">
-          <StackPanel Orientation="Horizontal" Spacing="16">
-            <TextBlock Text="{Binding PickingBannerText}" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center" />
-            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-              <TextBlock Text="Angle:" FontSize="11" Foreground="#FEF3C7" VerticalAlignment="Center" />
-              <Slider Value="{Binding AngleThresholdDegrees}" Minimum="5" Maximum="60" Width="100" VerticalAlignment="Center" />
-              <TextBlock Text="{Binding AngleThresholdDegrees, StringFormat='{}{0:F0}°'}" FontSize="11" Foreground="#FFFFFF" Width="30" VerticalAlignment="Center" />
+        <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="{DynamicResource Margin16T}"
+                Background="{DynamicResource Warning}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12_8}"
+                IsVisible="{Binding IsPickingActive}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing16}">
+            <TextBlock Text="{Binding PickingBannerText}" FontWeight="SemiBold" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing8}" VerticalAlignment="Center">
+              <TextBlock Text="{DynamicResource Picking.Angle}" FontSize="11" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
+              <Slider Value="{Binding AngleThresholdDegrees}" Minimum="5" Maximum="60" Width="100" VerticalAlignment="Center"
+                      ToolTip.Tip="{DynamicResource Picking.Angle.Tooltip}" />
+              <TextBlock Text="{Binding AngleThresholdDegrees, StringFormat='{}{0:F0}°'}" FontSize="11" Foreground="{DynamicResource Bg0}" Width="30" VerticalAlignment="Center" />
             </StackPanel>
-            <Button Content="Done (Esc)" Command="{Binding CancelPickingCommand}" Background="#B45309" Foreground="#FFFFFF" FontWeight="SemiBold" Padding="8,4" CornerRadius="4" />
+            <Button Content="{DynamicResource Picking.Done}" Command="{Binding CancelPickingCommand}"
+                    Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"
+                    Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                    ToolTip.Tip="{DynamicResource Picking.Done.Tooltip}" />
           </StackPanel>
         </Border>
 
         <!-- 2. Outdated Banner Overlay -->
-        <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"
-                Background="#92400E" CornerRadius="6" Padding="12,6"
-                IsVisible="{Binding IsResultOutdated}"
-                BoxShadow="0 4 12 #60000000">
-          <TextBlock Text="⚠ Parameters changed: Static analysis results are outdated. Re-run analysis to update."
-                     FontSize="11" FontWeight="SemiBold" Foreground="#FEF3C7" />
+        <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="{DynamicResource Margin16T}"
+                Background="{DynamicResource Warning}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12_8}"
+                IsVisible="{Binding IsResultOutdated}">
+          <TextBlock Text="{DynamicResource Banner.OutdatedResults}"
+                     FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Bg0}" />
         </Border>
 
         <!-- 3. Floating FEA HUD & Color Legend (Top Right) -->
-        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,16,0"
-                Background="#E6151822" CornerRadius="8" BorderBrush="#2D3445" BorderThickness="1"
-                Padding="12" IsVisible="{Binding HasAnalysisResult}"
-                BoxShadow="0 6 16 #80000000">
-          <StackPanel Spacing="10" Width="170">
+        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="{DynamicResource Margin16TR}"
+                Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                Padding="{DynamicResource Pad12}" IsVisible="{Binding HasAnalysisResult}">
+          <StackPanel Spacing="{DynamicResource Spacing8}" Width="170">
             <!-- Scalar Mode Switcher -->
-            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
-              <RadioButton Content="Stress (vM)" IsChecked="{Binding IsVonMisesMode}" GroupName="ScalarModeGroup" FontSize="11" Foreground="#CBD5E1" />
-              <RadioButton Content="Disp" IsChecked="{Binding !IsVonMisesMode}" GroupName="ScalarModeGroup" FontSize="11" Foreground="#CBD5E1" />
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing4}" HorizontalAlignment="Center">
+              <RadioButton Content="{DynamicResource Hud.StressVm}" IsChecked="{Binding IsVonMisesMode}" GroupName="ScalarModeGroup" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+              <RadioButton Content="{DynamicResource Hud.Displacement}" IsChecked="{Binding !IsVonMisesMode}" GroupName="ScalarModeGroup" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
             </StackPanel>
 
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Colormap:" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center" />
+              <TextBlock Text="{DynamicResource Hud.Colormap}" FontSize="10" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
               <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableLuts}" SelectedItem="{Binding SelectedLutKind}" Width="95" Height="24" FontSize="10" />
             </Grid>
 
             <!-- Vertical Color Legend Bar -->
             <Grid ColumnDefinitions="24,*" Height="120">
               <!-- Color Gradient Rect (Simulated 256 Turbo ramp) -->
-              <Border Grid.Column="0" CornerRadius="3" BorderBrush="#3B4254" BorderThickness="1">
+              <Border Grid.Column="0" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
                 <Border.Background>
                   <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-                    <GradientStop Offset="0.0" Color="#EF4444" />
-                    <GradientStop Offset="0.25" Color="#F59E0B" />
-                    <GradientStop Offset="0.50" Color="#10B981" />
-                    <GradientStop Offset="0.75" Color="#06B6D4" />
-                    <GradientStop Offset="1.0" Color="#3B82F6" />
+                    <GradientStop Offset="0.0" Color="{DynamicResource DangerColor}" />
+                    <GradientStop Offset="0.25" Color="{DynamicResource WarningColor}" />
+                    <GradientStop Offset="0.50" Color="{DynamicResource PreserveColor}" />
+                    <GradientStop Offset="0.75" Color="{DynamicResource SupportColor}" />
+                    <GradientStop Offset="1.0" Color="{DynamicResource AccentColor}" />
                   </LinearGradientBrush>
                 </Border.Background>
               </Border>
 
               <!-- Min, p99, Max Text Labels -->
-              <Grid Grid.Column="1" Margin="8,0,0,0">
+              <Grid Grid.Column="1" Margin="{DynamicResource Margin8L}">
                 <StackPanel VerticalAlignment="Top">
-                  <TextBlock Text="{Binding LegendMaxText}" FontSize="11" FontWeight="Bold" Foreground="#E2E8F0" />
-                  <TextBlock Text="{Binding LegendUnitsText}" FontSize="9" Foreground="#94A3B8" />
+                  <TextBlock Text="{Binding LegendMaxText}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                  <TextBlock Text="{Binding LegendUnitsText}" FontSize="9" Foreground="{DynamicResource TextSecondary}" />
                 </StackPanel>
 
-                <TextBlock Text="{Binding LegendP99Text}" FontSize="10" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LegendP99Text}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Support}" VerticalAlignment="Center" />
 
                 <StackPanel VerticalAlignment="Bottom">
-                  <TextBlock Text="{Binding LegendMinText}" FontSize="11" FontWeight="Bold" Foreground="#E2E8F0" />
-                  <TextBlock Text="0.0" FontSize="9" Foreground="#64748B" />
+                  <TextBlock Text="{Binding LegendMinText}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                  <TextBlock Text="{DynamicResource Hud.ZeroValue}" FontSize="9" Foreground="{DynamicResource TextSecondary}" />
                 </StackPanel>
               </Grid>
             </Grid>
@@ -581,24 +612,29 @@
         </Border>
 
         <!-- 4. STL Units Guard Modal Overlay -->
-        <Border Background="#A0000000" IsVisible="{Binding IsUnitGuardOpen}">
-          <Border Background="#1A1E29" BorderBrush="#3B4459" BorderThickness="1" CornerRadius="8"
-                  HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20" Width="400"
-                  BoxShadow="0 10 30 #A0000000">
-            <StackPanel Spacing="12">
-              <TextBlock Text="⚠ STL Unit Guard" FontSize="15" FontWeight="Bold" Foreground="#F59E0B" />
-              <TextBlock Text="The imported model bounding box appears to have unusual dimensions:"
-                         FontSize="12" Foreground="#CBD5E1" TextWrapping="Wrap" />
-              <Border Background="#12151E" CornerRadius="4" Padding="10,6">
-                <TextBlock Text="{Binding UnitGuardBboxText}" FontSize="12" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center" />
+        <Border Background="{DynamicResource Bg0}" IsVisible="{Binding IsUnitGuardOpen}">
+          <Border Background="{DynamicResource Bg1}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="{DynamicResource CornerRadius}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center" Padding="{DynamicResource Pad24}" Width="400">
+            <StackPanel Spacing="{DynamicResource Spacing12}">
+              <TextBlock Text="{DynamicResource UnitGuard.Title}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Warning}" />
+              <TextBlock Text="{DynamicResource UnitGuard.Description}"
+                         FontSize="12" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+              <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12_8}">
+                <TextBlock Text="{Binding UnitGuardBboxText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
               </Border>
-              <TextBlock Text="Please confirm the intended unit of measure to rescale to millimeters:"
-                         FontSize="12" Foreground="#94A3B8" TextWrapping="Wrap" />
+              <TextBlock Text="{DynamicResource UnitGuard.Prompt}"
+                         FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
 
-              <StackPanel Spacing="6" Margin="0,6,0,0">
-                <Button Content="Keep as Millimeters (mm)" Command="{Binding AcceptUnitAsMmCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2563EB" Foreground="#FFFFFF" Padding="0,6" CornerRadius="4" />
-                <Button Content="Rescale from Meters (×1000)" Command="{Binding RescaleFromMetersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1E2433" Foreground="#E2E8F0" Padding="0,6" CornerRadius="4" />
-                <Button Content="Rescale from Inches (×25.4)" Command="{Binding RescaleFromInchesCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#1E2433" Foreground="#E2E8F0" Padding="0,6" CornerRadius="4" />
+              <StackPanel Spacing="{DynamicResource Spacing8}" Margin="{DynamicResource Margin8T}">
+                <Button Content="{DynamicResource UnitGuard.KeepMm}" Command="{Binding AcceptUnitAsMmCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="{DynamicResource Accent}" Foreground="{DynamicResource TextPrimary}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                        ToolTip.Tip="{DynamicResource UnitGuard.KeepMm.Tooltip}" />
+                <Button Content="{DynamicResource UnitGuard.RescaleMeters}" Command="{Binding RescaleFromMetersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="{DynamicResource Bg2}" Foreground="{DynamicResource TextPrimary}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                        ToolTip.Tip="{DynamicResource UnitGuard.RescaleMeters.Tooltip}" />
+                <Button Content="{DynamicResource UnitGuard.RescaleInches}" Command="{Binding RescaleFromInchesCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="{DynamicResource Bg2}" Foreground="{DynamicResource TextPrimary}" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                        ToolTip.Tip="{DynamicResource UnitGuard.RescaleInches.Tooltip}" />
               </StackPanel>
             </StackPanel>
           </Border>
@@ -608,21 +644,21 @@
 
     <!-- 3. Bottom Status Bar -->
     <Border Grid.Row="2"
-            Background="#0E1017"
-            BorderBrush="#202430"
+            Background="{DynamicResource Bg0}"
+            BorderBrush="{DynamicResource Border}"
             BorderThickness="0,1,0,0"
-            Padding="12,0">
+            Padding="{DynamicResource Pad12H}">
       <Grid ColumnDefinitions="*,Auto">
         <TextBlock Grid.Column="0"
-                   Text="TopoOpt v1.0 — Ready"
+                   Text="{DynamicResource StatusBar.Ready}"
                    FontSize="11"
-                   Foreground="#64748B"
+                   Foreground="{DynamicResource TextSecondary}"
                    VerticalAlignment="Center" />
 
         <TextBlock Grid.Column="1"
                    Text="{Binding FpsText}"
                    FontSize="11"
-                   Foreground="#64748B"
+                   Foreground="{DynamicResource TextSecondary}"
                    VerticalAlignment="Center" />
       </Grid>
     </Border>

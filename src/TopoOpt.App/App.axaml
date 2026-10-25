@@ -3,9 +3,17 @@
              x:Class="TopoOpt.App.App"
              RequestedThemeVariant="Dark">
 
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://TopoOpt.App/Styles/Theme.axaml" />
+        <ResourceInclude Source="avares://TopoOpt.App/Styles/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
   <Application.Styles>
     <FluentTheme />
   </Application.Styles>
 
 </Application>
-
