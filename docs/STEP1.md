@@ -52,3 +52,4 @@
 - Non-manifold edges ($\ge 3$ incident triangles) are detected, counted in `MeshReport.NonManifoldEdges`, and intentionally act as region-growing barriers rather than being automatically stitched.
 - `SetArrows(...)` is a stub awaiting Step 5 static-analysis force vector visualization.
 - No voxelization or FEM solver is active yet (scheduled for Step 2 and Step 3).
+
