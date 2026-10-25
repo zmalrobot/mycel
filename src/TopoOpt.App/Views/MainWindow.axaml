@@ -1,0 +1,216 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TopoOpt.App.ViewModels"
+        xmlns:controls="using:TopoOpt.App.Controls"
+        x:Class="TopoOpt.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="TopoOpt"
+        Width="1280"
+        Height="800"
+        MinWidth="840"
+        MinHeight="560"
+        Background="#0D0F14"
+        DragDrop.AllowDrop="True">
+
+  <Grid RowDefinitions="44,*,28">
+
+    <!-- Slim Top Bar -->
+    <Border Grid.Row="0"
+            Background="#151821"
+            BorderBrush="#252A36"
+            BorderThickness="0,0,0,1"
+            Padding="12,0">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <Button Name="OpenStlButton"
+                Content="Open STL"
+                Click="OnOpenStlClick"
+                Background="#2563EB"
+                Foreground="#FFFFFF"
+                FontWeight="SemiBold"
+                Padding="12,5"
+                CornerRadius="4" />
+
+        <ComboBox ItemsSource="{Binding AvailableUnits}"
+                  SelectedItem="{Binding SelectedUnit}"
+                  ToolTip.Tip="STL Import Unit"
+                  Width="115"
+                  VerticalAlignment="Center" />
+
+        <Button Content="Fit View"
+                Click="OnFitViewClick"
+                Background="#1F2430"
+                Foreground="#E2E8F0"
+                Padding="12,5"
+                CornerRadius="4" />
+      </StackPanel>
+    </Border>
+
+    <!-- Main Content: Left Selection Panel + Central 3D Viewport -->
+    <Grid Grid.Row="1" ColumnDefinitions="300,*">
+
+      <!-- Left Panel: Selections & Angle Threshold -->
+      <Border Grid.Column="0"
+              Background="#13161E"
+              BorderBrush="#252A36"
+              BorderThickness="0,0,1,0"
+              Padding="12">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+          <!-- Angle Threshold Slider -->
+          <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,14">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0"
+                         Text="Angle Threshold"
+                         FontSize="12"
+                         Foreground="#94A3B8" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding AngleThresholdDegrees, StringFormat='{}{0:F0}°'}"
+                         FontSize="12"
+                         FontWeight="SemiBold"
+                         Foreground="#E2E8F0" />
+            </Grid>
+            <Slider Minimum="1"
+                    Maximum="89"
+                    Value="{Binding AngleThresholdDegrees}" />
+          </StackPanel>
+
+          <!-- Selections Header + Add Button -->
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <TextBlock Grid.Column="0"
+                       Text="SELECTIONS"
+                       FontSize="11"
+                       FontWeight="Bold"
+                       Foreground="#64748B"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Content="+ Add"
+                    Command="{Binding AddSelectionCommand}"
+                    Background="#1F2430"
+                    Foreground="#E2E8F0"
+                    FontSize="12"
+                    Padding="10,4"
+                    CornerRadius="4" />
+          </Grid>
+
+          <!-- Selections List -->
+          <ListBox Grid.Row="2"
+                   ItemsSource="{Binding Selections}"
+                   SelectedItem="{Binding ActiveSelection}"
+                   Background="Transparent">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SelectionItemViewModel">
+                <Border Padding="6"
+                        CornerRadius="4"
+                        Background="#1A1E29"
+                        Margin="0,2">
+                  <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <!-- Colour Swatch Button -->
+                      <Button Grid.Column="0"
+                              Width="22"
+                              Height="22"
+                              Padding="0"
+                              Margin="0,0,6,0"
+                              CornerRadius="4"
+                              Background="{Binding ColorBrush}"
+                              Click="OnCycleColorClick"
+                              ToolTip.Tip="Click to cycle colour" />
+
+                      <!-- Editable Name -->
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Name}"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               Padding="6,3" />
+
+                      <!-- Remove Button -->
+                      <Button Grid.Column="2"
+                              Content="✕"
+                              FontSize="11"
+                              Padding="6,2"
+                              Margin="6,0,0,0"
+                              Background="Transparent"
+                              Foreground="#94A3B8"
+                              Click="OnRemoveSelectionClick" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                      <!-- Kind Selector -->
+                      <ComboBox Grid.Column="0"
+                                ItemsSource="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).AvailableKinds}"
+                                SelectedItem="{Binding Kind}"
+                                FontSize="11"
+                                HorizontalAlignment="Stretch" />
+
+                      <!-- Triangle Count Badge -->
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding TriangleCount, StringFormat='{}{0:N0} tris'}"
+                                 FontSize="11"
+                                 Foreground="#94A3B8"
+                                 VerticalAlignment="Center"
+                                 Margin="8,0,2,0" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <!-- Interaction Hint -->
+          <TextBlock Grid.Row="3"
+                     Text="Click: Select · Shift: Add · Ctrl: Subtract&#x0a;Right-Drag: Orbit · Mid-Drag: Pan · Wheel: Zoom"
+                     FontSize="11"
+                     Foreground="#64748B"
+                     Margin="0,8,0,0" />
+        </Grid>
+      </Border>
+
+      <!-- Central 3D Viewport -->
+      <controls:Viewport3DControl Grid.Column="1"
+                                  Name="Viewport" />
+    </Grid>
+
+    <!-- Thin Status Bar -->
+    <Border Grid.Row="2"
+            Background="#151821"
+            BorderBrush="#252A36"
+            BorderThickness="0,1,0,0"
+            Padding="12,0">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding StatusTriangles}"
+                   FontSize="11"
+                   Foreground="#CBD5E1"
+                   VerticalAlignment="Center"
+                   Margin="0,0,16,0" />
+
+        <TextBlock Grid.Column="1"
+                   Text="{Binding StatusBBox}"
+                   FontSize="11"
+                   Foreground="#94A3B8"
+                   VerticalAlignment="Center"
+                   Margin="0,0,16,0" />
+
+        <Border Grid.Column="2"
+                Background="{Binding WatertightBadgeBrush}"
+                CornerRadius="3"
+                Padding="6,1"
+                VerticalAlignment="Center">
+          <TextBlock Text="{Binding WatertightText}"
+                     FontSize="10"
+                     FontWeight="SemiBold"
+                     Foreground="#FFFFFF" />
+        </Border>
+
+        <TextBlock Grid.Column="4"
+                   Text="{Binding FpsText}"
+                   FontSize="11"
+                   FontWeight="SemiBold"
+                   Foreground="#94A3B8"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>
+
