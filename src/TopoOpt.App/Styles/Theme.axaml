@@ -68,7 +68,7 @@
   <x:String x:Key="Toolbar.SaveProject">Save Project</x:String>
   <x:String x:Key="Toolbar.SaveProject.Tooltip">Save current project into a folder</x:String>
   <x:String x:Key="Toolbar.FitView">Fit View</x:String>
-  <x:String x:Key="Toolbar.FitView.Tooltip">Fit camera to model geometry (F)</x:String>
+  <x:String x:Key="Toolbar.FitView.Tooltip">Fit camera to model (F) | Orbit: Right-drag (or Alt+Left) | Pan: Middle-drag | Zoom: Wheel</x:String>
   <x:String x:Key="Toolbar.About">About</x:String>
   <x:String x:Key="Toolbar.About.Tooltip">About TopoOpt, licenses, and disclaimers</x:String>
 

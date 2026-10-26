@@ -10,6 +10,7 @@ internal static class Program
     public static void Main(string[] args)
     {
         CrashLogger.Initialize();
+        OrbitDiagnostics.Initialize(args);
 
         try
         {

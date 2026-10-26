@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using TopoOpt.App.Diagnostics;
 
 namespace TopoOpt.App.Rendering;
 
@@ -90,6 +91,7 @@ public sealed class OrbitCamera
             ElevationRadians + deltaPixelY * Sensitivity,
             -MathF.PI * 0.495f,
             +MathF.PI * 0.495f);
+        OrbitDiagnostics.RecordCameraOrbit(deltaPixelX, deltaPixelY, AzimuthRadians, ElevationRadians);
     }
 
     public void Pan(float deltaPixelX, float deltaPixelY, float viewportHeight)
@@ -99,6 +101,7 @@ public sealed class OrbitCamera
         GetCameraBasis(out _, out Vector3 right, out Vector3 up);
         float worldUnitsPerPixel = (2.0f * Distance * MathF.Tan(FovYRadians * 0.5f)) / viewportHeight;
         Target -= (right * deltaPixelX - up * deltaPixelY) * worldUnitsPerPixel;
+        OrbitDiagnostics.RecordCameraPan(deltaPixelX, deltaPixelY, Target.X, Target.Y, Target.Z);
     }
 
     public void ZoomToCursor(float wheelSteps, Vector2 pixelPos, float viewportWidth, float viewportHeight)

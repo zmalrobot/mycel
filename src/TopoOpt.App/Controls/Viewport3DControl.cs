@@ -11,6 +11,7 @@ using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
 using Silk.NET.OpenGL;
+using TopoOpt.App.Diagnostics;
 using TopoOpt.App.Rendering;
 using TopoOpt.Core.Geometry;
 
@@ -27,7 +28,7 @@ public enum ViewRenderMode
 /// and <see cref="Silk.NET.OpenGL"/>. Supports both Desktop OpenGL 3.3+ Core and OpenGL ES 3.0+ (ANGLE/Mesa).
 /// All GPU resources are created, updated, and destroyed strictly on the render thread.
 /// </summary>
-public sealed class Viewport3DControl : OpenGlControlBase
+public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.ICustomHitTest
 {
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
     private struct GpuVertex
@@ -140,6 +141,7 @@ public sealed class Viewport3DControl : OpenGlControlBase
     private int _framesInSecond;
 
     public bool GlInitFailed { get; private set; }
+    public bool IsGlInitialized => _glInitialized;
     public string? GlInitErrorMessage { get; private set; }
     public event Action<string>? GlInitFailedNotification;
 
@@ -155,6 +157,11 @@ public sealed class Viewport3DControl : OpenGlControlBase
     public Viewport3DControl()
     {
         Focusable = true;
+    }
+
+    public bool HitTest(Point point)
+    {
+        return new Rect(Bounds.Size).Contains(point);
     }
 
     public void SetMesh(IndexedMesh? mesh)
@@ -698,6 +705,7 @@ public sealed class Viewport3DControl : OpenGlControlBase
     {
         if (!_glInitialized || GlInitFailed || _gl is null)
         {
+            OrbitDiagnostics.RecordRenderSkipped($"Initialized={_glInitialized}, Failed={GlInitFailed}, GlNull={_gl is null}");
             return;
         }
 
@@ -705,6 +713,11 @@ public sealed class Viewport3DControl : OpenGlControlBase
         int fbWidth = Math.Max(1, (int)Math.Round(Bounds.Width * scaling));
         int fbHeight = Math.Max(1, (int)Math.Round(Bounds.Height * scaling));
 
+        OrbitDiagnostics.RecordRenderBegin(TotalRenderedFrames + 1, fbWidth, fbHeight);
+        long renderStartTs = Stopwatch.GetTimestamp();
+
+        try
+        {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)fb);
         _gl.Viewport(0, 0, (uint)fbWidth, (uint)fbHeight);
 
@@ -832,6 +845,17 @@ public sealed class Viewport3DControl : OpenGlControlBase
         _gl.UseProgram(0);
 
         UpdateFpsCounter();
+        }
+        catch (Exception ex)
+        {
+            OrbitDiagnostics.RecordRenderException(ex);
+            throw;
+        }
+        finally
+        {
+            double durationMs = (Stopwatch.GetTimestamp() - renderStartTs) * 1000.0 / Stopwatch.Frequency;
+            OrbitDiagnostics.RecordRenderEnd(TotalRenderedFrames, durationMs);
+        }
     }
 
     private unsafe void SyncPendingGpuUploads(GL gl)
@@ -1269,6 +1293,8 @@ public sealed class Viewport3DControl : OpenGlControlBase
             _isPanning = true;
             e.Pointer.Capture(this);
         }
+
+        OrbitDiagnostics.RecordPointerPressed(point, e.KeyModifiers, _isOrbiting, _isPanning);
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -1284,14 +1310,18 @@ public sealed class Viewport3DControl : OpenGlControlBase
             _pointerMovedSignificantly = true;
         }
 
+        OrbitDiagnostics.RecordPointerMoved(pos, delta, _isOrbiting, _isPanning);
+
         if (_isOrbiting)
         {
             _camera.Orbit((float)delta.X, (float)delta.Y);
+            OrbitDiagnostics.RecordRenderRequested("OnPointerMoved:Orbit");
             RequestNextFrameRendering();
         }
         else if (_isPanning)
         {
             _camera.Pan((float)delta.X, (float)delta.Y, (float)Bounds.Height);
+            OrbitDiagnostics.RecordRenderRequested("OnPointerMoved:Pan");
             RequestNextFrameRendering();
         }
         else
@@ -1304,6 +1334,8 @@ public sealed class Viewport3DControl : OpenGlControlBase
     {
         base.OnPointerReleased(e);
         Point pos = e.GetPosition(this);
+
+        OrbitDiagnostics.RecordPointerReleased(e.InitialPressMouseButton, _isOrbiting, _isPanning);
 
         if (_isOrbiting || _isPanning)
         {
@@ -1323,12 +1355,57 @@ public sealed class Viewport3DControl : OpenGlControlBase
     {
         base.OnPointerWheelChanged(e);
         Point pos = e.GetPosition(this);
+        OrbitDiagnostics.RecordPointerWheel(pos, e.Delta.Y);
         _camera.ZoomToCursor(
             (float)e.Delta.Y,
             new Vector2((float)pos.X, (float)pos.Y),
             (float)Bounds.Width,
             (float)Bounds.Height);
+        OrbitDiagnostics.RecordRenderRequested("OnPointerWheelChanged:Zoom");
         RequestNextFrameRendering();
+    }
+
+    public void DiagnosticSimulatePointerDrag(MouseButton button, KeyModifiers modifiers, Point start, Point end)
+    {
+        OrbitDiagnostics.Log($"--- Simulating Drag: Button={button}, Modifiers={modifiers}, Start={start}, End={end} ---");
+        _lastPointerPos = start;
+        _pressPointerPos = start;
+        _pointerMovedSignificantly = false;
+
+        if (button == MouseButton.Right || (button == MouseButton.Left && modifiers.HasFlag(KeyModifiers.Alt)))
+        {
+            _isOrbiting = true;
+        }
+        else if (button == MouseButton.Middle)
+        {
+            _isPanning = true;
+        }
+
+        OrbitDiagnostics.Log($"[SimulatePress] Resulting state: _isOrbiting={_isOrbiting}, _isPanning={_isPanning}");
+
+        Point pos = end;
+        Avalonia.Vector delta = pos - _lastPointerPos;
+        _lastPointerPos = pos;
+        _pointerMovedSignificantly = true;
+
+        OrbitDiagnostics.RecordPointerMoved(pos, delta, _isOrbiting, _isPanning);
+
+        if (_isOrbiting)
+        {
+            _camera.Orbit((float)delta.X, (float)delta.Y);
+            OrbitDiagnostics.RecordRenderRequested("SimulatePointerDrag:Orbit");
+            RequestNextFrameRendering();
+        }
+        else if (_isPanning)
+        {
+            _camera.Pan((float)delta.X, (float)delta.Y, (float)Bounds.Height);
+            OrbitDiagnostics.RecordRenderRequested("SimulatePointerDrag:Pan");
+            RequestNextFrameRendering();
+        }
+
+        OrbitDiagnostics.RecordPointerReleased(button, _isOrbiting, _isPanning);
+        _isOrbiting = false;
+        _isPanning = false;
     }
 
     private static uint CompileProgram(GL gl, string vertexSrc, string fragmentSrc)

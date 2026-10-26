@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TopoOpt.Core\TopoOpt.Core.csproj" />
+    <ProjectReference Include="..\..\src\TopoOpt.App\TopoOpt.App.csproj" />
   </ItemGroup>
 
 </Project>

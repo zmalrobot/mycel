@@ -4,10 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using TopoOpt.App.Diagnostics;
 using TopoOpt.App.ViewModels;
 using TopoOpt.Core.Geometry;
 
@@ -110,10 +112,52 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (args.Length > 0 && Array.Exists(args, a => string.Equals(a, "--test-orbit", StringComparison.OrdinalIgnoreCase)))
+        {
+            await RunOrbitDiagnosticTestAsync();
+            return;
+        }
+
         if (args.Length > 0 && File.Exists(args[0]))
         {
             await ViewModel.LoadStlFileAsync(args[0], ViewModel.SelectedUnit);
         }
+    }
+
+    private async Task RunOrbitDiagnosticTestAsync()
+    {
+        OrbitDiagnostics.Log("=== Starting Orbit Diagnostic Test in Live Window ===");
+        await Task.Delay(300); // Allow window and OpenGL to initialize
+
+        OrbitDiagnostics.Log($"Viewport Bounds: {Viewport.Bounds.Width}x{Viewport.Bounds.Height}");
+        OrbitDiagnostics.Log($"GL Initialized: {Viewport.IsGlInitialized}, GL Init Failed: {Viewport.GlInitFailed}");
+
+        // Hit-test check
+        OrbitDiagnostics.Log("\n--- TEST: Hit-test check on Viewport at center ---");
+        Point center = new(Viewport.Bounds.Width / 2.0, Viewport.Bounds.Height / 2.0);
+        var hitWindow = this.InputHitTest(center);
+        var hitViewport = Viewport.InputHitTest(new Point(100, 100));
+        OrbitDiagnostics.Log($"this.InputHitTest at {center} returned: {hitWindow?.GetType().FullName ?? "null"} (Name={((hitWindow as Control)?.Name ?? "none")})");
+        OrbitDiagnostics.Log($"Viewport.InputHitTest at (100, 100) returned: {hitViewport?.GetType().FullName ?? "null"} (Name={((hitViewport as Control)?.Name ?? "none")})");
+
+        // Test 1: Simulate Left-drag (no modifiers)
+        OrbitDiagnostics.Log("\n--- TEST 1: Left-drag without modifiers ---");
+        Viewport.DiagnosticSimulatePointerDrag(MouseButton.Left, KeyModifiers.None, center, center + new Point(40, 20));
+        await Task.Delay(150);
+
+        // Test 2: Simulate Right-drag
+        OrbitDiagnostics.Log("\n--- TEST 2: Right-drag without modifiers ---");
+        Viewport.DiagnosticSimulatePointerDrag(MouseButton.Right, KeyModifiers.None, center, center + new Point(40, 20));
+        await Task.Delay(150);
+
+        // Test 3: Simulate Alt + Left-drag
+        OrbitDiagnostics.Log("\n--- TEST 3: Alt + Left-drag ---");
+        Viewport.DiagnosticSimulatePointerDrag(MouseButton.Left, KeyModifiers.Alt, center, center + new Point(40, 20));
+        await Task.Delay(150);
+
+        OrbitDiagnostics.Log("=== Orbit Diagnostic Test Finished ===");
+        await Task.Delay(300);
+        Close();
     }
 
     private async Task RunSmokeTest500kAsync()

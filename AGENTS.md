@@ -34,6 +34,7 @@
 - **Tests are the specification. Never weaken, delete or skip a test to make it pass; if a test looks wrong, stop and ask me.**
 - Code without passing automated tests is considered broken and unverified.
 - All physics and numerical algorithms (Hex8, SIMP, PCG, filters, Surface Nets) must have unit test benchmarks against known analytical solutions or published literature values within defined tolerances.
+- Benchmark separation: Heavy benchmark tests (e.g., 100k+ elements) must be tagged with `[Trait("Category", "Benchmark")]` so default test execution (`--filter "Category!=Benchmark"`) runs fast.
 
 ## 4. Concurrency & UI Responsiveness
 - Long-running tasks (FEM solves, topology optimization, mesh voxelisation) must accept `CancellationToken` and `IProgress<T>`.
@@ -43,3 +44,13 @@
 ## 5. Development Cadence & Milestone Artifacts
 - Commit after each green milestone.
 - Write a retrospective/verification summary in `docs/STEPn.md` at the end of every roadmap step.
+
+## 6. Robustness, Hardening & Concurrency Invariants
+- **Thread-Safety of Shared Persistent Workers**: Shared singletons managing background thread loops (such as `FemWorkTeam.Shared`) must be fully thread-safe (`lock` around active dispatch loops) to prevent race conditions during concurrent test executions.
+- **Avalonia XAML Number Formatting**: Never use scientific notation (e.g., `1e-12`, `1e-3`) in XAML attributes binding to `decimal` or `NumericUpDown.Minimum`/`Maximum`; always use explicit expanded decimal strings (e.g., `0.000000000001`, `0.001`).
+- **Memory Guard Invariants**: Voxelisation and optimization routines must verify estimated heap/scratch memory against available system RAM (`/proc/meminfo` or GC fallback). Warn at $> 70\%$ available RAM and refuse execution at $> 90\%$ with actionable guidance.
+- **STL Input Sanitization**: Reject files with 0 triangles, non-finite coordinates (NaN/Inf), truncated binary headers, or triangle counts exceeding 2,500,000 triangles to prevent denial of service and heap exhaustion.
+- **Defensive Graphics Fallback**: Catch OpenGL/GLES context initialization failures cleanly without unhandled crashes, surfacing diagnostic messages and software rendering instructions (`LIBGL_ALWAYS_SOFTWARE=1`).
+- **3D Viewport Render Invalidation**: After ANY camera modification (orbit, pan, zoom, fit to view) or visual state update in a render-on-demand viewport, explicitly call `RequestNextFrameRendering()`. Never let an input action complete without marking a frame request.
+- **No-Swallow Render Exceptions**: Never swallow OpenGL render callback exceptions. Wrap `OnOpenGlRender` in a `try/catch` and log errors with full stack trace to both console and platform diagnostics logs (`CrashLogger.LogDir`).
+- **Custom OpenGL Hit-Testing**: Any `OpenGlControlBase` derived control that handles pointer events must implement `Avalonia.Rendering.ICustomHitTest` (`HitTest(Point point) => new Rect(Bounds.Size).Contains(point);`) because native GL surfaces lack Avalonia `DrawingContext` drawing and will otherwise fail hit-testing.

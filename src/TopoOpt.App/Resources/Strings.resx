@@ -69,7 +69,7 @@
     <value>Fit View</value>
   </data>
   <data name="Toolbar.FitView.Tooltip" xml:space="preserve">
-    <value>Fit camera to model geometry (F)</value>
+    <value>Fit camera to model (F) | Orbit: Right-drag (or Alt+Left) | Pan: Middle-drag | Zoom: Wheel</value>
   </data>
 
   <data name="Stepper.Common.Step1Number" xml:space="preserve">
