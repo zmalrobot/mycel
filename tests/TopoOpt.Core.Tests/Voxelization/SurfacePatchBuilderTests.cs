@@ -157,6 +157,117 @@ public sealed class SurfacePatchBuilderTests
         Assert.Empty(patchNodes(emptyPatch));
     }
 
+    [Fact]
+    [Trait("Category", "Example")]
+    public void Build_AssemblaggioPins_MapsNonZeroNodesAndPassesValidation()
+    {
+        string path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../examples/obj_1_Assemblaggio.stl"));
+        if (!File.Exists(path))
+            path = Path.GetFullPath("examples/obj_1_Assemblaggio.stl");
+        Assert.True(File.Exists(path), $"STL file not found at: {path}");
+
+        using var stream = File.OpenRead(path);
+        var readResult = StlReader.Read(stream);
+        var mesh = readResult.Mesh;
+
+        // Voxelise at Standard preset (target 100k solid elements) with keepOnlyLargestComponent: true
+        float h = TopoOpt.Core.Workflow.ResolutionConfig.ComputeVoxelSize(mesh, 100_000);
+        var grid = GridSpec.FromVoxelSize(mesh, h, padding: 1);
+        var (model, _) = Voxeliser.Voxelise(mesh, grid, keepOnlyLargestComponent: true);
+        Assert.False(model.Warnings.Any(w => w.Contains("disconnected components")), string.Join("; ", model.Warnings));
+
+        // Find pin triangles using RegionSelector
+        var pos = mesh.Positions.Span;
+        var indices = mesh.Indices.Span;
+        RegionSelector selector = new(mesh);
+
+        // Pin extends furthest along Y
+        int seedTri = 0;
+        float maxY = float.MinValue;
+        for (int i = 0; i < mesh.TriangleCount; i++)
+        {
+            float cy = (pos[indices[i * 3]].Y + pos[indices[i * 3 + 1]].Y + pos[indices[i * 3 + 2]].Y) / 3f;
+            if (cy > maxY)
+            {
+                maxY = cy;
+                seedTri = i;
+            }
+        }
+
+        int[] pinTriangles = selector.GrowRegion(seedTri, 30f);
+        Assert.NotEmpty(pinTriangles);
+
+        // Build surface patch for the pin
+        var patch = SurfacePatchBuilder.Build(model, mesh, pinTriangles);
+
+        // Verify patch has mapped FE nodes and faces
+        Assert.True(patch.NodeCount > 0, $"Expected patch.NodeCount > 0, got {patch.NodeCount}");
+        Assert.True(patch.Faces.Count > 0, $"Expected patch.Faces.Count > 0, got {patch.Faces.Count}");
+
+        // Validate patches with ModelValidator
+        Guid loadId = Guid.NewGuid();
+        Guid supportId = Guid.NewGuid();
+
+        // Select a support patch on the opposite side (min Y)
+        int supportSeedTri = 0;
+        float minY = float.MaxValue;
+        for (int i = 0; i < mesh.TriangleCount; i++)
+        {
+            float cy = (pos[indices[i * 3]].Y + pos[indices[i * 3 + 1]].Y + pos[indices[i * 3 + 2]].Y) / 3f;
+            if (cy < minY)
+            {
+                minY = cy;
+                supportSeedTri = i;
+            }
+        }
+        int[] supportTriangles = selector.GrowRegion(supportSeedTri, 30f);
+        var supportPatch = SurfacePatchBuilder.Build(model, mesh, supportTriangles);
+        Assert.True(supportPatch.NodeCount > 0);
+
+        var validationIssues = ModelValidator.ValidatePatches(model, mesh, [
+            (loadId, SelectionKind.Load, patch),
+            (supportId, SelectionKind.Support, supportPatch)
+        ]);
+
+        Assert.DoesNotContain(validationIssues, issue => issue.Code == ModelValidator.ErrEmptyPatch);
+
+        // Also test selecting the lateral cylindrical surface of the pin (normal.Y near 0, but Y in upper half)
+        int lateralSeed = -1;
+        for (int i = 0; i < mesh.TriangleCount; i++)
+        {
+            float cy = (pos[indices[i * 3]].Y + pos[indices[i * 3 + 1]].Y + pos[indices[i * 3 + 2]].Y) / 3f;
+            Vector3 n = mesh.TriangleNormals.Span[i];
+            if (cy > 10f && MathF.Abs(n.Y) < 0.2f)
+            {
+                lateralSeed = i;
+                break;
+            }
+        }
+        Assert.True(lateralSeed >= 0, "Lateral seed triangle not found");
+        int[] lateralTriangles = selector.GrowRegion(lateralSeed, 30f);
+        Assert.NotEmpty(lateralTriangles);
+        var lateralPatch = SurfacePatchBuilder.Build(model, mesh, lateralTriangles);
+        Assert.True(lateralPatch.NodeCount > 0, $"Lateral patch should map nodes, got {lateralPatch.NodeCount}");
+
+        // Verify that the overlap zone Y in [92, 95] contains solid voxels (no hollow cavity at pin roots)
+        int solidOverlapCount = 0;
+        for (int iz = 0; iz < model.Grid.Nz; iz++)
+        {
+            for (int iy = 0; iy < model.Grid.Ny; iy++)
+            {
+                for (int ix = 0; ix < model.Grid.Nx; ix++)
+                {
+                    Vector3 center = model.Grid.ElementCenter(ix, iy, iz);
+                    if (center.Y >= 92f && center.Y <= 95f && model.Domain[model.Grid.ElementIndex(ix, iy, iz)] == 1)
+                    {
+                        solidOverlapCount++;
+                    }
+                }
+            }
+        }
+        Assert.True(solidOverlapCount > 0, "Overlap region at pin roots must be solid under non-zero winding rule.");
+    }
+
     private static int[] patchNodes(SurfacePatch p) => p.Nodes;
 
     private static IndexedMesh CreateMesh(List<Tri> tris)

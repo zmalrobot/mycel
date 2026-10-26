@@ -285,7 +285,7 @@ public class WorkflowTests
         Assert.NotNull(prep);
         Assert.NotNull(prep.FeModel);
         Assert.False(prep.IsOutdated);
-        Assert.False(prep.ValidationIssues.Any(issue => issue.Severity == ValidationSeverity.Error));
+        Assert.DoesNotContain(prep.ValidationIssues, issue => issue.Severity == ValidationSeverity.Error);
 
         // 3. Static FEA
         var result = await service.RunStaticAnalysisAsync();

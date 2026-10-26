@@ -168,6 +168,55 @@ public sealed class VoxeliserTests
         Assert.Equal(model1.SolidCount, model2.SolidCount);
     }
 
+    [Fact]
+    public void Voxelise_OverlappingBoxes_UnionHasNoInternalHole()
+    {
+        // Box 1: [-5, 5] x [-5, 5] x [-5, 5] (size 10x10x10)
+        List<Tri> box1 = StlFixtures.Box(new Vector3(10f, 10f, 10f));
+        // Box 2: [0, 10] x [-5, 5] x [-5, 5] (shifted by +5 along X)
+        Vector3 shift = new(5f, 0f, 0f);
+        List<Tri> box2 = StlFixtures.Box(new Vector3(10f, 10f, 10f))
+            .ConvertAll(t => new Tri(t.A + shift, t.B + shift, t.C + shift));
+
+        List<Tri> combined = new(box1.Count + box2.Count);
+        combined.AddRange(box1);
+        combined.AddRange(box2);
+
+        IndexedMesh mesh = CreateMesh(combined);
+        float h = 1.0f;
+        GridSpec grid = GridSpec.FromVoxelSize(mesh, h, padding: 1);
+
+        var (model, _) = Voxeliser.Voxelise(mesh, grid);
+
+        // Expected union is 15 x 10 x 10 mm = 1500 mm^3 (1500 voxels with h = 1.0).
+        // If parity (XOR) was used, the overlap [0, 5] would be empty (1000 voxels).
+        Assert.Equal(1500, model.SolidCount);
+        Assert.Equal(1500.0, model.SolidVolume, 1e-4);
+        AssertNoEnclosedCavities(model);
+
+        // Verify that the overlap region [0, 5] x [-5, 5] x [-5, 5] is solid throughout
+        int overlapVoxelCount = 0;
+        for (int iz = 0; iz < grid.Nz; iz++)
+        {
+            for (int iy = 0; iy < grid.Ny; iy++)
+            {
+                for (int ix = 0; ix < grid.Nx; ix++)
+                {
+                    Vector3 center = grid.ElementCenter(ix, iy, iz);
+                    if (center.X > 0f && center.X < 5f &&
+                        center.Y > -5f && center.Y < 5f &&
+                        center.Z > -5f && center.Z < 5f)
+                    {
+                        int e = grid.ElementIndex(ix, iy, iz);
+                        Assert.Equal(1, model.Domain[e]);
+                        overlapVoxelCount++;
+                    }
+                }
+            }
+        }
+        Assert.Equal(500, overlapVoxelCount);
+    }
+
     private static void AssertNoEnclosedCavities(VoxelModel model)
     {
         GridSpec g = model.Grid;

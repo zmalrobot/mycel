@@ -94,6 +94,19 @@ public partial class MainWindow : Window
             Viewport.ClearFeaScalarField();
         };
 
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainWindowViewModel.IsPickingActive) && !vm.IsPickingActive)
+            {
+                if (_lastHoverSeedTriangle != -1 || _currentHoveredTriangles.Length > 0)
+                {
+                    _lastHoverSeedTriangle = -1;
+                    _currentHoveredTriangles = [];
+                    Viewport.SetHoverTriangles([]);
+                }
+            }
+        };
+
         Viewport.ViewportPointerMoved += OnViewportPointerMoved;
         Viewport.ViewportPointerClicked += OnViewportPointerClicked;
         Viewport.DiagnosticsUpdated += vm.UpdateDiagnostics;

@@ -466,6 +466,11 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnActiveStepChanged(int value)
     {
+        if (IsPickingActive)
+        {
+            DisarmPicking();
+        }
+
         OnPropertyChanged(nameof(IsStep1Active));
         OnPropertyChanged(nameof(IsStep2Active));
         OnPropertyChanged(nameof(IsStep3Active));
@@ -476,6 +481,10 @@ public partial class MainWindowViewModel : ObservableObject
 
     public void SelectStep(int step)
     {
+        if (IsPickingActive)
+        {
+            DisarmPicking();
+        }
         ActiveStep = step;
     }
 
@@ -486,6 +495,11 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void SelectStepFromHeader(string? step)
     {
+        if (IsPickingActive)
+        {
+            DisarmPicking();
+        }
+
         if (int.TryParse(step, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int n) && n is >= 1 and <= 6)
         {
             SelectStep(n);
@@ -494,6 +508,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     public async Task LoadStlFileAsync(string filePath, LengthUnit unit = LengthUnit.Millimeter)
     {
+        if (IsPickingActive) DisarmPicking();
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             return;
 
@@ -714,9 +729,9 @@ public partial class MainWindowViewModel : ObservableObject
 
     public void DisarmPicking()
     {
-        if (ActivePickingTarget is LoadItemViewModel lvm) lvm.IsPicking = false;
-        if (ActivePickingTarget is SupportItemViewModel svm) svm.IsPicking = false;
-        if (ActivePickingTarget is PreserveItemViewModel pvm) pvm.IsPicking = false;
+        foreach (var l in Loads) l.IsPicking = false;
+        foreach (var s in Supports) s.IsPicking = false;
+        foreach (var p in Preserves) p.IsPicking = false;
 
         ActivePickingTarget = null;
         IsPickingActive = false;
@@ -821,6 +836,7 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     public async Task PrepareModelAsync()
     {
+        if (IsPickingActive) DisarmPicking();
         if (Workflow.State.Mesh == null || IsPreparing) return;
 
         _prepareCts?.Cancel();
@@ -865,6 +881,7 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     public async Task RunStaticAnalysisAsync()
     {
+        if (IsPickingActive) DisarmPicking();
         if (Workflow.State.PreparedModel == null || IsAnalyzing) return;
 
         _analysisCts?.Cancel();
@@ -1126,6 +1143,7 @@ public partial class MainWindowViewModel : ObservableObject
     // Project Save / Open
     public async Task OpenProjectAsync(string projectPath)
     {
+        if (IsPickingActive) DisarmPicking();
         if (string.IsNullOrWhiteSpace(projectPath)) return;
 
         try
@@ -1201,6 +1219,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     public async Task SaveProjectAsync(string? targetDir = null)
     {
+        if (IsPickingActive) DisarmPicking();
         string dir = targetDir ?? CurrentProjectPath;
         if (string.IsNullOrWhiteSpace(dir)) return;
 
@@ -1313,6 +1332,7 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     public async Task StartOptimisationAsync()
     {
+        if (IsPickingActive) DisarmPicking();
         if (!CanStartOptimisation || Workflow.State.PreparedModel == null)
             return;
 

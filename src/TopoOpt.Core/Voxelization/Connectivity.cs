@@ -6,7 +6,7 @@ namespace TopoOpt.Core.Voxelization;
 public static class Connectivity
 {
     /// <summary>
-    /// Labels 6-connected components of solid voxels (Domain[e] == 1).
+    /// Labels 26-connected components of solid voxels (Domain[e] == 1).
     /// If keepOnlyLargest is true, all solid voxels outside the largest component are cleared (set to 0).
     /// Returns the list of component infos and any warnings generated.
     /// </summary>
@@ -51,23 +51,31 @@ public static class Connectivity
 
                 grid.ElementCoords(curr, out int ix, out int iy, out int iz);
 
-                // 6 neighbours
-                CheckAndEnqueue(ix + 1, iy, iz);
-                CheckAndEnqueue(ix - 1, iy, iz);
-                CheckAndEnqueue(ix, iy + 1, iz);
-                CheckAndEnqueue(ix, iy - 1, iz);
-                CheckAndEnqueue(ix, iy, iz + 1);
-                CheckAndEnqueue(ix, iy, iz - 1);
-
-                void CheckAndEnqueue(int nxCoord, int nyCoord, int nzCoord)
+                // 26 neighbours (all adjacent voxels sharing faces, edges, or vertices)
+                for (int dz = -1; dz <= 1; dz++)
                 {
-                    if ((uint)nxCoord < (uint)nx && (uint)nyCoord < (uint)ny && (uint)nzCoord < (uint)nz)
+                    int nzCoord = iz + dz;
+                    if ((uint)nzCoord >= (uint)nz) continue;
+                    int zOffset = nzCoord * ny;
+
+                    for (int dy = -1; dy <= 1; dy++)
                     {
-                        int nbrIdx = nxCoord + nx * (nyCoord + ny * nzCoord);
-                        if (domain[nbrIdx] == 1 && labels[nbrIdx] == 0)
+                        int nyCoord = iy + dy;
+                        if ((uint)nyCoord >= (uint)ny) continue;
+                        int yzOffset = (zOffset + nyCoord) * nx;
+
+                        for (int dx = -1; dx <= 1; dx++)
                         {
-                            labels[nbrIdx] = compId;
-                            queue[qTail++] = nbrIdx;
+                            if (dx == 0 && dy == 0 && dz == 0) continue;
+                            int nxCoord = ix + dx;
+                            if ((uint)nxCoord >= (uint)nx) continue;
+
+                            int nbrIdx = yzOffset + nxCoord;
+                            if (domain[nbrIdx] == 1 && labels[nbrIdx] == 0)
+                            {
+                                labels[nbrIdx] = compId;
+                                queue[qTail++] = nbrIdx;
+                            }
                         }
                     }
                 }

@@ -96,6 +96,11 @@ public static class Voxeliser
         return (model, report);
     }
 
+    private readonly record struct RayCrossing(float Hit, int Sign) : IComparable<RayCrossing>
+    {
+        public int CompareTo(RayCrossing other) => Hit.CompareTo(other.Hit);
+    }
+
     private static byte[] RayParityFillX(IndexedMesh mesh, GridSpec grid, CancellationToken cancellationToken)
     {
         int nx = grid.Nx;
@@ -181,7 +186,7 @@ public static class Voxeliser
             if (count == 0)
                 return;
 
-            List<float> crossings = new(count);
+            List<RayCrossing> crossings = new(count);
 
             for (int i = 0; i < count; i++)
             {
@@ -210,7 +215,9 @@ public static class Voxeliser
                     continue;
 
                 float xHit = v0.X + u * (v1.X - v0.X) + v * (v2.X - v0.X);
-                crossings.Add(xHit);
+                // In +X direction: Nx = det. If Nx < 0, ray enters (sign +1); if Nx > 0, ray exits (sign -1)
+                int sign = det < 0f ? 1 : -1;
+                crossings.Add(new RayCrossing(xHit, sign));
             }
 
             if (crossings.Count == 0)
@@ -219,25 +226,28 @@ public static class Voxeliser
             crossings.Sort();
 
             int baseElemIndex = nx * (iy + ny * iz);
-
             int cCount = crossings.Count;
-            for (int k = 0; k + 1 < cCount; k += 2)
+            int winding = 0;
+
+            for (int k = 0; k < cCount; k++)
             {
-                float xIn = crossings[k];
-                float xOut = crossings[k + 1];
-
-                int ixStart = (int)Math.Floor((xIn - origin.X) / h);
-                int ixEnd = (int)Math.Floor((xOut - origin.X) / h);
-
-                ixStart = Math.Clamp(ixStart, 0, nx - 1);
-                ixEnd = Math.Clamp(ixEnd, 0, nx - 1);
-
-                for (int ix = ixStart; ix <= ixEnd; ix++)
+                winding += crossings[k].Sign;
+                if (winding > 0 && k + 1 < cCount)
                 {
-                    float xCenter = origin.X + (ix + 0.5f) * h;
-                    if (xCenter >= xIn && xCenter <= xOut)
+                    float xIn = crossings[k].Hit;
+                    float xOut = crossings[k + 1].Hit;
+                    if (xOut <= xIn) continue;
+
+                    int ixStart = Math.Clamp((int)Math.Floor((xIn - origin.X) / h), 0, nx - 1);
+                    int ixEnd = Math.Clamp((int)Math.Floor((xOut - origin.X) / h), 0, nx - 1);
+
+                    for (int ix = ixStart; ix <= ixEnd; ix++)
                     {
-                        domain[baseElemIndex + ix] = 1;
+                        float xCenter = origin.X + (ix + 0.5f) * h;
+                        if (xCenter >= xIn && xCenter <= xOut)
+                        {
+                            domain[baseElemIndex + ix] = 1;
+                        }
                     }
                 }
             }
@@ -331,7 +341,7 @@ public static class Voxeliser
             if (count == 0)
                 return;
 
-            List<float> crossings = new(count);
+            List<RayCrossing> crossings = new(count);
 
             for (int i = 0; i < count; i++)
             {
@@ -360,7 +370,9 @@ public static class Voxeliser
                     continue;
 
                 float yHit = v0.Y + u * (v1.Y - v0.Y) + v * (v2.Y - v0.Y);
-                crossings.Add(yHit);
+                // In +Y direction: Ny = -det. If Ny < 0, ray enters (sign +1); if Ny > 0, ray exits (sign -1)
+                int sign = det > 0f ? 1 : -1;
+                crossings.Add(new RayCrossing(yHit, sign));
             }
 
             if (crossings.Count == 0)
@@ -369,21 +381,28 @@ public static class Voxeliser
             crossings.Sort();
 
             int cCount = crossings.Count;
-            for (int k = 0; k + 1 < cCount; k += 2)
+            int winding = 0;
+
+            for (int k = 0; k < cCount; k++)
             {
-                float yIn = crossings[k];
-                float yOut = crossings[k + 1];
-
-                int iyStart = Math.Clamp((int)Math.Floor((yIn - origin.Y) / h), 0, ny - 1);
-                int iyEnd = Math.Clamp((int)Math.Floor((yOut - origin.Y) / h), 0, ny - 1);
-
-                for (int iy = iyStart; iy <= iyEnd; iy++)
+                winding += crossings[k].Sign;
+                if (winding > 0 && k + 1 < cCount)
                 {
-                    float yCenter = origin.Y + (iy + 0.5f) * h;
-                    if (yCenter >= yIn && yCenter <= yOut)
+                    float yIn = crossings[k].Hit;
+                    float yOut = crossings[k + 1].Hit;
+                    if (yOut <= yIn) continue;
+
+                    int iyStart = Math.Clamp((int)Math.Floor((yIn - origin.Y) / h), 0, ny - 1);
+                    int iyEnd = Math.Clamp((int)Math.Floor((yOut - origin.Y) / h), 0, ny - 1);
+
+                    for (int iy = iyStart; iy <= iyEnd; iy++)
                     {
-                        int elemIdx = ix + nx * (iy + ny * iz);
-                        domain[elemIdx] = 1;
+                        float yCenter = origin.Y + (iy + 0.5f) * h;
+                        if (yCenter >= yIn && yCenter <= yOut)
+                        {
+                            int elemIdx = ix + nx * (iy + ny * iz);
+                            domain[elemIdx] = 1;
+                        }
                     }
                 }
             }
@@ -477,7 +496,7 @@ public static class Voxeliser
             if (count == 0)
                 return;
 
-            List<float> crossings = new(count);
+            List<RayCrossing> crossings = new(count);
 
             for (int i = 0; i < count; i++)
             {
@@ -506,7 +525,9 @@ public static class Voxeliser
                     continue;
 
                 float zHit = v0.Z + u * (v1.Z - v0.Z) + v * (v2.Z - v0.Z);
-                crossings.Add(zHit);
+                // In +Z direction: Nz = det. If Nz < 0, ray enters (sign +1); if Nz > 0, ray exits (sign -1)
+                int sign = det < 0f ? 1 : -1;
+                crossings.Add(new RayCrossing(zHit, sign));
             }
 
             if (crossings.Count == 0)
@@ -515,21 +536,28 @@ public static class Voxeliser
             crossings.Sort();
 
             int cCount = crossings.Count;
-            for (int k = 0; k + 1 < cCount; k += 2)
+            int winding = 0;
+
+            for (int k = 0; k < cCount; k++)
             {
-                float zIn = crossings[k];
-                float zOut = crossings[k + 1];
-
-                int izStart = Math.Clamp((int)Math.Floor((zIn - origin.Z) / h), 0, nz - 1);
-                int izEnd = Math.Clamp((int)Math.Floor((zOut - origin.Z) / h), 0, nz - 1);
-
-                for (int iz = izStart; iz <= izEnd; iz++)
+                winding += crossings[k].Sign;
+                if (winding > 0 && k + 1 < cCount)
                 {
-                    float zCenter = origin.Z + (iz + 0.5f) * h;
-                    if (zCenter >= zIn && zCenter <= zOut)
+                    float zIn = crossings[k].Hit;
+                    float zOut = crossings[k + 1].Hit;
+                    if (zOut <= zIn) continue;
+
+                    int izStart = Math.Clamp((int)Math.Floor((zIn - origin.Z) / h), 0, nz - 1);
+                    int izEnd = Math.Clamp((int)Math.Floor((zOut - origin.Z) / h), 0, nz - 1);
+
+                    for (int iz = izStart; iz <= izEnd; iz++)
                     {
-                        int elemIdx = ix + nx * (iy + ny * iz);
-                        domain[elemIdx] = 1;
+                        float zCenter = origin.Z + (iz + 0.5f) * h;
+                        if (zCenter >= zIn && zCenter <= zOut)
+                        {
+                            int elemIdx = ix + nx * (iy + ny * iz);
+                            domain[elemIdx] = 1;
+                        }
                     }
                 }
             }

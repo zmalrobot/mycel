@@ -104,5 +104,64 @@ public class StepperTests
             Assert.Contains("Classes=\"step-header\"", m.Value);
         }
     }
+
+    [Fact]
+    public void ChangingActiveStep_DisarmsPicking_AndClearsBanner()
+    {
+        var vm = new MainWindowViewModel();
+        var load = new LoadItemViewModel(new TopoOpt.Core.Workflow.LoadRegion { Name = "Test Load" });
+        vm.Loads.Add(load);
+        vm.ArmPicking(load);
+
+        Assert.True(vm.IsPickingActive);
+        Assert.False(string.IsNullOrEmpty(vm.PickingBannerText));
+        Assert.True(load.IsPicking);
+
+        vm.SelectStep(5);
+
+        Assert.False(vm.IsPickingActive);
+        Assert.Equal(string.Empty, vm.PickingBannerText);
+        Assert.Null(vm.ActivePickingTarget);
+        Assert.False(load.IsPicking);
+    }
+
+    [Fact]
+    public void ClickingSameStepHeader_DisarmsPicking_AndClearsBanner()
+    {
+        var vm = new MainWindowViewModel();
+        var load = new LoadItemViewModel(new TopoOpt.Core.Workflow.LoadRegion { Name = "Test Load" });
+        vm.Loads.Add(load);
+        vm.SelectStep(2);
+        vm.ArmPicking(load);
+
+        Assert.True(vm.IsPickingActive);
+        Assert.Equal(2, vm.ActiveStep);
+
+        // Clicking the same step 2 header button must disarm picking
+        vm.SelectStepFromHeaderCommand.Execute("2");
+
+        Assert.False(vm.IsPickingActive);
+        Assert.Equal(string.Empty, vm.PickingBannerText);
+        Assert.Null(vm.ActivePickingTarget);
+        Assert.False(load.IsPicking);
+    }
+
+    [Fact]
+    public async Task PreparingModel_DisarmsPicking_AndClearsBanner()
+    {
+        var vm = new MainWindowViewModel();
+        var load = new LoadItemViewModel(new TopoOpt.Core.Workflow.LoadRegion { Name = "Test Load" });
+        vm.Loads.Add(load);
+        vm.ArmPicking(load);
+
+        Assert.True(vm.IsPickingActive);
+
+        await vm.PrepareModelAsync();
+
+        Assert.False(vm.IsPickingActive);
+        Assert.Equal(string.Empty, vm.PickingBannerText);
+        Assert.Null(vm.ActivePickingTarget);
+        Assert.False(load.IsPicking);
+    }
 }
 
