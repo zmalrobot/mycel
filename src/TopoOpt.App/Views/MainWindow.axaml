@@ -89,6 +89,14 @@
                   Padding="{DynamicResource Pad12_8}"
                   CornerRadius="{DynamicResource CornerRadius}"
                   ToolTip.Tip="{DynamicResource Toolbar.About.Tooltip}" />
+
+          <Button Content="{DynamicResource Toolbar.Guide}"
+                  Command="{Binding OpenGuideDialogCommand}"
+                  Background="{DynamicResource Bg2}"
+                  Foreground="{DynamicResource TextPrimary}"
+                  Padding="{DynamicResource Pad12_8}"
+                  CornerRadius="{DynamicResource CornerRadius}"
+                  ToolTip.Tip="{DynamicResource Toolbar.Guide.Tooltip}" />
         </StackPanel>
 
         <!-- Center Model Header Summary -->
@@ -230,10 +238,25 @@
                                       ToolTip.Tip="{DynamicResource Stepper.Loads.Remove.Tooltip}" />
                             </Grid>
 
+                            <!-- Force (N) -->
                             <Grid ColumnDefinitions="*,Auto">
-                              <TextBlock Text="{DynamicResource Stepper.Loads.Magnitude}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeNewtons}" Minimum="1" Maximum="1000000" Increment="50" Width="110" Height="26"
-                                             ToolTip.Tip="{DynamicResource Stepper.Loads.Magnitude.Tooltip}" />
+                              <TextBlock Text="{DynamicResource Stepper.Loads.MagnitudeN}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeNewtons}" Minimum="0.001" Maximum="10000000" Increment="10" FormatString="0.##" Width="120" Height="26"
+                                             ToolTip.Tip="{DynamicResource Stepper.Loads.MagnitudeN.Tooltip}" />
+                            </Grid>
+
+                            <!-- Mass (kg) -->
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock Text="{DynamicResource Stepper.Loads.MagnitudeKg}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeKg}" Minimum="0.0001" Maximum="1000000" Increment="1" FormatString="0.###" Width="120" Height="26"
+                                             ToolTip.Tip="{DynamicResource Stepper.Loads.MagnitudeKg.Tooltip}" />
+                            </Grid>
+
+                            <!-- Mass (g) -->
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock Text="{DynamicResource Stepper.Loads.MagnitudeG}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeGrams}" Minimum="0.1" Maximum="1000000000" Increment="100" FormatString="0.#" Width="120" Height="26"
+                                             ToolTip.Tip="{DynamicResource Stepper.Loads.MagnitudeG.Tooltip}" />
                             </Grid>
 
                             <Grid ColumnDefinitions="*,Auto">
@@ -954,6 +977,269 @@
               <Button Grid.Row="2" Content="Close" Command="{Binding CloseAboutDialogCommand}" HorizontalAlignment="Right"
                       Background="{DynamicResource Accent}" Foreground="{DynamicResource TextPrimary}" Padding="{DynamicResource Pad12_8}" CornerRadius="{DynamicResource CornerRadius}"
                       ToolTip.Tip="Close about dialog" />
+            </Grid>
+          </Border>
+        </Border>
+
+        <!-- 5b. User & Technical Guide Modal Overlay -->
+        <Border Background="{DynamicResource Bg0}" IsVisible="{Binding IsGuideDialogOpen}" ZIndex="100">
+          <Border Background="{DynamicResource Bg1}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="{DynamicResource CornerRadius}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center" Padding="{DynamicResource Pad24}" Width="920" MaxHeight="680">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource Spacing12}">
+              <!-- Header -->
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="{DynamicResource Spacing4}">
+                  <TextBlock Text="TopoOpt — Comprehensive User &amp; Technical Guide" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                  <TextBlock Text="In-depth operational workflow, boundary condition setup, governing physics, and results interpretation" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="✕" Command="{Binding CloseGuideDialogCommand}"
+                        Background="Transparent" Foreground="{DynamicResource TextSecondary}" FontSize="16" FontWeight="Bold"
+                        Padding="{DynamicResource Pad8_4}" VerticalAlignment="Top" ToolTip.Tip="Close Guide (Esc)" />
+              </Grid>
+
+              <!-- 5 Tabs Content -->
+              <TabControl Grid.Row="1" MaxHeight="520">
+                <!-- TAB 1: Overview & Workflow -->
+                <TabItem Header="1. Overview &amp; Workflow" FontSize="12" FontWeight="SemiBold">
+                  <ScrollViewer MaxHeight="460" Padding="{DynamicResource Pad8}">
+                    <StackPanel Spacing="{DynamicResource Spacing12}">
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing4}">
+                          <TextBlock Text="WHAT IS TOPOOPT?" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                          <TextBlock Text="TopoOpt is a high-performance 3D topology optimization suite engineered specifically for Additive Manufacturing (FDM/FFF, SLA, SLS). It automatically discovers optimal structural load paths, maximizing mechanical stiffness while drastically reducing component mass."
+                                     FontSize="11" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+                          <TextBlock Text="The core engine (TopoOpt.Core) operates purely on deterministic numerical mechanics, zero-allocation parallel kernels, and continuous SIMP homogenization, running asynchronously without blocking the UI thread."
+                                     FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" Margin="{DynamicResource Margin4T}" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="THE 6-STEP WORKFLOW LIFECYCLE" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Step 1 — Model &amp; Geometry: Load binary or ASCII STL files. TopoOpt inspects manifold topology, calculates exact bounding box dimensions, and verifies watertight integrity." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Step 2 — Applied Loads: Define external forces in Newtons (N), Kilograms (kg), or Grams (g). Interactively select target surface patches on the 3D mesh and orient forces via surface normals, coordinate axes, or custom 3D vectors." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Step 3 — Fixed Supports: Constrain translational degrees of freedom (Ux = Uy = Uz = 0) at mounting holes or fixture faces. Automatic 1-voxel protective shells ensure boundary nodes are physically anchored without numerical point hinges." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Step 4 — Material Selection: Select standard engineering polymers or metals (PLA, PETG, ABS, PA-CF, Aluminum 6061-T6) or configure custom Young's modulus (E), Poisson's ratio (ν), and density." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Step 5 — Resolution &amp; Static Analysis: Discretize the domain into structured 8-node hexahedral (Hex8) voxels and execute pre-flight linear FEA to inspect displacement fields and initial stress concentrations." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Step 6 — Topology Optimization: Execute SIMP compliance minimization subject to your volume fraction target. Follow live convergence plots, scrub iterations, and export watertight smoothed STL files." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="3D VIEWPORT CONTROLS &amp; SHORTCUTS" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="{DynamicResource Margin4T}">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Orbit Camera:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Right-Click + Drag (or Alt + Left-Click + Drag)" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Pan Camera:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="Middle-Click (Wheel Click) + Drag (or Shift + Right-Click + Drag)" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Zoom:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Mouse Scroll Wheel (or Shift + Right-Click Up/Down)" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Fit View (F):" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="Center camera and fit the entire model to the viewport" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Open STL (Ctrl+O):" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="Open a new STL mesh geometry" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="User Guide (F1):" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="Open this user and technical manual dialog" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Cancel (Esc):" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Grid.Row="6" Grid.Column="1" Text="Cancel active picking mode or dismiss open dialogs" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          </Grid>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <!-- TAB 2: Boundary Conditions -->
+                <TabItem Header="2. Boundary Conditions" FontSize="12" FontWeight="SemiBold">
+                  <ScrollViewer MaxHeight="460" Padding="{DynamicResource Pad8}">
+                    <StackPanel Spacing="{DynamicResource Spacing12}">
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing4}">
+                          <TextBlock Text="SURFACE PICKING &amp; FLOOD FILL" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Load}" />
+                          <TextBlock Text="Clicking 'Pick on Mesh' activates interactive surface selection. As you hover over triangles in the 3D viewport, TopoOpt automatically performs a continuous normal flood-fill starting from the cursor:"
+                                     FontSize="11" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Angle Threshold Slider (5° – 90°): Controls coplanar sensitivity. For sharp planar faces (brackets, cubes), use 5°–15°. For curved cylindrical features (bores, rounded pins), use 30°–45°."
+                                     FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Left-Click on Mesh: Confirms selection of the hovered patch. Multiple patches can be added to the same load or support region."
+                                     FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="FORCE INPUTS IN MULTIPLE UNITS (N, kg, g)" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="Applied loads can be specified in any of three universally synchronized units:" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="1. Force (N): Fundamental SI unit (1 N = 1 kg·m/s²). Used directly by the finite element solver." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="2. Mass (kg): Equivalent gravitational mass (F = m · g0, with g0 = 9.80665 m/s²). 1 kg ≈ 9.81 N." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="3. Mass (g): Useful for small components, consumer items, and drone frames (1 kg = 1000 g). 100 g ≈ 0.98 N." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="Updating any single field immediately recalculates the other two in real time, keeping the model physically consistent."
+                                     FontSize="11" Foreground="{DynamicResource Accent}" FontStyle="Italic" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="LOAD DIRECTION MODES" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Surface Normal: Automatically computes the area-weighted average normal vector across the selected surface triangles. Positive magnitude pushes outward, negative pulls inward." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Axis-Aligned (+X, -X, +Y, -Y, +Z, -Z): Aligns total force along a global Cartesian coordinate axis regardless of surface orientation (e.g. -Z for gravity)." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Custom 3D Vector: Allows specifying arbitrary X, Y, Z vector components for compound or oblique loading angles." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="FIXED SUPPORTS &amp; PRESERVE REGIONS" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Support}" />
+                          <TextBlock Text="• Fixed Supports (Clamping): Constrains nodal displacements (Ux = Uy = Uz = 0). Nodes are mapped from selected surface triangles via a volume dilation layer (δ = 1.0 × h)." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Preserve (Keep Solid): Regions marked as Preserve remain permanently solid (ρ ≡ 1.0) throughout the entire optimization run. Use this for bolt heads, bearings, and sliding tracks to ensure structural attachments are preserved." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Passive Shell Invariant: TopoOpt automatically enforces a 1-voxel protective solid shell around all loads and supports to eliminate numerical point-hinge singularities." FontSize="11" Foreground="{DynamicResource Preserve}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <!-- TAB 3: Setup & Parameters -->
+                <TabItem Header="3. Setup &amp; Parameters" FontSize="12" FontWeight="SemiBold">
+                  <ScrollViewer MaxHeight="460" Padding="{DynamicResource Pad8}">
+                    <StackPanel Spacing="{DynamicResource Spacing12}">
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="MATERIAL MECHANICAL PROPERTIES" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Young's Modulus (E in MPa): Quantifies tensile/compressive stiffness (1 MPa = 1 N/mm²). Higher values resist deformation. Typical values:" FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="   - PLA: 3,500 MPa | PETG: 2,100 MPa | ABS: 2,200 MPa | PA-CF: 6,000 MPa | Aluminum 6061-T6: 69,000 MPa" FontSize="11" Foreground="{DynamicResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                          <TextBlock Text="• Poisson's Ratio (ν): Ratio of transverse contraction to axial elongation (dimensionless). Typically 0.33 to 0.38 for thermoplastics and 0.33 for aluminum." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Mass Density (ρm in g/cm³): Used to calculate initial mass, final mass, and material savings." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="VOXEL GRID RESOLUTION PRESETS" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="The design domain is discretized into regular 8-node hexahedral elements (Hex8) with uniform pitch h (mm):" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Coarse (~25,000 elements): Rapid pre-flight iteration (1–2 seconds per solve). Perfect for verifying boundary conditions." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Standard (~100,000 elements): Recommended balance between structural detail and solve time (3–5 seconds per solve)." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Fine (~300,000 elements): Resolves fine internal ribs, fillets, and organic trabecular structures." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Ultra (~1,000,000 elements): High-fidelity production quality for final engineering parts (requires 8+ GB RAM)." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="OPTIMIZATION CONTROL PARAMETERS" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Target Volume Fraction (V*): Fraction of original design volume to retain (e.g., 0.30 retains 30% volume, achieving a 70% weight reduction). Values range from 0.10 to 0.90." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Filter Radius / Min Feature Size (rmin in mm): Radius of the conical sensitivity filter. Prevents checkerboard instabilities and enforces a minimum strut thickness. Recommended: at least 1.5–2× voxel pitch h, and ≥ 3× 3D printer nozzle diameter (e.g. ≥ 1.2 mm for a 0.4 mm nozzle)." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Penalization Power (p): Exponent in the SIMP interpolation law (default p = 3.0). Penalizes intermediate density values to force clean 0 or 1 solid structures." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Maximum Iterations: Upper bound for the optimization loop (typically 30–60 iterations reach convergence)." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <!-- TAB 4: Formulas & Physics -->
+                <TabItem Header="4. Formulas &amp; Physics" FontSize="12" FontWeight="SemiBold">
+                  <ScrollViewer MaxHeight="460" Padding="{DynamicResource Pad8}">
+                    <StackPanel Spacing="{DynamicResource Spacing12}">
+                      <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing4}">
+                          <TextBlock Text="1. GOVERNING FINITE ELEMENT EQUILIBRIUM" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                          <TextBlock Text="K(ρ) · u = f" FontFamily="Consolas,Monospace" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4V}" />
+                          <TextBlock Text="Where K is the global stiffness matrix assembled from 8-node trilinear hexahedral (Hex8) elements evaluated using 2×2×2 Gauss quadrature, u is the global nodal displacement vector (3 DOFs per node: Ux, Uy, Uz), and f is the nodal force vector."
+                                     FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing4}">
+                          <TextBlock Text="2. SIMP MATERIAL INTERPOLATION LAW" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                          <TextBlock Text="E(ρe) = Emin + ρe^p · (E0 - Emin)" FontFamily="Consolas,Monospace" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4V}" />
+                          <TextBlock Text="• ρe ∈ [ρmin, 1.0]: Element pseudo-density design variable." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="• E0: Young's modulus of solid material (e.g. 3500 MPa for PLA)." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="• Emin = 10^-6 · E0: Artificial residual stiffness preventing matrix singularity in void elements." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="• p = 3.0: Penalization power driving intermediate densities towards 0 or 1." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing4}">
+                          <TextBlock Text="3. OBJECTIVE FUNCTION: COMPLIANCE MINIMIZATION" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                          <TextBlock Text="min C(ρ) = f^T · u = Σ [E(ρe) · ue^T · k0 · ue]" FontFamily="Consolas,Monospace" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4V}" />
+                          <TextBlock Text="subject to: (Σ ve · ρe) / V_total ≤ V*,   with  0 &lt; ρmin ≤ ρe ≤ 1.0" FontFamily="Consolas,Monospace" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="Minimizing compliance C is mathematically equivalent to maximizing total structural stiffness for the specified load cases."
+                                     FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" Margin="{DynamicResource Margin4T}" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing4}">
+                          <TextBlock Text="4. SENSITIVITY FILTERING &amp; OC UPDATE" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                          <TextBlock Text="∂C_filt/∂ρe = [1 / (ρe · Σ Hei)] · Σ [Hei · ρi · (∂C/∂ρi)]" FontFamily="Consolas,Monospace" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4V}" />
+                          <TextBlock Text="where Hei = max(0, rmin - dist(e, i)) is a conical distance weighting kernel." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="The Optimality Criteria (OC) scheme updates densities iteratively with move limit ζ = 0.2 and damping exponent η = 0.5, using bisection to determine the Lagrange multiplier λ satisfying the volume constraint."
+                                     FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" Margin="{DynamicResource Margin4T}" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing4}">
+                          <TextBlock Text="5. PRECONDITIONED CONJUGATE GRADIENT (PCG) SOLVER" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                          <TextBlock Text="M^-1 · K · u = M^-1 · f,   where M = diag(K)" FontFamily="Consolas,Monospace" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin4V}" />
+                          <TextBlock Text="Solved via Jacobi-preconditioned CG with zero heap allocation in the inner solver loop and deterministic parallel dot products. Iterations terminate when relative residual ||r|| / ||f|| &lt; 10^-5."
+                                     FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <!-- TAB 5: Results & Export -->
+                <TabItem Header="5. Results &amp; Export" FontSize="12" FontWeight="SemiBold">
+                  <ScrollViewer MaxHeight="460" Padding="{DynamicResource Pad8}">
+                    <StackPanel Spacing="{DynamicResource Spacing12}">
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="INTERPRETING CONVERGENCE CHARTS" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Compliance Curve (Blue): Represents inverse stiffness. During the first 10–20 iterations, compliance drops sharply as redundant material is shed. Convergence is reached when the curve stabilizes into an asymptotic plateau." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Volume Fraction (Red): Tracks actual solid volume ratio over iterations. It converges swiftly to the target V* and remains locked on target." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="DENSITY DISTRIBUTION &amp; STRESS FIELDS" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Pseudo-Density (ρ): Voxels with ρ ≈ 1.0 form primary load-carrying struts in tension/compression. Voxels with ρ ≈ 0.0 represent void space." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• von Mises Stress (σ_vM): Equivalent stress field evaluated at element centroids. Compare maximum stress against your material's yield strength (Rp0.2). Maintain a safety factor Sf ≥ 1.5–2.0 for 3D printed components to account for interlayer anisotropy." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="TIMELINE SCRUB &amp; PLAYBACK" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="Use the iteration playback bar at the bottom of the screen to explore how structural topology evolved:" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
+                          <TextBlock Text="• Play / Pause button: Plays through optimization history with adjustable playback speeds (1×, 2×, 5×, 10×)." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="• Iteration Slider: Directly scrub to any saved iteration frame to inspect intermediate topologies." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                          <TextBlock Text="• Ghost Original Checkbox: Overlays a translucent silhouette of the original STL envelope for visual comparison." FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}">
+                        <StackPanel Spacing="{DynamicResource Spacing8}">
+                          <TextBlock Text="SURFACE NETS ISOSURFACE &amp; STL EXPORT" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Preserve}" />
+                          <TextBlock Text="• Surface Nets Isosurface Extraction: Converts the continuous 3D density field into an explicit triangle mesh at threshold ρ_iso = 0.5." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Volume-Preserving Smoothing: Eliminates voxel stair-stepping while preserving sharp edges and flat mounting interfaces." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                          <TextBlock Text="• Export STL: Generates a 100% watertight, manifold binary STL file ready for direct import into slicers (Bambu Studio, PrusaSlicer, OrcaSlicer, Cura) for 3D printing." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+              </TabControl>
+
+              <!-- Footer -->
+              <Button Grid.Row="2" Content="Close" Command="{Binding CloseGuideDialogCommand}" HorizontalAlignment="Right"
+                      Background="{DynamicResource Accent}" Foreground="{DynamicResource TextPrimary}" Padding="{DynamicResource Pad12_8}" CornerRadius="{DynamicResource CornerRadius}"
+                      ToolTip.Tip="Close Guide (Esc)" />
             </Grid>
           </Border>
         </Border>

@@ -71,6 +71,18 @@
   <data name="Toolbar.FitView.Tooltip" xml:space="preserve">
     <value>Fit camera to model (F) | Orbit: Right-drag (or Alt+Left) | Pan: Middle-drag | Zoom: Wheel</value>
   </data>
+  <data name="Toolbar.About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Toolbar.About.Tooltip" xml:space="preserve">
+    <value>About TopoOpt, licenses, and disclaimers</value>
+  </data>
+  <data name="Toolbar.Guide" xml:space="preserve">
+    <value>User Guide</value>
+  </data>
+  <data name="Toolbar.Guide.Tooltip" xml:space="preserve">
+    <value>Open interactive user guide and theoretical manual (F1)</value>
+  </data>
 
   <data name="Stepper.Common.Step1Number" xml:space="preserve">
     <value>1</value>
@@ -144,10 +156,28 @@
     <value>Remove this load region</value>
   </data>
   <data name="Stepper.Loads.Magnitude" xml:space="preserve">
-    <value>Magnitude (N):</value>
+    <value>Force (N):</value>
   </data>
   <data name="Stepper.Loads.Magnitude.Tooltip" xml:space="preserve">
     <value>Total applied force in Newtons</value>
+  </data>
+  <data name="Stepper.Loads.MagnitudeN" xml:space="preserve">
+    <value>Force (N):</value>
+  </data>
+  <data name="Stepper.Loads.MagnitudeN.Tooltip" xml:space="preserve">
+    <value>Total applied force in Newtons</value>
+  </data>
+  <data name="Stepper.Loads.MagnitudeKg" xml:space="preserve">
+    <value>Mass (kg):</value>
+  </data>
+  <data name="Stepper.Loads.MagnitudeKg.Tooltip" xml:space="preserve">
+    <value>Equivalent mass in kilograms (F = m · g, g = 9.80665 m/s²)</value>
+  </data>
+  <data name="Stepper.Loads.MagnitudeG" xml:space="preserve">
+    <value>Mass (g):</value>
+  </data>
+  <data name="Stepper.Loads.MagnitudeG.Tooltip" xml:space="preserve">
+    <value>Equivalent mass in grams (1 kg = 1000 g)</value>
   </data>
   <data name="Stepper.Loads.Direction" xml:space="preserve">
     <value>Direction:</value>

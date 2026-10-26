@@ -374,6 +374,19 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void CloseAboutDialog() => IsAboutDialogOpen = false;
 
+    [ObservableProperty]
+    private bool _isGuideDialogOpen;
+
+    [RelayCommand]
+    private void OpenGuideDialog()
+    {
+        if (IsPickingActive) DisarmPicking();
+        IsGuideDialogOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseGuideDialog() => IsGuideDialogOpen = false;
+
     public void HandleGlFailure(string error)
     {
         ValidationIssues.Add(new ValidationIssue("GL_INIT_ERROR", ValidationSeverity.Error, error));

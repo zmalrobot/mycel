@@ -555,9 +555,27 @@ public partial class MainWindow : Window
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        if (e.Key == Key.Escape && ViewModel.IsPickingActive)
+        if (e.Key == Key.Escape)
         {
-            ViewModel.CancelPicking();
+            if (ViewModel?.IsGuideDialogOpen == true)
+            {
+                ViewModel.IsGuideDialogOpen = false;
+                e.Handled = true;
+            }
+            else if (ViewModel?.IsAboutDialogOpen == true)
+            {
+                ViewModel.IsAboutDialogOpen = false;
+                e.Handled = true;
+            }
+            else if (ViewModel?.IsPickingActive == true)
+            {
+                ViewModel.CancelPicking();
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.F1)
+        {
+            ViewModel?.OpenGuideDialogCommand.Execute(null);
             e.Handled = true;
         }
         else if (e.Key == Key.F)

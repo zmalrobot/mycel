@@ -20,6 +20,7 @@
   - Surface triangles map to Hex8 nodes via volume dilation layer ($\delta = 1.0 \times h$).
   - Region selection supports 3 types: `Fixed Support`, `Applied Load` (in Newtons with Normal/Axis/Custom direction), and `Preserve (Keep Solid)`.
   - A 1-voxel protective passive shell ($\rho \equiv 1$) is enforced around loads and supports by default to prevent numerical point hinges.
+- **Multi-Unit Load Inputs & Physical Grounding**: `TopoOpt.Core` and `.topo` project files MUST store load forces exclusively in Newtons ($N$). UI layers projecting alternative units (such as equivalent mass in $\text{kg}$ or $\text{g}$ via $F = m \cdot g_0$) must use standard gravitational acceleration $g_0 = 9.80665\text{ m/s}^2$ (ISO 80000-3 / NIST) and guard bidirectional property updates with an `_isSyncing` reentrancy flag to avoid circular notification cascades and precision drift.
 
 ## 2. Core Architecture & Numerical Rigor
 - `TopoOpt.Core` MUST NOT reference any UI framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
@@ -54,3 +55,6 @@
 - **3D Viewport Render Invalidation**: After ANY camera modification (orbit, pan, zoom, fit to view) or visual state update in a render-on-demand viewport, explicitly call `RequestNextFrameRendering()`. Never let an input action complete without marking a frame request.
 - **No-Swallow Render Exceptions**: Never swallow OpenGL render callback exceptions. Wrap `OnOpenGlRender` in a `try/catch` and log errors with full stack trace to both console and platform diagnostics logs (`CrashLogger.LogDir`).
 - **Custom OpenGL Hit-Testing**: Any `OpenGlControlBase` derived control that handles pointer events must implement `Avalonia.Rendering.ICustomHitTest` (`HitTest(Point point) => new Rect(Bounds.Size).Contains(point);`) because native GL surfaces lack Avalonia `DrawingContext` drawing and will otherwise fail hit-testing.
+- **Voxelization of Multi-Body Assemblies (Union vs Parity)**: Voxel ray-casting must use the Non-Zero Winding Rule ($\vec{D} \cdot \vec{N} < 0 \implies +1, \vec{D} \cdot \vec{N} > 0 \implies -1$, solid when $\text{winding} > 0$) rather than even-odd parity to ensure intersecting closed shells in CAD assemblies are fused via boolean Union ($A \cup B$) without excavating internal void cavities.
+- **Structural Voxel Connectivity**: Connected component analysis and filtering on structured Hex8 grids must employ 26-connectivity (sharing vertices, edges, or faces). Hex8 stiffness matrices couple DOFs across shared nodes, so 6-connectivity erroneously disconnects and erodes diagonal or tangential features (e.g., cylindrical pins, thin fillets).
+- **Interactive Picking State Disarm**: Any interactive 3D viewport modal state (picking, region selection banner, hover highlight) must be unconditionally disarmed upon step transition, stepper header click, or workflow action execution (`Prepare`, `Analyze`, `Save`, `Load`), clearing hover geometry and requesting viewport re-rendering.

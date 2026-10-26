@@ -71,6 +71,8 @@
   <x:String x:Key="Toolbar.FitView.Tooltip">Fit camera to model (F) | Orbit: Right-drag (or Alt+Left) | Pan: Middle-drag | Zoom: Wheel</x:String>
   <x:String x:Key="Toolbar.About">About</x:String>
   <x:String x:Key="Toolbar.About.Tooltip">About TopoOpt, licenses, and disclaimers</x:String>
+  <x:String x:Key="Toolbar.Guide">User Guide</x:String>
+  <x:String x:Key="Toolbar.Guide.Tooltip">Open interactive user guide and theoretical manual (F1)</x:String>
 
   <x:String x:Key="Stepper.Common.Step1Number">1</x:String>
   <x:String x:Key="Stepper.Common.Step2Number">2</x:String>
@@ -97,8 +99,14 @@
   <x:String x:Key="Stepper.Loads.Add">+ Add Load Region</x:String>
   <x:String x:Key="Stepper.Loads.Add.Tooltip">Add a new applied force region</x:String>
   <x:String x:Key="Stepper.Loads.Remove.Tooltip">Remove this load region</x:String>
-  <x:String x:Key="Stepper.Loads.Magnitude">Magnitude (N):</x:String>
+  <x:String x:Key="Stepper.Loads.Magnitude">Force (N):</x:String>
   <x:String x:Key="Stepper.Loads.Magnitude.Tooltip">Total applied force in Newtons</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeN">Force (N):</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeN.Tooltip">Total applied force in Newtons</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeKg">Mass (kg):</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeKg.Tooltip">Equivalent mass in kilograms (F = m · g, g = 9.80665 m/s²)</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeG">Mass (g):</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeG.Tooltip">Equivalent mass in grams (1 kg = 1000 g)</x:String>
   <x:String x:Key="Stepper.Loads.Direction">Direction:</x:String>
   <x:String x:Key="Stepper.Loads.CustomX.Tooltip">Custom force direction X component</x:String>
   <x:String x:Key="Stepper.Loads.CustomY.Tooltip">Custom force direction Y component</x:String>
