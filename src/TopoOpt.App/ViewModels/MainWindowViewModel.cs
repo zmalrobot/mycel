@@ -108,6 +108,34 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _statusVolume = "—";
 
+    // 3D Model Real-World Physical Dimensions HUD
+    [ObservableProperty]
+    private string _dimensionXText = "—";
+
+    [ObservableProperty]
+    private string _dimensionYText = "—";
+
+    [ObservableProperty]
+    private string _dimensionZText = "—";
+
+    [ObservableProperty]
+    private string _dimensionsSummaryText = "—";
+
+    [ObservableProperty]
+    private string _volumeCm3Text = "—";
+
+    [ObservableProperty]
+    private bool _showDimensions = true;
+
+    public bool HasModelLoaded => Workflow.State.Mesh != null;
+
+    public event Action<bool>? ShowDimensionsChanged;
+
+    partial void OnShowDimensionsChanged(bool value)
+    {
+        ShowDimensionsChanged?.Invoke(value);
+    }
+
     [ObservableProperty]
     private string _watertightText = "No Mesh";
 
@@ -177,6 +205,58 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private float _angleThresholdDegrees = 30.0f;
+
+    public int LastClickedSeedTriangle { get; set; } = -1;
+    public SelectionModifyMode LastClickedMode { get; set; } = SelectionModifyMode.Replace;
+    private int[] _baseTrianglesBeforeLastClick = [];
+
+    public event Action<float>? AngleThresholdChanged;
+
+    partial void OnAngleThresholdDegreesChanged(float value)
+    {
+        if (IsPickingActive && ActivePickingTarget != null && LastClickedSeedTriangle >= 0 && CurrentSelector != null)
+        {
+            int[] newTriangles = CurrentSelector.GrowRegion(LastClickedSeedTriangle, value);
+            int[] updated = RegionSelector.ModifySelection(_baseTrianglesBeforeLastClick, newTriangles, LastClickedMode);
+            ApplyActiveSelectionTriangles(updated);
+        }
+        AngleThresholdChanged?.Invoke(value);
+    }
+
+    public void SetBaseTrianglesBeforeLastClick(int[] triangles)
+    {
+        _baseTrianglesBeforeLastClick = triangles ?? [];
+    }
+
+    public int[] GetActiveSelectionTriangles()
+    {
+        if (ActivePickingTarget is LoadItemViewModel lvm) return lvm.Model.Triangles;
+        if (ActivePickingTarget is SupportItemViewModel svm) return svm.Model.Triangles;
+        if (ActivePickingTarget is PreserveItemViewModel pvm) return pvm.Model.Triangles;
+        return [];
+    }
+
+    public void ApplyActiveSelectionTriangles(int[] triangles)
+    {
+        if (!IsPickingActive || ActivePickingTarget == null) return;
+
+        if (ActivePickingTarget is LoadItemViewModel lvm)
+        {
+            lvm.UpdateTriangles(triangles);
+            OnLoadItemChanged(lvm);
+        }
+        else if (ActivePickingTarget is SupportItemViewModel svm)
+        {
+            svm.UpdateTriangles(triangles);
+            OnSupportItemChanged(svm);
+        }
+        else if (ActivePickingTarget is PreserveItemViewModel pvm)
+        {
+            pvm.UpdateTriangles(triangles);
+            SelectionOverlayUpdated?.Invoke(pvm.Id, pvm.Model.Triangles, pvm.ColorRgba);
+            QueueAutosave();
+        }
+    }
 
     public object? ActivePickingTarget { get; private set; }
 
@@ -749,6 +829,9 @@ public partial class MainWindowViewModel : ObservableObject
         ActivePickingTarget = null;
         IsPickingActive = false;
         PickingBannerText = string.Empty;
+        LastClickedSeedTriangle = -1;
+        LastClickedMode = SelectionModifyMode.Replace;
+        _baseTrianglesBeforeLastClick = [];
     }
 
     // Material Preset changes
@@ -1091,8 +1174,14 @@ public partial class MainWindowViewModel : ObservableObject
             StatusVertices = "0 verts";
             StatusBBox = "—";
             StatusVolume = "—";
+            DimensionXText = "—";
+            DimensionYText = "—";
+            DimensionZText = "—";
+            DimensionsSummaryText = "—";
+            VolumeCm3Text = "—";
             WatertightText = "No Mesh";
             WatertightBadgeBrush = new SolidColorBrush(Color.FromRgb(75, 85, 99));
+            OnPropertyChanged(nameof(HasModelLoaded));
             return;
         }
 
@@ -1104,11 +1193,20 @@ public partial class MainWindowViewModel : ObservableObject
         StatusBBox = $"{size.X:F1} × {size.Y:F1} × {size.Z:F1} mm";
         StatusVolume = $"{Math.Abs(mesh.SignedVolume):N0} mm³";
 
+        DimensionXText = $"{size.X:F1} mm";
+        DimensionYText = $"{size.Y:F1} mm";
+        DimensionZText = $"{size.Z:F1} mm";
+        DimensionsSummaryText = $"{size.X:F1} × {size.Y:F1} × {size.Z:F1} mm";
+        double volCm3 = Math.Abs(mesh.SignedVolume) / 1000.0;
+        VolumeCm3Text = $"{volCm3:F1} cm³";
+
         bool isWater = Workflow.State.MeshReport?.IsWatertight ?? false;
         WatertightText = isWater ? "Watertight" : "Non-Watertight";
         WatertightBadgeBrush = isWater
             ? new SolidColorBrush(Color.FromRgb(16, 185, 129))
             : new SolidColorBrush(Color.FromRgb(245, 158, 11));
+
+        OnPropertyChanged(nameof(HasModelLoaded));
     }
 
     private void OnLoadItemChanged(LoadItemViewModel item)
@@ -1150,6 +1248,13 @@ public partial class MainWindowViewModel : ObservableObject
             int[] updated = RegionSelector.ModifySelection(svm.Model.Triangles, grownTriangles, mode);
             svm.UpdateTriangles(updated);
             OnSupportItemChanged(svm);
+        }
+        else if (ActivePickingTarget is PreserveItemViewModel pvm)
+        {
+            int[] updated = RegionSelector.ModifySelection(pvm.Model.Triangles, grownTriangles, mode);
+            pvm.UpdateTriangles(updated);
+            SelectionOverlayUpdated?.Invoke(pvm.Id, pvm.Model.Triangles, pvm.ColorRgba);
+            QueueAutosave();
         }
     }
 

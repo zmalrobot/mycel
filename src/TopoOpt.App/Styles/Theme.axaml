@@ -171,6 +171,10 @@
   <x:String x:Key="Hud.Displacement">Disp</x:String>
   <x:String x:Key="Hud.Colormap">Colormap:</x:String>
   <x:String x:Key="Hud.ZeroValue">0.0</x:String>
+  <x:String x:Key="Hud.Dimensions">DIMENSIONS</x:String>
+  <x:String x:Key="Hud.ShowDimensions">3D Quote</x:String>
+  <x:String x:Key="Hud.ShowDimensions.Tooltip">Toggle 3D bounding box dimension lines</x:String>
+  <x:String x:Key="Hud.GridScale">Grid: 10 mm</x:String>
 
   <x:String x:Key="UnitGuard.Title">⚠ STL Unit Guard</x:String>
   <x:String x:Key="UnitGuard.Description">The imported model bounding box appears to have unusual dimensions:</x:String>

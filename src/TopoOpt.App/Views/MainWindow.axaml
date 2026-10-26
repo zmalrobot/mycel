@@ -841,7 +841,7 @@
             <TextBlock Text="{Binding PickingBannerText}" FontWeight="SemiBold" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing8}" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource Picking.Angle}" FontSize="11" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
-              <Slider Value="{Binding AngleThresholdDegrees}" Minimum="5" Maximum="60" Width="100" VerticalAlignment="Center"
+              <Slider Value="{Binding AngleThresholdDegrees}" Minimum="1" Maximum="90" Width="120" VerticalAlignment="Center"
                       ToolTip.Tip="{DynamicResource Picking.Angle.Tooltip}" />
               <TextBlock Text="{Binding AngleThresholdDegrees, StringFormat='{}{0:F0}°'}" FontSize="11" Foreground="{DynamicResource Bg0}" Width="30" VerticalAlignment="Center" />
             </StackPanel>
@@ -905,6 +905,52 @@
                   <TextBlock Text="{DynamicResource Hud.ZeroValue}" FontSize="9" Foreground="{DynamicResource TextSecondary}" />
                 </StackPanel>
               </Grid>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- 3b. Model Dimensions HUD Badge (Bottom-Left) -->
+        <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="16,0,0,56"
+                Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                Padding="{DynamicResource Pad12_8}" IsVisible="{Binding HasModelLoaded}">
+          <StackPanel Spacing="{DynamicResource Spacing4}">
+            <!-- Header / Title & Toggle -->
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{DynamicResource Hud.Dimensions}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+              <CheckBox Grid.Column="1" Content="{DynamicResource Hud.ShowDimensions}" IsChecked="{Binding ShowDimensions}"
+                        FontSize="10" Foreground="{DynamicResource TextPrimary}" Margin="{DynamicResource Margin8L}" VerticalAlignment="Center"
+                        ToolTip.Tip="{DynamicResource Hud.ShowDimensions.Tooltip}" />
+            </Grid>
+
+            <!-- XYZ Chips -->
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing8}">
+              <!-- X chip -->
+              <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="X" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Danger}" />
+                  <TextBlock Text="{Binding DimensionXText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                </StackPanel>
+              </Border>
+              <!-- Y chip -->
+              <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="Y" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Preserve}" />
+                  <TextBlock Text="{Binding DimensionYText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                </StackPanel>
+              </Border>
+              <!-- Z chip -->
+              <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="Z" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                  <TextBlock Text="{Binding DimensionZText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Volume & Grid scale info -->
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <TextBlock Grid.Column="0" Text="{Binding VolumeCm3Text, StringFormat='Vol: {0}'}" FontSize="10" Foreground="{DynamicResource TextSecondary}" />
+              <TextBlock Grid.Column="2" Text="{DynamicResource Hud.GridScale}" FontSize="10" Foreground="{DynamicResource TextSecondary}" FontStyle="Italic" />
             </Grid>
           </StackPanel>
         </Border>
@@ -1059,7 +1105,7 @@
                           <TextBlock Text="SURFACE PICKING &amp; FLOOD FILL" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Load}" />
                           <TextBlock Text="Clicking 'Pick on Mesh' activates interactive surface selection. As you hover over triangles in the 3D viewport, TopoOpt automatically performs a continuous normal flood-fill starting from the cursor:"
                                      FontSize="11" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
-                          <TextBlock Text="• Angle Threshold Slider (5° – 90°): Controls coplanar sensitivity. For sharp planar faces (brackets, cubes), use 5°–15°. For curved cylindrical features (bores, rounded pins), use 30°–45°."
+                          <TextBlock Text="• Angle Threshold Slider (1° – 90°): Controls coplanar sensitivity. For sharp planar faces (brackets, cubes), use 5°–15°. For curved cylindrical features (bores, rounded pins), use 30°–45°."
                                      FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
                           <TextBlock Text="• Left-Click on Mesh: Confirms selection of the hovered patch. Multiple patches can be added to the same load or support region."
                                      FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />

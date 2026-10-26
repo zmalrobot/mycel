@@ -354,6 +354,18 @@
   <data name="Hud.Colormap" xml:space="preserve">
     <value>Colormap:</value>
   </data>
+  <data name="Hud.Dimensions" xml:space="preserve">
+    <value>DIMENSIONS</value>
+  </data>
+  <data name="Hud.ShowDimensions" xml:space="preserve">
+    <value>3D Quote</value>
+  </data>
+  <data name="Hud.ShowDimensions.Tooltip" xml:space="preserve">
+    <value>Toggle 3D bounding box dimension lines</value>
+  </data>
+  <data name="Hud.GridScale" xml:space="preserve">
+    <value>Grid: 10 mm</value>
+  </data>
   <data name="Hud.ZeroValue" xml:space="preserve">
     <value>0.0</value>
   </data>

@@ -94,6 +94,14 @@ public partial class MainWindow : Window
             Viewport.ClearFeaScalarField();
         };
 
+        vm.AngleThresholdChanged += OnAngleThresholdChanged;
+        vm.ShowDimensionsChanged += show =>
+        {
+            Viewport.ShowDimensions = show;
+            Viewport.RequestNextFrameRendering();
+        };
+        Viewport.ShowDimensions = vm.ShowDimensions;
+
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainWindowViewModel.IsPickingActive) && !vm.IsPickingActive)
@@ -513,6 +521,16 @@ public partial class MainWindow : Window
         Viewport.SetHoverTriangles(_currentHoveredTriangles);
     }
 
+    private void OnAngleThresholdChanged(float angle)
+    {
+        if (ViewModel?.CurrentSelector is { } selector && _lastHoverSeedTriangle >= 0)
+        {
+            _lastHoverAngle = angle;
+            _currentHoveredTriangles = selector.GrowRegion(_lastHoverSeedTriangle, angle);
+            Viewport.SetHoverTriangles(_currentHoveredTriangles);
+        }
+    }
+
     private void OnViewportPointerClicked(Vector2 pixelPos, KeyModifiers modifiers)
     {
         if (!ViewModel.IsPickingActive) return;
@@ -543,10 +561,18 @@ public partial class MainWindow : Window
         {
             if (mode == SelectionModifyMode.Replace)
             {
+                ViewModel.LastClickedSeedTriangle = -1;
+                ViewModel.LastClickedMode = SelectionModifyMode.Replace;
+                ViewModel.SetBaseTrianglesBeforeLastClick([]);
                 ViewModel.ModifyActiveSelectionTriangles([], SelectionModifyMode.Replace);
             }
             return;
         }
+
+        int[] current = ViewModel.GetActiveSelectionTriangles();
+        ViewModel.LastClickedSeedTriangle = hit.TriangleIndex;
+        ViewModel.LastClickedMode = mode;
+        ViewModel.SetBaseTrianglesBeforeLastClick(mode == SelectionModifyMode.Replace ? [] : current);
 
         int[] region = selector.GrowRegion(hit.TriangleIndex, ViewModel.AngleThresholdDegrees);
         ViewModel.ModifyActiveSelectionTriangles(region, mode);

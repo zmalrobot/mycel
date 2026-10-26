@@ -72,6 +72,24 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
     private uint _gridVbo;
     private int _gridVertexCount;
 
+    private uint _bboxVao;
+    private uint _bboxVbo;
+    private int _bboxVertexCount;
+    private bool _showDimensions = true;
+
+    public bool ShowDimensions
+    {
+        get => _showDimensions;
+        set
+        {
+            if (_showDimensions != value)
+            {
+                _showDimensions = value;
+                RequestNextFrameRendering();
+            }
+        }
+    }
+
     private uint _voxelVao;
     private uint _voxelVbo;
     private uint _voxelEbo;
@@ -752,6 +770,15 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
             _gl.DrawArrays(PrimitiveType.Lines, 0, (uint)_gridVertexCount);
         }
 
+        // 1b. Render 3D Model Bounding Box Dimensions Wireframe
+        if (_showDimensions && _bboxVertexCount > 0)
+        {
+            _gl.UseProgram(_lineShader);
+            _gl.UniformMatrix4(_uLineViewProjLoc, 1, false, (float*)&viewProj);
+            _gl.BindVertexArray(_bboxVao);
+            _gl.DrawArrays(PrimitiveType.Lines, 0, (uint)_bboxVertexCount);
+        }
+
         // 2. Render base STL mesh or Voxel mesh
         if (_renderMode == ViewRenderMode.Voxels && _voxelIndexCount > 0)
         {
@@ -918,11 +945,13 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
 
                     _meshIndexCount = iSpan.Length;
                     BuildReferenceGrid(gl, _pendingMesh.BBox.Min, _pendingMesh.BBox.Max);
+                    BuildBoundingBoxLines(gl, _pendingMesh.BBox.Min, _pendingMesh.BBox.Max);
                 }
                 else
                 {
                     _meshIndexCount = 0;
                     _hoverIndexCount = 0;
+                    _bboxVertexCount = 0;
                 }
             }
             else if (_vertexColorUpdatePending && _stagedVertices is not null)
@@ -1222,6 +1251,120 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
         gl.BindVertexArray(0);
     }
 
+    private unsafe void BuildBoundingBoxLines(GL gl, Vector3 min, Vector3 max)
+    {
+        Vector3 span = max - min;
+        if (span.X <= 0f || span.Y <= 0f || span.Z <= 0f)
+        {
+            _bboxVertexCount = 0;
+            return;
+        }
+
+        Vector3 p000 = new(min.X, min.Y, min.Z);
+        Vector3 p100 = new(max.X, min.Y, min.Z);
+        Vector3 p110 = new(max.X, max.Y, min.Z);
+        Vector3 p010 = new(min.X, max.Y, min.Z);
+        Vector3 p001 = new(min.X, min.Y, max.Z);
+        Vector3 p101 = new(max.X, min.Y, max.Z);
+        Vector3 p111 = new(max.X, max.Y, max.Z);
+        Vector3 p011 = new(min.X, max.Y, max.Z);
+
+        Vector3 colX = new(0.94f, 0.27f, 0.27f); // Bright Red (#EF4444)
+        Vector3 colY = new(0.36f, 0.82f, 0.55f); // Bright Green (#5BD18B)
+        Vector3 colZ = new(0.15f, 0.39f, 0.92f); // Bright Blue (#2563EB)
+        Vector3 colBox = new(0.35f, 0.40f, 0.50f); // Subtle slate gray
+
+        List<GpuVertex> lines = new(64);
+
+        // Primary dimension edges:
+        // X edge (Red)
+        lines.Add(new GpuVertex { Position = p000, Color = colX });
+        lines.Add(new GpuVertex { Position = p100, Color = colX });
+
+        // Y edge (Green)
+        lines.Add(new GpuVertex { Position = p000, Color = colY });
+        lines.Add(new GpuVertex { Position = p010, Color = colY });
+
+        // Z edge (Blue)
+        lines.Add(new GpuVertex { Position = p000, Color = colZ });
+        lines.Add(new GpuVertex { Position = p001, Color = colZ });
+
+        // Remaining 9 bounding box edges:
+        // X-parallel
+        lines.Add(new GpuVertex { Position = p010, Color = colBox });
+        lines.Add(new GpuVertex { Position = p110, Color = colBox });
+
+        lines.Add(new GpuVertex { Position = p001, Color = colBox });
+        lines.Add(new GpuVertex { Position = p101, Color = colBox });
+
+        lines.Add(new GpuVertex { Position = p011, Color = colBox });
+        lines.Add(new GpuVertex { Position = p111, Color = colBox });
+
+        // Y-parallel
+        lines.Add(new GpuVertex { Position = p100, Color = colBox });
+        lines.Add(new GpuVertex { Position = p110, Color = colBox });
+
+        lines.Add(new GpuVertex { Position = p001, Color = colBox });
+        lines.Add(new GpuVertex { Position = p011, Color = colBox });
+
+        lines.Add(new GpuVertex { Position = p101, Color = colBox });
+        lines.Add(new GpuVertex { Position = p111, Color = colBox });
+
+        // Z-parallel
+        lines.Add(new GpuVertex { Position = p100, Color = colBox });
+        lines.Add(new GpuVertex { Position = p101, Color = colBox });
+
+        lines.Add(new GpuVertex { Position = p110, Color = colBox });
+        lines.Add(new GpuVertex { Position = p111, Color = colBox });
+
+        lines.Add(new GpuVertex { Position = p010, Color = colBox });
+        lines.Add(new GpuVertex { Position = p011, Color = colBox });
+
+        // Dimension tick marks at ends of primary edges:
+        float tickLen = Math.Clamp(MathF.Min(span.X, MathF.Min(span.Y, span.Z)) * 0.05f, 1.5f, 8.0f);
+
+        // X axis ticks pointing in -Y
+        lines.Add(new GpuVertex { Position = p000, Color = colX });
+        lines.Add(new GpuVertex { Position = p000 - new Vector3(0f, tickLen, 0f), Color = colX });
+        lines.Add(new GpuVertex { Position = p100, Color = colX });
+        lines.Add(new GpuVertex { Position = p100 - new Vector3(0f, tickLen, 0f), Color = colX });
+
+        // Y axis ticks pointing in -X
+        lines.Add(new GpuVertex { Position = p000, Color = colY });
+        lines.Add(new GpuVertex { Position = p000 - new Vector3(tickLen, 0f, 0f), Color = colY });
+        lines.Add(new GpuVertex { Position = p010, Color = colY });
+        lines.Add(new GpuVertex { Position = p010 - new Vector3(tickLen, 0f, 0f), Color = colY });
+
+        // Z axis ticks pointing in -X
+        lines.Add(new GpuVertex { Position = p000, Color = colZ });
+        lines.Add(new GpuVertex { Position = p000 - new Vector3(tickLen, 0f, 0f), Color = colZ });
+        lines.Add(new GpuVertex { Position = p001, Color = colZ });
+        lines.Add(new GpuVertex { Position = p001 - new Vector3(tickLen, 0f, 0f), Color = colZ });
+
+        if (_bboxVao == 0)
+        {
+            _bboxVao = gl.GenVertexArray();
+            _bboxVbo = gl.GenBuffer();
+        }
+
+        GpuVertex[] arr = lines.ToArray();
+        _bboxVertexCount = arr.Length;
+
+        gl.BindVertexArray(_bboxVao);
+        gl.BindBuffer(BufferTargetARB.ArrayBuffer, _bboxVbo);
+        fixed (GpuVertex* ptr = arr)
+        {
+            gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(arr.Length * sizeof(GpuVertex)), ptr, BufferUsageARB.StaticDraw);
+        }
+
+        uint stride = (uint)sizeof(GpuVertex);
+        gl.EnableVertexAttribArray(0);
+        gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+        gl.EnableVertexAttribArray(2);
+        gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+        gl.BindVertexArray(0);
+    }
+
     private void UpdateFpsCounter()
     {
         TotalRenderedFrames++;
@@ -1269,6 +1412,11 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
             if (_meshVao != 0) _gl.DeleteVertexArray(_meshVao);
             if (_gridVbo != 0) _gl.DeleteBuffer(_gridVbo);
             if (_gridVao != 0) _gl.DeleteVertexArray(_gridVao);
+            if (_bboxVbo != 0) _gl.DeleteBuffer(_bboxVbo);
+            if (_bboxVao != 0) _gl.DeleteVertexArray(_bboxVao);
+            _bboxVao = 0;
+            _bboxVbo = 0;
+            _bboxVertexCount = 0;
             if (_meshShader != 0) _gl.DeleteProgram(_meshShader);
             if (_lineShader != 0) _gl.DeleteProgram(_lineShader);
 
