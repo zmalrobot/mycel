@@ -163,7 +163,10 @@ public static class ProjectSerializer
                 Nu = state.Material.Nu,
                 YieldXy = state.Material.YieldXy,
                 YieldZ = state.Material.YieldZ,
-                ConservativeZ = state.Material.ConservativeZ
+                ConservativeZ = state.Material.ConservativeZ,
+                Density = state.Material.Density,
+                InfillPercent = state.Material.InfillPercent,
+                InfillPattern = state.Material.InfillPattern.ToString()
             },
             Resolution = new ResolutionDto
             {
@@ -235,7 +238,10 @@ public static class ProjectSerializer
                 Nu = dto.Material.Nu,
                 YieldXy = dto.Material.YieldXy,
                 YieldZ = dto.Material.YieldZ,
-                ConservativeZ = dto.Material.ConservativeZ
+                ConservativeZ = dto.Material.ConservativeZ,
+                Density = dto.Material.Density > 0.01 ? dto.Material.Density : 1.24,
+                InfillPercent = dto.Material.InfillPercent > 0.0 ? dto.Material.InfillPercent : 100.0,
+                InfillPattern = Enum.TryParse<InfillPatternKind>(dto.Material.InfillPattern, out var ipk) ? ipk : InfillPatternKind.Gyroid
             };
         }
 
@@ -357,6 +363,9 @@ public static class ProjectSerializer
         public double YieldXy { get; set; }
         public double YieldZ { get; set; }
         public bool ConservativeZ { get; set; }
+        public double Density { get; set; } = 1.24;
+        public double InfillPercent { get; set; } = 100.0;
+        public string? InfillPattern { get; set; } = "Gyroid";
     }
 
     private sealed class ResolutionDto

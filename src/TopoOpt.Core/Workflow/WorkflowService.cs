@@ -262,7 +262,7 @@ public sealed class WorkflowService
             progress?.Report(0.85);
 
             // Assemble FeModel
-            var mat = new FeMaterial(State.Material.E, State.Material.Nu, 1e-6);
+            var mat = new FeMaterial(State.Material.EffectiveE, State.Material.Nu, 1e-6);
 
             // Fixed DOFs from supports
             var fixedDofsList = new List<int>();
@@ -324,7 +324,7 @@ public sealed class WorkflowService
             progress?.Report(0.10);
 
             // Sync latest material values into FeModel
-            var mat = new FeMaterial(State.Material.E, State.Material.Nu, 1e-6);
+            var mat = new FeMaterial(State.Material.EffectiveE, State.Material.Nu, 1e-6);
             var feModel = new FeModel(
                 prep.FeModel.Grid,
                 prep.FeModel.Domain,
@@ -547,7 +547,7 @@ public sealed class WorkflowService
                 }
             }
 
-            var mat = new FeMaterial(State.Material.E, State.Material.Nu, 1e-6);
+            var mat = new FeMaterial(State.Material.EffectiveE, State.Material.Nu, 1e-6);
             var verifyModel = new FeModel(
                 baseFe.Grid,
                 baseFe.Domain,
@@ -726,7 +726,7 @@ public sealed class WorkflowService
 
     private double ComputeBaselineSolidCompliance(FeModel baseFe)
     {
-        var mat = new FeMaterial(State.Material.E, State.Material.Nu, 1e-6);
+        var mat = new FeMaterial(State.Material.EffectiveE, State.Material.Nu, 1e-6);
         var solidModel = new FeModel(
             baseFe.Grid,
             baseFe.Domain,

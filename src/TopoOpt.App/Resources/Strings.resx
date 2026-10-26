@@ -253,6 +253,48 @@
   <data name="Stepper.Material.ConservativeZ" xml:space="preserve">
     <value>Conservative (use Z strength)</value>
   </data>
+  <data name="Stepper.Material.Density" xml:space="preserve">
+    <value>Density (g/cm³):</value>
+  </data>
+  <data name="Stepper.Material.Density.Tooltip" xml:space="preserve">
+    <value>Material mass density in g/cm³</value>
+  </data>
+  <data name="Stepper.Material.Infill" xml:space="preserve">
+    <value>Infill (%):</value>
+  </data>
+  <data name="Stepper.Material.Infill.Tooltip" xml:space="preserve">
+    <value>Internal print infill density percentage (10% to 100%)</value>
+  </data>
+  <data name="Stepper.Material.InfillPattern" xml:space="preserve">
+    <value>Infill Pattern:</value>
+  </data>
+  <data name="Stepper.Material.EstWeight" xml:space="preserve">
+    <value>Est. Mass (g)</value>
+  </data>
+  <data name="Stepper.Material.EstLength" xml:space="preserve">
+    <value>1.75mm Filament</value>
+  </data>
+  <data name="Stepper.Model.EstWeight" xml:space="preserve">
+    <value>Est. Print Mass:</value>
+  </data>
+  <data name="Stepper.Model.EstLength" xml:space="preserve">
+    <value>Est. Filament Length:</value>
+  </data>
+  <data name="Stepper.Optimise.MaterialSavedCard" xml:space="preserve">
+    <value>MATERIAL SAVINGS (3D PRINT)</value>
+  </data>
+  <data name="Stepper.Optimise.WeightSaved" xml:space="preserve">
+    <value>Mass Saved:</value>
+  </data>
+  <data name="Stepper.Optimise.FilamentSaved" xml:space="preserve">
+    <value>Filament Saved:</value>
+  </data>
+  <data name="Hud.PrintEstimate" xml:space="preserve">
+    <value>Print:</value>
+  </data>
+  <data name="Hud.Savings" xml:space="preserve">
+    <value>Saved:</value>
+  </data>
   <data name="Stepper.Material.TdsDisclaimer" xml:space="preserve">
     <value>* Indicative manufacturer values from Polymaker / eSUN TDS</value>
   </data>

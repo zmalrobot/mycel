@@ -188,6 +188,16 @@
                     <TextBlock Text="{DynamicResource Stepper.Model.Volume}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
                     <TextBlock Grid.Column="1" Text="{Binding StatusVolume}" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
                   </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Model.EstWeight}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock Grid.Column="1" Text="{Binding PrintWeightText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Model.EstLength}" FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock Grid.Column="1" Text="{Binding PrintLengthText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                  </Grid>
                 </StackPanel>
               </StackPanel>
             </Border>
@@ -416,6 +426,40 @@
                     <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldZ}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Material.YieldStrengthZ.Tooltip}" />
                   </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Material.Density}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialDensity}" Minimum="0.5" Maximum="5.0" Increment="0.01" FormatString="F2" Width="110" Height="26"
+                                   ToolTip.Tip="{DynamicResource Stepper.Material.Density.Tooltip}" />
+                  </Grid>
+
+                  <!-- 3D Print Infill & Pattern -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Material.Infill}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialInfillPercent}" Minimum="10" Maximum="100" Increment="5" FormatString="F0" Width="110" Height="26"
+                                   ToolTip.Tip="{DynamicResource Stepper.Material.Infill.Tooltip}" />
+                  </Grid>
+                  <Slider Value="{Binding MaterialInfillPercent}" Minimum="10" Maximum="100" Margin="0,-4,0,0"
+                          ToolTip.Tip="{DynamicResource Stepper.Material.Infill.Tooltip}" />
+
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{DynamicResource Stepper.Material.InfillPattern}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableInfillPatterns}" SelectedItem="{Binding SelectedInfillPattern}" Width="140" />
+                  </Grid>
+
+                  <!-- 3D Print Material Estimate Card -->
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8}" Margin="{DynamicResource Margin4V}">
+                    <Grid ColumnDefinitions="*,*">
+                      <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Stepper.Material.EstWeight}" FontSize="9" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding PrintWeightText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Stepper.Material.EstLength}" FontSize="9" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding PrintLengthText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
 
                   <CheckBox Content="{DynamicResource Stepper.Material.ConservativeZ}"
                             IsChecked="{Binding MaterialConservativeZ}"
@@ -761,6 +805,22 @@
                     </StackPanel>
                   </Border>
 
+                  <!-- 3D Print Material Savings Card -->
+                  <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad8}" Margin="{DynamicResource Margin4V}"
+                          BorderBrush="{DynamicResource Border}" BorderThickness="1" IsVisible="{Binding HasOptimizationSavings}">
+                    <StackPanel Spacing="{DynamicResource Spacing4}">
+                      <TextBlock Text="{DynamicResource Stepper.Optimise.MaterialSavedCard}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Preserve}" />
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.WeightSaved}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding SavedWeightSummaryText}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Preserve}" />
+                      </Grid>
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Stepper.Optimise.FilamentSaved}" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <TextBlock Grid.Column="1" Text="{Binding SavedLengthText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+
                   <!-- Verify & Export Design Card -->
                   <Border Background="{DynamicResource Bg0}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
                           IsVisible="{Binding HasLoadedRun}">
@@ -952,6 +1012,29 @@
               <TextBlock Grid.Column="0" Text="{Binding VolumeCm3Text, StringFormat='Vol: {0}'}" FontSize="10" Foreground="{DynamicResource TextSecondary}" />
               <TextBlock Grid.Column="2" Text="{DynamicResource Hud.GridScale}" FontSize="10" Foreground="{DynamicResource TextSecondary}" FontStyle="Italic" />
             </Grid>
+
+            <!-- 3D Print Filament & Mass Info -->
+            <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,4">
+              <StackPanel Spacing="2">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <TextBlock Grid.Column="0" Text="{DynamicResource Hud.PrintEstimate}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{Binding PrintWeightText}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                    <TextBlock Text="|" FontSize="9" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock Text="{Binding PrintLengthText}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" />
+                  </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,*,Auto" IsVisible="{Binding HasOptimizationSavings}">
+                  <TextBlock Grid.Column="0" Text="{DynamicResource Hud.Savings}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Preserve}" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{Binding SavedWeightSummaryText}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Preserve}" />
+                    <TextBlock Text="|" FontSize="9" Foreground="{DynamicResource Preserve}" />
+                    <TextBlock Text="{Binding SavedLengthText}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Preserve}" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
           </StackPanel>
         </Border>
 

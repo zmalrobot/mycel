@@ -55,7 +55,17 @@ public partial class MainWindowViewModel : ObservableObject
         MaterialPresetKind.Pla,
         MaterialPresetKind.PlaPlus,
         MaterialPresetKind.Petg,
+        MaterialPresetKind.Abs,
         MaterialPresetKind.Custom
+    ];
+
+    public InfillPatternKind[] AvailableInfillPatterns { get; } =
+    [
+        InfillPatternKind.Gyroid,
+        InfillPatternKind.Grid,
+        InfillPatternKind.Honeycomb,
+        InfillPatternKind.Rectilinear,
+        InfillPatternKind.Triangles
     ];
 
     public ResolutionPreset[] AvailableResolutionPresets { get; } =
@@ -167,6 +177,36 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _materialConservativeZ;
+
+    [ObservableProperty]
+    private double _materialDensity = 1.24;
+
+    [ObservableProperty]
+    private double _materialInfillPercent = 100.0;
+
+    [ObservableProperty]
+    private InfillPatternKind _selectedInfillPattern = InfillPatternKind.Gyroid;
+
+    // 3D Printing Filament & Mass Metrics
+    [ObservableProperty]
+    private string _printWeightText = "—";
+
+    [ObservableProperty]
+    private string _printLengthText = "—";
+
+    [ObservableProperty]
+    private string _savedWeightText = "—";
+
+    [ObservableProperty]
+    private string _savedLengthText = "—";
+
+    [ObservableProperty]
+    private string _savedPercentText = "—";
+
+    [ObservableProperty]
+    private bool _hasOptimizationSavings;
+
+    public string SavedWeightSummaryText => $"{SavedWeightText} ({SavedPercentText})";
 
     // Resolution & Prepare Properties (Step 5)
     [ObservableProperty]
@@ -844,13 +884,16 @@ public partial class MainWindowViewModel : ObservableObject
             _materialNu = def.Nu;
             _materialYieldXy = def.YieldXy;
             _materialYieldZ = def.YieldZ;
+            _materialDensity = def.Density;
 
             OnPropertyChanged(nameof(MaterialE));
             OnPropertyChanged(nameof(MaterialNu));
             OnPropertyChanged(nameof(MaterialYieldXy));
             OnPropertyChanged(nameof(MaterialYieldZ));
+            OnPropertyChanged(nameof(MaterialDensity));
 
             SyncMaterialToWorkflow();
+            UpdateModelMetricsUI();
         }
     }
 
@@ -858,6 +901,24 @@ public partial class MainWindowViewModel : ObservableObject
     partial void OnMaterialNuChanged(double value) => OnMaterialEdited();
     partial void OnMaterialYieldXyChanged(double value) => OnMaterialEdited();
     partial void OnMaterialYieldZChanged(double value) => OnMaterialEdited();
+    partial void OnMaterialDensityChanged(double value)
+    {
+        OnMaterialEdited();
+        UpdateModelMetricsUI();
+    }
+
+    partial void OnMaterialInfillPercentChanged(double value)
+    {
+        SyncMaterialToWorkflow();
+        UpdateModelMetricsUI();
+    }
+
+    partial void OnSelectedInfillPatternChanged(InfillPatternKind value)
+    {
+        SyncMaterialToWorkflow();
+        UpdateModelMetricsUI();
+    }
+
     partial void OnMaterialConservativeZChanged(bool value)
     {
         SyncMaterialToWorkflow();
@@ -881,6 +942,9 @@ public partial class MainWindowViewModel : ObservableObject
         Workflow.State.Material.YieldXy = MaterialYieldXy;
         Workflow.State.Material.YieldZ = MaterialYieldZ;
         Workflow.State.Material.ConservativeZ = MaterialConservativeZ;
+        Workflow.State.Material.Density = MaterialDensity;
+        Workflow.State.Material.InfillPercent = MaterialInfillPercent;
+        Workflow.State.Material.InfillPattern = SelectedInfillPattern;
         Workflow.State.NotifyMaterialChanged();
         QueueAutosave();
     }
@@ -1165,6 +1229,40 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(HasStartOptimisationBlockingReason));
     }
 
+    private double _lastKnownVolumeFraction = 1.0;
+
+    public void UpdateOptimizationSavings(double volumeFraction)
+    {
+        _lastKnownVolumeFraction = volumeFraction;
+        var mesh = Workflow.State.Mesh;
+        if (mesh == null)
+        {
+            HasOptimizationSavings = false;
+            SavedWeightText = "—";
+            SavedLengthText = "—";
+            SavedPercentText = "—";
+            OnPropertyChanged(nameof(SavedWeightSummaryText));
+            return;
+        }
+
+        double volMm3 = Math.Abs(mesh.SignedVolume);
+        double initialMass = Workflow.State.Material.ComputeMassGrams(volMm3, 1.0);
+        double initialLen = Workflow.State.Material.ComputeFilamentLengthMeters(volMm3, 1.0);
+
+        double optMass = Workflow.State.Material.ComputeMassGrams(volMm3, volumeFraction);
+        double optLen = Workflow.State.Material.ComputeFilamentLengthMeters(volMm3, volumeFraction);
+
+        double savedMass = Math.Max(0.0, initialMass - optMass);
+        double savedLen = Math.Max(0.0, initialLen - optLen);
+        double savedPct = Math.Clamp((1.0 - volumeFraction) * 100.0, 0.0, 100.0);
+
+        SavedWeightText = $"-{savedMass:F1} g";
+        SavedLengthText = $"-{savedLen:F2} m";
+        SavedPercentText = $"{savedPct:F1}%";
+        HasOptimizationSavings = true;
+        OnPropertyChanged(nameof(SavedWeightSummaryText));
+    }
+
     private void UpdateModelMetricsUI()
     {
         var mesh = Workflow.State.Mesh;
@@ -1179,6 +1277,13 @@ public partial class MainWindowViewModel : ObservableObject
             DimensionZText = "—";
             DimensionsSummaryText = "—";
             VolumeCm3Text = "—";
+            PrintWeightText = "—";
+            PrintLengthText = "—";
+            HasOptimizationSavings = false;
+            SavedWeightText = "—";
+            SavedLengthText = "—";
+            SavedPercentText = "—";
+            OnPropertyChanged(nameof(SavedWeightSummaryText));
             WatertightText = "No Mesh";
             WatertightBadgeBrush = new SolidColorBrush(Color.FromRgb(75, 85, 99));
             OnPropertyChanged(nameof(HasModelLoaded));
@@ -1191,14 +1296,25 @@ public partial class MainWindowViewModel : ObservableObject
         var (min, max) = mesh.BBox;
         Vector3 size = max - min;
         StatusBBox = $"{size.X:F1} × {size.Y:F1} × {size.Z:F1} mm";
-        StatusVolume = $"{Math.Abs(mesh.SignedVolume):N0} mm³";
+        double volMm3 = Math.Abs(mesh.SignedVolume);
+        StatusVolume = $"{volMm3:N0} mm³";
 
         DimensionXText = $"{size.X:F1} mm";
         DimensionYText = $"{size.Y:F1} mm";
         DimensionZText = $"{size.Z:F1} mm";
         DimensionsSummaryText = $"{size.X:F1} × {size.Y:F1} × {size.Z:F1} mm";
-        double volCm3 = Math.Abs(mesh.SignedVolume) / 1000.0;
+        double volCm3 = volMm3 / 1000.0;
         VolumeCm3Text = $"{volCm3:F1} cm³";
+
+        double initialMass = Workflow.State.Material.ComputeMassGrams(volMm3, 1.0);
+        double initialLen = Workflow.State.Material.ComputeFilamentLengthMeters(volMm3, 1.0);
+        PrintWeightText = $"{initialMass:F1} g";
+        PrintLengthText = $"{initialLen:F2} m";
+
+        if (HasOptimizationSavings && _lastKnownVolumeFraction > 0.0)
+        {
+            UpdateOptimizationSavings(_lastKnownVolumeFraction);
+        }
 
         bool isWater = Workflow.State.MeshReport?.IsWatertight ?? false;
         WatertightText = isWater ? "Watertight" : "Non-Watertight";
@@ -1310,6 +1426,9 @@ public partial class MainWindowViewModel : ObservableObject
             MaterialYieldXy = state.Material.YieldXy;
             MaterialYieldZ = state.Material.YieldZ;
             MaterialConservativeZ = state.Material.ConservativeZ;
+            MaterialDensity = state.Material.Density;
+            MaterialInfillPercent = state.Material.InfillPercent;
+            SelectedInfillPattern = state.Material.InfillPattern;
 
             SelectedResolutionPreset = state.Resolution.Preset;
             TargetSolidElements = state.Resolution.TargetSolidElements;
@@ -1320,6 +1439,9 @@ public partial class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(MaterialYieldXy));
             OnPropertyChanged(nameof(MaterialYieldZ));
             OnPropertyChanged(nameof(MaterialConservativeZ));
+            OnPropertyChanged(nameof(MaterialDensity));
+            OnPropertyChanged(nameof(MaterialInfillPercent));
+            OnPropertyChanged(nameof(SelectedInfillPattern));
             OnPropertyChanged(nameof(SelectedResolutionPreset));
             OnPropertyChanged(nameof(TargetSolidElements));
 
@@ -1470,7 +1592,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         var prep = Workflow.State.PreparedModel!;
         var baseFe = prep.FeModel;
-        var mat = new FeMaterial(Workflow.State.Material.E, Workflow.State.Material.Nu, Math.Clamp(OptEminRatio, 1e-12, 1e-3));
+        var mat = new FeMaterial(Workflow.State.Material.EffectiveE, Workflow.State.Material.Nu, Math.Clamp(OptEminRatio, 1e-12, 1e-3));
         var feModel = new FeModel(baseFe.Grid, baseFe.Domain, mat, baseFe.FixedDofs, baseFe.Loads);
 
         string runFolder;
@@ -1510,6 +1632,11 @@ public partial class MainWindowViewModel : ObservableObject
             _complianceHistoryList.Clear();
             ComplianceHistory = Array.Empty<double>();
             ComplianceChartUpdated?.Invoke();
+            HasOptimizationSavings = false;
+            SavedWeightText = "—";
+            SavedLengthText = "—";
+            SavedPercentText = "—";
+            OnPropertyChanged(nameof(SavedWeightSummaryText));
         }
 
         byte[] passiveMask = prep.PassiveShell ?? new byte[baseFe.TotalElements];
@@ -1683,6 +1810,7 @@ public partial class MainWindowViewModel : ObservableObject
         OptLiveIterationText = $"{snap.Iteration} / {OptMaxIterations}";
         OptLiveComplianceText = $"{snap.Compliance:G5} mJ";
         OptLiveVolumeText = $"{snap.VolumeFraction * 100.0:F1} %";
+        UpdateOptimizationSavings(snap.VolumeFraction);
         OptLiveChangeText = $"{snap.MaxChange:F4}";
         OptLiveGreyText = $"{snap.GreyLevel * 100.0:F1} %";
         OptLiveMsPerIterText = $"{snap.TotalMs:F0} ms";
@@ -1754,6 +1882,7 @@ public partial class MainWindowViewModel : ObservableObject
                 OptLiveIterationText = $"{last.Iteration} / {reader.Metadata.Options.MaxIterations}";
                 OptLiveComplianceText = $"{last.Compliance:G5} mJ";
                 OptLiveVolumeText = $"{last.VolumeFraction * 100.0:F1} %";
+                UpdateOptimizationSavings(last.VolumeFraction);
                 OptLiveChangeText = $"{last.MaxChange:F4}";
                 OptLiveGreyText = $"{last.GreyLevel * 100.0:F1} %";
                 OptLiveMsPerIterText = $"{last.TotalMs:F0} ms";
@@ -1804,6 +1933,7 @@ public partial class MainWindowViewModel : ObservableObject
             OptLiveIterationText = $"{row.Iteration} / {_activeRunReader.Metadata.Options.MaxIterations}";
             OptLiveComplianceText = $"{row.Compliance:G5} mJ";
             OptLiveVolumeText = $"{row.VolumeFraction * 100.0:F1} %";
+            UpdateOptimizationSavings(row.VolumeFraction);
             OptLiveChangeText = $"{row.MaxChange:F4}";
             OptLiveGreyText = $"{row.GreyLevel * 100.0:F1} %";
             OptLiveMsPerIterText = $"{row.TotalMs:F0} ms";

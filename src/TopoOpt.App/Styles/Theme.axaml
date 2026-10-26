@@ -133,6 +133,20 @@
   <x:String x:Key="Stepper.Material.YieldStrengthZ">Yield Strength Z (MPa):</x:String>
   <x:String x:Key="Stepper.Material.YieldStrengthZ.Tooltip">Inter-layer Z tensile yield strength in MPa</x:String>
   <x:String x:Key="Stepper.Material.ConservativeZ">Conservative (use Z strength)</x:String>
+  <x:String x:Key="Stepper.Material.Density">Density (g/cm³):</x:String>
+  <x:String x:Key="Stepper.Material.Density.Tooltip">Material mass density in g/cm³</x:String>
+  <x:String x:Key="Stepper.Material.Infill">Infill (%):</x:String>
+  <x:String x:Key="Stepper.Material.Infill.Tooltip">Internal print infill density percentage (10% to 100%)</x:String>
+  <x:String x:Key="Stepper.Material.InfillPattern">Infill Pattern:</x:String>
+  <x:String x:Key="Stepper.Material.EstWeight">Est. Mass (g)</x:String>
+  <x:String x:Key="Stepper.Material.EstLength">1.75mm Filament</x:String>
+  <x:String x:Key="Stepper.Model.EstWeight">Est. Print Mass:</x:String>
+  <x:String x:Key="Stepper.Model.EstLength">Est. Filament Length:</x:String>
+  <x:String x:Key="Stepper.Optimise.MaterialSavedCard">MATERIAL SAVINGS (3D PRINT)</x:String>
+  <x:String x:Key="Stepper.Optimise.WeightSaved">Mass Saved:</x:String>
+  <x:String x:Key="Stepper.Optimise.FilamentSaved">Filament Saved:</x:String>
+  <x:String x:Key="Hud.PrintEstimate">Print:</x:String>
+  <x:String x:Key="Hud.Savings">Saved:</x:String>
   <x:String x:Key="Stepper.Material.TdsDisclaimer">* Indicative manufacturer values from Polymaker / eSUN TDS</x:String>
 
   <x:String x:Key="Stepper.Resolution.Title">Resolution &amp; Analysis</x:String>
