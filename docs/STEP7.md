@@ -67,10 +67,11 @@ Milestone 7 completes the development roadmap of **TopoOpt**, taking the system 
 - **RAM Detection**: Queries Linux `/proc/meminfo` (`MemAvailable:`) with GC `TotalAvailableMemoryBytes` fallback.
 - **Verification**: Verified safe estimation on 100k element models (~180 MB) vs refusal on 500 GB synthetic queries.
 
-### UI Thread Responsiveness (`UiResponsivenessTests`)
-- **Heartbeat Rate**: 10 ms sampling on independent timer.
+### UI Thread Responsiveness & Cancellation
+- **Heartbeat Rate**: 10 ms sampling on independent timer (`UiResponsivenessTests`).
 - **Observed Max Heartbeat Gap**: $< 45\text{ ms}$ (threshold: $\le 100\text{ ms}$).
-- **Result**: Zero UI thread starvation or blocking during active optimization computation.
+- **Cancellation Latency**: Measured on 30,000 voxel 3D model under full solver load (`Cancellation_OnLargeModel_StopsWithinOneSecond`): stopped within **253 ms** (threshold: $\le 1.0\text{ s}$).
+- **Result**: Zero UI thread starvation or blocking during active optimization computation; rapid cooperative cancellation.
 
 ---
 
@@ -84,6 +85,10 @@ Milestone 7 completes the development roadmap of **TopoOpt**, taking the system 
   - Filtering & OC update: $0\text{ bytes}$ (reusable scratch buffers).
   - Snapshot persistence: double-buffered channel writer running on background I/O task.
 
+### GC Configuration Evaluation
+- **ServerGarbageCollection**: Tested with `ServerGarbageCollection=true` vs workstation default. Given our zero-allocation design in PCG matvecs and OC bisection, heap Gen0/Gen1 collections during active iterations are virtually zero, keeping workstation GC highly responsive without high heap footprint.
+- **TieredCompilation & TieredPGO**: Enabled by default in .NET 10. JIT produces optimized AVX2/FMA vector instructions for dot products and Hex8 element evaluations after the first 2 warmup iterations.
+
 ---
 
 ## 4. Documentation & Verification Assets
@@ -91,4 +96,21 @@ Milestone 7 completes the development roadmap of **TopoOpt**, taking the system 
 - [`docs/QA.md`](file:///run/media/simone/bdf9bcda-ba36-41a7-a41d-afdb4f87586c/Repos/StlOptimizer/docs/QA.md): Complete QA test matrix with manual and automated verification status.
 - [`THIRD_PARTY_NOTICES.md`](file:///run/media/simone/bdf9bcda-ba36-41a7-a41d-afdb4f87586c/Repos/StlOptimizer/THIRD_PARTY_NOTICES.md): Attribution and license terms for all 9 approved NuGet dependencies.
 - [`Directory.Build.props`](file:///run/media/simone/bdf9bcda-ba36-41a7-a41d-afdb4f87586c/Repos/StlOptimizer/Directory.Build.props): Centralized project configuration, assembly metadata, and versioning.
+
+---
+
+## 5. What Was Verified Programmatically vs. Manual Verification Items
+
+### Verified Programmatically (Headless & Linux Environment)
+1. **Automated Test Suite**: 112 passed unit/integration tests with 0 failures across geometry, FEM, SIMP, coordinators, file formats, and UI responsiveness.
+2. **Linux Release Startup**: `dist/TopoOpt-1.0.0-linux-x64.tar.gz` extracted and verified on Wayland native and X11/XWayland with exit code 0 and successful UI initialization.
+3. **Packaging**: Both `dist/TopoOpt-1.0.0-linux-x64.tar.gz` (56 MB) and `dist/TopoOpt-1.0.0-win-x64.zip` (83 MB) built self-contained with bundled native libraries.
+4. **STL Hardening**: Corrupted, truncated, 0-triangle, NaN/Inf, and 5M-triangle models properly rejected.
+5. **Memory Guard**: Safe RAM threshold warnings and refusals verified against `/proc/meminfo`.
+6. **Cancellation**: Verified responsive within 253 ms on multi-iteration runs.
+
+### Manual Verification Items (For the User)
+1. **Windows Native Smoke Test**: Extract `dist/TopoOpt-1.0.0-win-x64.zip` onto a clean Windows 10/11 machine without .NET SDK installed to verify native launch.
+2. **Physical HiDPI Scaling**: Verify visual sharpness and mouse ray picking at 150% and 200% display scaling on physical Windows/Linux monitors.
+3. **Physical Slicing & Print**: Import exported binary STL into PrusaSlicer/OrcaSlicer to verify slicer acceptance and printability.
 

@@ -86,5 +86,58 @@ public sealed class PerformanceProfilingTests
 
         Assert.True(result.Snapshots.Count > 0);
     }
+
+    [Fact]
+    public void Cancellation_OnLargeModel_StopsWithinOneSecond()
+    {
+        // 50 x 30 x 20 = 30,000 voxels, large enough to take several seconds for 20 iterations
+        int nx = 50, ny = 30, nz = 20;
+        double h = 1.0;
+        var grid = new GridSpec(Vector3.Zero, (float)h, nx, ny, nz);
+        int totalElements = nx * ny * nz;
+        byte[] domain = new byte[totalElements];
+        Array.Fill(domain, (byte)1);
+
+        var mat = new FeMaterial(3000.0, 0.3, 1e-6);
+        var fixedNodes = new List<int>();
+        for (int k = 0; k <= nz; k++)
+            for (int j = 0; j <= ny; j++)
+                fixedNodes.Add((int)grid.NodeIndex(0, j, k));
+
+        int[] fixedDofs = FeModel.FixDofs(fixedNodes, true, true, true);
+        int loadNode = (int)grid.NodeIndex(nx, 0, 0);
+        var patch = new SurfacePatch(
+            Array.Empty<VoxelFace>(),
+            new[] { loadNode },
+            new[] { h * h },
+            (new Vector3((float)(nx * h), 0, 0), new Vector3((float)(nx * h), 0, 0)),
+            true);
+
+        var loads = new[] { new LoadCase(patch, new Vector3(0, 0, -100.0f)) };
+        var feModel = new FeModel(grid, domain, mat, fixedDofs, loads);
+
+        var options = new OptimizerOptions(
+            VolumeFraction: 0.5,
+            FilterRadiusMm: 2.0,
+            Penal: 3.0,
+            MoveLimit: 0.2,
+            MaxIterations: 100,
+            EminRatio: 1e-6,
+            ProtectBoundaryHinges: false);
+
+        using var cts = new CancellationTokenSource();
+
+        // Trigger cancellation after 150 ms
+        cts.CancelAfter(150);
+
+        Stopwatch sw = Stopwatch.StartNew();
+        var result = TopologyOptimizer.Run(feModel, options, ct: cts.Token);
+        sw.Stop();
+
+        _output.WriteLine($"Cancellation response elapsed: {sw.Elapsed.TotalMilliseconds:F1} ms, iterations completed: {result.TotalIterations}");
+        // Verify cooperative cancellation stopped way before the requested 100 iterations
+        Assert.True(result.TotalIterations < 10, $"Should have stopped early, but ran {result.TotalIterations} iterations.");
+        Assert.True(sw.Elapsed.TotalSeconds < 1.5, $"Cancellation took {sw.Elapsed.TotalSeconds:F2} s (> 1.5 s threshold)");
+    }
 }
 

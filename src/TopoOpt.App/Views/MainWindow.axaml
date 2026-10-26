@@ -611,7 +611,7 @@
                                 ToolTip.Tip="{DynamicResource Stepper.Optimise.Projection.Tooltip}" />
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Text="{DynamicResource Stepper.Optimise.EminRatio}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                        <NumericUpDown Grid.Column="1" Value="{Binding OptEminRatio}" Minimum="1e-12" Maximum="1e-3" FormatString="E1" Width="95" Height="26"
+                        <NumericUpDown Grid.Column="1" Value="{Binding OptEminRatio}" Minimum="0.000000000001" Maximum="0.001" Increment="0.000001" FormatString="E1" Width="95" Height="26"
                                        IsEnabled="{Binding !IsOptimising}"
                                        ToolTip.Tip="{DynamicResource Stepper.Optimise.EminRatio.Tooltip}" />
                       </Grid>
