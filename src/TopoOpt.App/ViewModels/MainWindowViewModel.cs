@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TopoOpt.App.Controls;
+using TopoOpt.App.Diagnostics;
 using TopoOpt.App.Rendering;
 using TopoOpt.Core.Fem;
 using TopoOpt.Core.Geometry;
@@ -227,7 +228,10 @@ public partial class MainWindowViewModel : ObservableObject
     private string _legendUnitsText = "MPa";
 
     [ObservableProperty]
-    private string _fpsText = "0 FPS";
+    private string _fpsText = "Idle (on-demand)";
+
+    [ObservableProperty]
+    private string _uiGapText = string.Empty;
 
     [ObservableProperty]
     private string _currentProjectPath = string.Empty;
@@ -239,6 +243,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly PlaybackScrubber _playbackScrubber = new();
     private readonly DispatcherTimer _liveDisplayTimer;
     private readonly DispatcherTimer _playbackTimer;
+    private readonly DispatcherTimer _diagnosticsTimer;
     private int _isLiveExtractionRunning;
     private readonly List<double> _complianceHistoryList = new();
     private double _avgIterMs = 150.0;
@@ -412,7 +417,22 @@ public partial class MainWindowViewModel : ObservableObject
         };
         _playbackTimer.Tick += OnPlaybackTimerTick;
 
+        _diagnosticsTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(400)
+        };
+        _diagnosticsTimer.Tick += OnDiagnosticsTimerTick;
+        _diagnosticsTimer.Start();
+
         RefreshOptimisationDiskEstimate();
+    }
+
+    private void OnDiagnosticsTimerTick(object? sender, EventArgs e)
+    {
+        var (_, statusText) = RenderLoopProbe.Instance.GetStatus();
+        FpsText = statusText;
+        double maxGap = UiResponsivenessMonitor.Instance.MaxGapMs;
+        UiGapText = maxGap > 0 ? $"Max UI gap: {maxGap:F0} ms" : "";
     }
 
     // Step Completion Badges
@@ -437,10 +457,39 @@ public partial class MainWindowViewModel : ObservableObject
     }
     public bool HasStartOptimisationBlockingReason => !string.IsNullOrEmpty(StartOptimisationBlockingReason);
 
-    [RelayCommand]
+    public bool IsStep1Active => ActiveStep == 1;
+    public bool IsStep2Active => ActiveStep == 2;
+    public bool IsStep3Active => ActiveStep == 3;
+    public bool IsStep4Active => ActiveStep == 4;
+    public bool IsStep5Active => ActiveStep == 5;
+    public bool IsStep6Active => ActiveStep == 6;
+
+    partial void OnActiveStepChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsStep1Active));
+        OnPropertyChanged(nameof(IsStep2Active));
+        OnPropertyChanged(nameof(IsStep3Active));
+        OnPropertyChanged(nameof(IsStep4Active));
+        OnPropertyChanged(nameof(IsStep5Active));
+        OnPropertyChanged(nameof(IsStep6Active));
+    }
+
     public void SelectStep(int step)
     {
         ActiveStep = step;
+    }
+
+    /// <summary>
+    /// Command target for the stepper headers. XAML <c>CommandParameter="N"</c> is a string, so a
+    /// typed int command would be silently disabled (CanExecute false); parse it here instead.
+    /// </summary>
+    [RelayCommand]
+    private void SelectStepFromHeader(string? step)
+    {
+        if (int.TryParse(step, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int n) && n is >= 1 and <= 6)
+        {
+            SelectStep(n);
+        }
     }
 
     public async Task LoadStlFileAsync(string filePath, LengthUnit unit = LengthUnit.Millimeter)
@@ -847,6 +896,8 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex)
         {
             Trace.WriteLine($"Analysis error: {ex.Message}");
+            Console.WriteLine($"[Analysis error] {ex}");
+            try { File.AppendAllText(Path.Combine(CrashLogger.LogDir, "scenario.log"), $"[{DateTime.UtcNow:O}] [Analysis error] {ex}\n"); } catch { }
         }
         finally
         {

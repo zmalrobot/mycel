@@ -15,6 +15,27 @@
         Background="{DynamicResource Bg0}"
         DragDrop.AllowDrop="True">
 
+  <Window.Styles>
+    <!-- Stepper headers: no local Background so Fluent pointer-over/pressed templates can apply. -->
+    <Style Selector="Button.step-header">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.step-header:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Bg2}" />
+    </Style>
+    <Style Selector="Button.step-header:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="Button.step-header:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.step-header.active /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Bg2}" />
+    </Style>
+  </Window.Styles>
+
   <Grid RowDefinitions="44,*,26">
 
     <!-- 1. Top Bar -->
@@ -118,8 +139,8 @@
             <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
-                <Button Command="{Binding SelectStepCommand}" CommandParameter="1"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                <Button x:Name="Step1Header" Classes="step-header" Classes.active="{Binding IsStep1Active}" Command="{Binding SelectStepFromHeaderCommand}" CommandParameter="1"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Padding="{DynamicResource Pad12_8}"
                         ToolTip.Tip="{DynamicResource Stepper.Model.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
@@ -134,7 +155,7 @@
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}">
+                <StackPanel x:Name="Step1Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep1Active}">
                   <Grid ColumnDefinitions="*,Auto" Margin="{DynamicResource Margin4T}">
                     <TextBlock Text="{DynamicResource Stepper.Model.ImportUnit}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableUnits}" SelectedItem="{Binding SelectedUnit}" Width="120" />
@@ -167,8 +188,8 @@
             <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
-                <Button Command="{Binding SelectStepCommand}" CommandParameter="2"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                <Button x:Name="Step2Header" Classes="step-header" Classes.active="{Binding IsStep2Active}" Command="{Binding SelectStepFromHeaderCommand}" CommandParameter="2"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Padding="{DynamicResource Pad12_8}"
                         ToolTip.Tip="{DynamicResource Stepper.Loads.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
@@ -183,7 +204,7 @@
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}">
+                <StackPanel x:Name="Step2Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep2Active}">
                   <Button Content="{DynamicResource Stepper.Loads.Add}"
                           Command="{Binding AddLoadCommand}"
                           Background="{DynamicResource Load}"
@@ -257,8 +278,8 @@
             <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
-                <Button Command="{Binding SelectStepCommand}" CommandParameter="3"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                <Button x:Name="Step3Header" Classes="step-header" Classes.active="{Binding IsStep3Active}" Command="{Binding SelectStepFromHeaderCommand}" CommandParameter="3"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Padding="{DynamicResource Pad12_8}"
                         ToolTip.Tip="{DynamicResource Stepper.Supports.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
@@ -273,7 +294,7 @@
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}">
+                <StackPanel x:Name="Step3Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep3Active}">
                   <Button Content="{DynamicResource Stepper.Supports.Add}"
                           Command="{Binding AddSupportCommand}"
                           Background="{DynamicResource Support}"
@@ -327,8 +348,8 @@
             <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
-                <Button Command="{Binding SelectStepCommand}" CommandParameter="4"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                <Button x:Name="Step4Header" Classes="step-header" Classes.active="{Binding IsStep4Active}" Command="{Binding SelectStepFromHeaderCommand}" CommandParameter="4"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Padding="{DynamicResource Pad12_8}"
                         ToolTip.Tip="{DynamicResource Stepper.Material.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
@@ -343,7 +364,7 @@
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}">
+                <StackPanel x:Name="Step4Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep4Active}">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.Preset}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableMaterialPresets}" SelectedItem="{Binding SelectedMaterialPreset}" Width="140" />
@@ -387,8 +408,8 @@
             <Border Background="{DynamicResource Bg1}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
-                <Button Command="{Binding SelectStepCommand}" CommandParameter="5"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                <Button x:Name="Step5Header" Classes="step-header" Classes.active="{Binding IsStep5Active}" Command="{Binding SelectStepFromHeaderCommand}" CommandParameter="5"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Padding="{DynamicResource Pad12_8}"
                         ToolTip.Tip="{DynamicResource Stepper.Resolution.Tooltip}">
                   <Grid ColumnDefinitions="Auto,*,Auto">
@@ -408,7 +429,7 @@
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}">
+                <StackPanel x:Name="Step5Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep5Active}">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Resolution.Preset}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableResolutionPresets}" SelectedItem="{Binding SelectedResolutionPreset}" Width="140" />
@@ -540,8 +561,8 @@
             <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
               <StackPanel>
                 <!-- Step Header -->
-                <Button Command="{Binding SelectStepCommand}" CommandParameter="6"
-                        Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="{DynamicResource Pad12}"
+                <Button x:Name="Step6Header" Classes="step-header" Classes.active="{Binding IsStep6Active}" Command="{Binding SelectStepFromHeaderCommand}" CommandParameter="6"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="{DynamicResource Pad12}"
                         ToolTip.Tip="{DynamicResource Stepper.Optimise.Tooltip}">
                   <Grid ColumnDefinitions="24,*,Auto">
                     <Border Grid.Column="0" Width="20" Height="20" CornerRadius="{DynamicResource CornerRadius}" Background="{DynamicResource Accent}">
@@ -553,7 +574,7 @@
                 </Button>
 
                 <!-- Step Body -->
-                <StackPanel Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding ActiveStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=6}">
+                <StackPanel x:Name="Step6Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep6Active}">
                   <!-- Basic Parameters -->
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Optimise.VolumeFraction}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
@@ -1017,7 +1038,7 @@
             BorderBrush="{DynamicResource Border}"
             BorderThickness="0,1,0,0"
             Padding="{DynamicResource Pad12H}">
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto">
         <TextBlock Grid.Column="0"
                    Text="{DynamicResource StatusBar.Ready}"
                    FontSize="11"
@@ -1025,6 +1046,13 @@
                    VerticalAlignment="Center" />
 
         <TextBlock Grid.Column="1"
+                   Text="{Binding UiGapText}"
+                   Margin="0,0,16,0"
+                   FontSize="11"
+                   Foreground="{DynamicResource TextSecondary}"
+                   VerticalAlignment="Center" />
+
+        <TextBlock Grid.Column="2"
                    Text="{Binding FpsText}"
                    FontSize="11"
                    Foreground="{DynamicResource TextSecondary}"

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -118,10 +119,154 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Array.Exists(args, a => string.Equals(a, "--test-stepper", StringComparison.OrdinalIgnoreCase)))
+        {
+            await RunStepperDiagnosticTestAsync(Array.Exists(args, a => string.Equals(a, "--diag-pointer", StringComparison.OrdinalIgnoreCase)));
+            return;
+        }
+
+        int scenarioIdx = Array.FindIndex(args, a => string.Equals(a, "--scenario", StringComparison.OrdinalIgnoreCase));
+        if (scenarioIdx >= 0)
+        {
+            string scenarioName = (scenarioIdx + 1 < args.Length && !args[scenarioIdx + 1].StartsWith("--"))
+                ? args[scenarioIdx + 1]
+                : "obj_1_Assemblaggio";
+            await RunScenarioInWindowAsync(scenarioName);
+            return;
+        }
+
         if (args.Length > 0 && File.Exists(args[0]))
         {
             await ViewModel.LoadStlFileAsync(args[0], ViewModel.SelectedUnit);
         }
+    }
+
+    private async Task RunScenarioInWindowAsync(string scenarioName)
+    {
+        Trace.WriteLine($"=== Running Scenario '{scenarioName}' in Live Window ===");
+        await Task.Delay(300);
+
+        string stlPath;
+        if (scenarioName.StartsWith("stress-", StringComparison.OrdinalIgnoreCase))
+        {
+            string baseStl = Path.Combine(AppContext.BaseDirectory, "examples", "obj_1_Assemblaggio.stl");
+            if (!File.Exists(baseStl)) baseStl = "examples/obj_1_Assemblaggio.stl";
+            using (var fs = File.OpenRead(baseStl))
+            {
+                var (baseMesh, _) = StlReader.Read(fs);
+                int targetTris = scenarioName switch
+                {
+                    "stress-100k" => 100_000,
+                    "stress-500k" => 500_000,
+                    "stress-1m" => 1_000_000,
+                    _ => 100_000
+                };
+                var subdivided = StressMeshGenerator.Subdivide(baseMesh, targetTris);
+                stlPath = StressMeshGenerator.WriteToTempStl(subdivided, $"{scenarioName}.stl");
+            }
+        }
+        else
+        {
+            stlPath = Path.Combine(AppContext.BaseDirectory, "examples", "obj_1_Assemblaggio.stl");
+            if (!File.Exists(stlPath)) stlPath = "examples/obj_1_Assemblaggio.stl";
+        }
+
+        var result = await ScenarioRunner.RunPipelineScenarioAsync(ViewModel, stlPath, scenarioName);
+
+        string summary = $"=== Scenario '{scenarioName}' Result: Success={result.Success}, Triangles={result.TriangleCount:N0}, TotalTime={result.TotalTimeMs:F1}ms, OverallMaxUiGap={result.OverallMaxUiGapMs:F1}ms ===";
+        Trace.WriteLine(summary);
+        Console.WriteLine(summary);
+        try { File.AppendAllText(Path.Combine(CrashLogger.LogDir, "scenario.log"), $"[{DateTime.UtcNow:O}] {summary}\n"); } catch { }
+        foreach (var (step, dur) in result.StepDurationsMs)
+        {
+            double gap = result.StepMaxUiGapsMs.TryGetValue(step, out double g) ? g : 0;
+            string line = $"  * {step}: {dur:F1} ms (Max UI gap: {gap:F1} ms)";
+            Trace.WriteLine(line);
+            Console.WriteLine(line);
+            try { File.AppendAllText(Path.Combine(CrashLogger.LogDir, "scenario.log"), $"[{DateTime.UtcNow:O}] {line}\n"); } catch { }
+        }
+
+        if (Array.Exists(Environment.GetCommandLineArgs(), a => string.Equals(a, "--exit-after-scenario", StringComparison.OrdinalIgnoreCase)))
+        {
+            await Task.Delay(500);
+            Close();
+        }
+    }
+
+    /// <summary>
+    /// Debug-only probe for the left stepper: logs hit-testing of the step headers, the real visibility
+    /// of each step body after SelectStep, and the result of the ObjectConverters.Equal comparison.
+    /// With --diag-pointer it also keeps the window open and logs every pointer event (manual run).
+    /// </summary>
+    private async Task RunStepperDiagnosticTestAsync(bool pointerLogging)
+    {
+        string logPath = Path.Combine(Diagnostics.CrashLogger.LogDir, "stepper_diag.log");
+        void L(string m)
+        {
+            string line = $"[{DateTime.UtcNow:O}] {m}";
+            Console.WriteLine(line);
+            try { File.AppendAllText(logPath, line + Environment.NewLine); } catch { }
+        }
+
+        L("=== Stepper diagnostic start ===");
+        await Task.Delay(500);
+
+        string stl = Path.Combine(AppContext.BaseDirectory, "examples", "obj_1_Assemblaggio.stl");
+        if (!File.Exists(stl)) stl = "examples/obj_1_Assemblaggio.stl";
+        await ViewModel.LoadStlFileAsync(stl, LengthUnit.Millimeter);
+        await Task.Delay(300);
+
+        Button[] headers = [Step1Header, Step2Header, Step3Header, Step4Header, Step5Header, Step6Header];
+        Control[] bodies = [Step1Body, Step2Body, Step3Body, Step4Body, Step5Body, Step6Body];
+
+        L($"After load: ActiveStep={ViewModel.ActiveStep}");
+        for (int i = 0; i < 6; i++)
+        {
+            Point? origin = headers[i].TranslatePoint(new Point(headers[i].Bounds.Width / 2, headers[i].Bounds.Height / 2), this);
+            var hit = origin is { } c ? this.InputHitTest(c) : null;
+            L($"Header{i + 1}: center={origin} enabled={headers[i].IsEffectivelyEnabled} hitTestVisible={headers[i].IsHitTestVisible} bounds={headers[i].Bounds} hit={hit?.GetType().FullName ?? "null"}");
+        }
+
+        object? conv = Avalonia.Data.Converters.ObjectConverters.Equal.Convert(1, typeof(bool), "1", System.Globalization.CultureInfo.InvariantCulture);
+        L($"ObjectConverters.Equal.Convert(int 1, \"1\") = {conv}");
+        object? conv2 = Avalonia.Data.Converters.ObjectConverters.Equal.Convert(1, typeof(bool), 1, System.Globalization.CultureInfo.InvariantCulture);
+        L($"ObjectConverters.Equal.Convert(int 1, int 1) = {conv2}");
+
+        for (int n = 1; n <= 6; n++)
+        {
+            ViewModel.SelectStepFromHeaderCommand.Execute(n.ToString());
+            await Task.Delay(120);
+            string vis = string.Join(", ", bodies.Select((b, i) => $"B{i + 1}={b.IsVisible}"));
+            L($"SelectStep({n}) -> ActiveStep={ViewModel.ActiveStep}; {vis}");
+        }
+
+        // Scan every button in the window: report the ones that are disabled and why (command CanExecute vs IsEnabled).
+        foreach (var btn in Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(this).OfType<Button>())
+        {
+            if (!btn.IsEffectivelyEnabled)
+            {
+                bool? canExec = btn.Command?.CanExecute(btn.CommandParameter);
+                L($"DISABLED button: name='{btn.Name}' content='{btn.Content?.ToString() ?? btn.Content?.GetType().Name}' visible={btn.IsEffectivelyVisible} isEnabled={btn.IsEnabled} command={(btn.Command is null ? "none" : "yes")} canExecute={canExec} param={btn.CommandParameter ?? "null"} ({btn.CommandParameter?.GetType().Name})");
+            }
+        }
+
+        if (pointerLogging)
+        {
+            L("Pointer logging enabled: hover and click the left buttons for ~20 s.");
+            int count = 0;
+            AddHandler(PointerMovedEvent, (_, e) =>
+            {
+                if (count++ % 15 != 0) return;
+                L($"Moved window={e.GetPosition(this)} source={(e.Source as Control)?.GetType().Name}/{(e.Source as Control)?.Name} captured={e.Pointer.Captured?.GetType().Name ?? "none"}");
+            }, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+            AddHandler(PointerPressedEvent, (_, e) =>
+                L($"Pressed window={e.GetPosition(this)} source={(e.Source as Control)?.GetType().Name}/{(e.Source as Control)?.Name} captured={e.Pointer.Captured?.GetType().Name ?? "none"}"),
+                Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+            await Task.Delay(TimeSpan.FromSeconds(25));
+        }
+
+        L("=== Stepper diagnostic end ===");
+        Close();
     }
 
     private async Task RunOrbitDiagnosticTestAsync()

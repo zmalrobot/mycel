@@ -164,6 +164,12 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
         return new Rect(Bounds.Size).Contains(point);
     }
 
+    public new void RequestNextFrameRendering()
+    {
+        RenderLoopProbe.Instance.OnFrameRequested();
+        base.RequestNextFrameRendering();
+    }
+
     public void SetMesh(IndexedMesh? mesh)
     {
         lock (_syncLock)
@@ -1230,6 +1236,8 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
             string profile = GlProfileSummary;
             Dispatcher.UIThread.Post(() => DiagnosticsUpdated?.Invoke(fps, profile));
         }
+
+        RenderLoopProbe.Instance.OnRenderExecuted(CurrentFps);
     }
 
     protected override void OnOpenGlDeinit(GlInterface gl)
