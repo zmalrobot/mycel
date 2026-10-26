@@ -16,6 +16,7 @@ public sealed class FemWorkTeam : IDisposable
     private readonly Thread[] _threads;
     private readonly ManualResetEventSlim[] _startEvents;
     private readonly CountdownEvent _doneEvent;
+    private readonly object _syncLock = new();
     private volatile bool _disposed;
 
     private Action<int>? _currentAction;
@@ -46,14 +47,34 @@ public sealed class FemWorkTeam : IDisposable
     private void WorkerLoop(int workerId)
     {
         var startEvent = _startEvents[workerId - 1];
-        while (!_disposed)
+        while (true)
         {
-            startEvent.Wait();
+            try
+            {
+                startEvent.Wait();
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
+            }
+
+            if (_disposed) break;
             startEvent.Reset();
             if (_disposed) break;
 
             ExecuteChunks(workerId);
-            _doneEvent.Signal();
+
+            try
+            {
+                if (!_disposed)
+                {
+                    _doneEvent.Signal();
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                break;
+            }
         }
     }
 
@@ -85,20 +106,23 @@ public sealed class FemWorkTeam : IDisposable
             return;
         }
 
-        _currentAction = action;
-        _totalChunks = totalChunks;
-        _doneEvent.Reset(_threadCount);
-
-        for (int i = 0; i < _threadCount - 1; i++)
+        lock (_syncLock)
         {
-            _startEvents[i].Set();
+            _currentAction = action;
+            _totalChunks = totalChunks;
+            _doneEvent.Reset(_threadCount);
+
+            for (int i = 0; i < _threadCount - 1; i++)
+            {
+                _startEvents[i].Set();
+            }
+
+            ExecuteChunks(0);
+            _doneEvent.Signal();
+
+            _doneEvent.Wait();
+            _currentAction = null;
         }
-
-        ExecuteChunks(0);
-        _doneEvent.Signal();
-
-        _doneEvent.Wait();
-        _currentAction = null;
     }
 
     public void Dispose()
@@ -107,12 +131,16 @@ public sealed class FemWorkTeam : IDisposable
         _disposed = true;
         for (int i = 0; i < _startEvents.Length; i++)
         {
-            _startEvents[i].Set();
+            try { _startEvents[i].Set(); } catch { }
         }
-        _doneEvent.Dispose();
+        for (int i = 0; i < _threads.Length; i++)
+        {
+            try { _threads[i]?.Join(500); } catch { }
+        }
+        try { _doneEvent.Dispose(); } catch { }
         for (int i = 0; i < _startEvents.Length; i++)
         {
-            _startEvents[i].Dispose();
+            try { _startEvents[i].Dispose(); } catch { }
         }
     }
 }

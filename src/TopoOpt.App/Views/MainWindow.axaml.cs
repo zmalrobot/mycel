@@ -94,6 +94,7 @@ public partial class MainWindow : Window
         Viewport.ViewportPointerMoved += OnViewportPointerMoved;
         Viewport.ViewportPointerClicked += OnViewportPointerClicked;
         Viewport.DiagnosticsUpdated += vm.UpdateDiagnostics;
+        Viewport.GlInitFailedNotification += vm.HandleGlFailure;
 
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);

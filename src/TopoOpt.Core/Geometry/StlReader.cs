@@ -18,6 +18,12 @@ namespace TopoOpt.Core.Geometry;
 /// </summary>
 public static class StlReader
 {
+    /// <summary>
+    /// Maximum supported triangles to prevent out-of-memory denial of service during welding and BVH acceleration.
+    /// Files exceeding this limit are refused with a clear user message.
+    /// </summary>
+    public const int MaxSupportedTriangles = 2_500_000;
+
     public static Task<(IndexedMesh Mesh, MeshReport Report)> ReadAsync(
         string filePath,
         float scaleFactor = 1.0f,
@@ -70,13 +76,63 @@ public static class StlReader
                 binaryTriCount = BinaryPrimitives.ReadUInt32LittleEndian(header[80..84]);
 
                 // Strict 84 + 50*N check; never trust a "solid" ASCII header prefix
-                if (remainingLength == 84L + 50L * binaryTriCount)
+                long expectedBinLen = 84L + 50L * binaryTriCount;
+                if (remainingLength == expectedBinLen)
                 {
                     isBinary = true;
                 }
                 else
                 {
+                    // Check if the stream has binary content (nulls or non-ASCII control bytes)
+                    bool hasBinaryBytes = false;
+                    for (int i = 0; i < 80; i++)
+                    {
+                        byte b = header[i];
+                        if (b == 0 || (b < 9) || (b > 13 && b < 32))
+                        {
+                            hasBinaryBytes = true;
+                            break;
+                        }
+                    }
+
+                    // Also check if it does NOT start with "solid"
+                    string prefix = System.Text.Encoding.ASCII.GetString(header[..Math.Min(5, 80)]);
+                    bool startsWithSolid = prefix.Equals("solid", StringComparison.OrdinalIgnoreCase);
+
+                    if (hasBinaryBytes || !startsWithSolid)
+                    {
+                        // File is binary or corrupted
+                        if (binaryTriCount > MaxSupportedTriangles)
+                        {
+                            throw new InvalidDataException(
+                                $"STL file declares {binaryTriCount:N0} triangles, exceeding the maximum limit of {MaxSupportedTriangles:N0}.");
+                        }
+
+                        if (remainingLength < expectedBinLen)
+                        {
+                            throw new InvalidDataException(
+                                $"Corrupted or truncated binary STL file: expected {expectedBinLen:N0} bytes for {binaryTriCount:N0} triangles, but stream has only {remainingLength:N0} bytes.");
+                        }
+
+                        // If it has extra trailing bytes but valid structure, we can still reject or accept
+                        throw new InvalidDataException(
+                            $"Corrupted binary STL file: stream length {remainingLength:N0} bytes does not match {expectedBinLen:N0} bytes for {binaryTriCount:N0} triangles.");
+                    }
+
                     seekableStream.Position = startPos;
+                }
+            }
+
+            if (isBinary)
+            {
+                if (binaryTriCount == 0)
+                {
+                    throw new InvalidDataException("STL file contains 0 triangles.");
+                }
+                if (binaryTriCount > MaxSupportedTriangles)
+                {
+                    throw new InvalidDataException(
+                        $"STL file contains {binaryTriCount:N0} triangles, exceeding the maximum limit of {MaxSupportedTriangles:N0}. Please decimate the mesh before import.");
                 }
             }
 
@@ -98,23 +154,16 @@ public static class StlReader
             int rawTriCount = rawVertices.Length / 3;
             if (rawTriCount == 0)
             {
-                IndexedMesh emptyMesh = new([], []);
-                MeshReport emptyReport = new(
-                    Triangles: 0,
-                    Vertices: 0,
-                    DegenerateSkipped: 0,
-                    VerticesMerged: 0,
-                    OpenEdges: 0,
-                    NonManifoldEdges: 0,
-                    IsWatertight: false,
-                    Volume: 0.0,
-                    BBox: (Vector3.Zero, Vector3.Zero),
-                    SuspectedUnits: LengthUnit.Millimeter,
-                    LoadDuration: sw.Elapsed);
-                return (emptyMesh, emptyReport);
+                throw new InvalidDataException("STL file contains 0 valid triangles.");
             }
 
             float bboxDiag = Vector3.Distance(rawMin, rawMax);
+            if (float.IsNaN(bboxDiag) || float.IsInfinity(bboxDiag) || bboxDiag > 1e7f || (bboxDiag < 1e-4f && bboxDiag > 0f))
+            {
+                throw new InvalidDataException(
+                    $"STL file has an invalid or absurd scale (bounding box diagonal {bboxDiag:G4}). Expected dimensions between 0.1 mm and 10,000 mm.");
+            }
+
             LengthUnit suspectedUnit = GuessUnitFromDiagonal(bboxDiag / scaleFactor);
 
             // Spatial-hash welding
@@ -189,6 +238,14 @@ public static class StlReader
                     Vector3 b = ReadVector3LittleEndian(rec[24..36]) * scaleFactor;
                     Vector3 c = ReadVector3LittleEndian(rec[36..48]) * scaleFactor;
 
+                    if (!float.IsFinite(a.X) || !float.IsFinite(a.Y) || !float.IsFinite(a.Z) ||
+                        !float.IsFinite(b.X) || !float.IsFinite(b.Y) || !float.IsFinite(b.Z) ||
+                        !float.IsFinite(c.X) || !float.IsFinite(c.Y) || !float.IsFinite(c.Z))
+                    {
+                        throw new InvalidDataException(
+                            $"STL file contains NaN or Infinite vertex coordinates at triangle {readTris + i}.");
+                    }
+
                     min = Vector3.Min(min, Vector3.Min(a, Vector3.Min(b, c)));
                     max = Vector3.Max(max, Vector3.Max(a, Vector3.Max(b, c)));
 
@@ -248,10 +305,22 @@ public static class StlReader
 
             if (TryParseVector3(rest, out Vector3 v))
             {
+                if (!float.IsFinite(v.X) || !float.IsFinite(v.Y) || !float.IsFinite(v.Z))
+                {
+                    throw new InvalidDataException(
+                        $"STL file contains NaN or Infinite vertex coordinates at line {lineCount}.");
+                }
+
                 v *= scaleFactor;
                 min = Vector3.Min(min, v);
                 max = Vector3.Max(max, v);
                 verts.Add(v);
+
+                if (verts.Count / 3 > MaxSupportedTriangles)
+                {
+                    throw new InvalidDataException(
+                        $"ASCII STL file exceeds the maximum limit of {MaxSupportedTriangles:N0} triangles. Please decimate the mesh before import.");
+                }
             }
         }
 

@@ -9,4 +9,6 @@ TestResults/
 publish/
 *.topo
 runs/
+dist/
+artifacts/
 

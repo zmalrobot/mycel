@@ -139,6 +139,10 @@ public sealed class Viewport3DControl : OpenGlControlBase
     private readonly Stopwatch _fpsWatch = Stopwatch.StartNew();
     private int _framesInSecond;
 
+    public bool GlInitFailed { get; private set; }
+    public string? GlInitErrorMessage { get; private set; }
+    public event Action<string>? GlInitFailedNotification;
+
     public OrbitCamera Camera => _camera;
     public double CurrentFps { get; private set; }
     public int TotalRenderedFrames { get; private set; }
@@ -608,72 +612,91 @@ public sealed class Viewport3DControl : OpenGlControlBase
     protected override unsafe void OnOpenGlInit(GlInterface gl)
     {
         base.OnOpenGlInit(gl);
-        _gl = GL.GetApi(gl.GetProcAddress);
 
-        bool isGles = gl.ContextInfo.Version.Type == GlProfileType.OpenGLES;
-        string preamble = isGles
-            ? "#version 300 es\nprecision highp float;\nprecision highp int;\n"
-            : "#version 330 core\n";
-
-        string renderer = _gl.GetStringS(StringName.Renderer) ?? "Unknown GPU";
-        string version = _gl.GetStringS(StringName.Version) ?? "Unknown GL";
-        string glsl = _gl.GetStringS(StringName.ShadingLanguageVersion) ?? "Unknown GLSL";
-        GlProfileSummary = $"{renderer} | {version} ({glsl})";
-
-        _meshShader = CompileProgram(_gl, preamble + MeshVertexShaderBody, preamble + MeshFragmentShaderBody);
-        _uViewProjLoc = _gl.GetUniformLocation(_meshShader, "uViewProj");
-        _uEyePosLoc = _gl.GetUniformLocation(_meshShader, "uEyePos");
-        _uOverrideColorLoc = _gl.GetUniformLocation(_meshShader, "uOverrideColor");
-        _uUseVertexColorLoc = _gl.GetUniformLocation(_meshShader, "uUseVertexColor");
-
-        _lineShader = CompileProgram(_gl, preamble + LineVertexShaderBody, preamble + LineFragmentShaderBody);
-        _uLineViewProjLoc = _gl.GetUniformLocation(_lineShader, "uViewProj");
-
-        _meshVao = _gl.GenVertexArray();
-        _meshVbo = _gl.GenBuffer();
-        _meshEbo = _gl.GenBuffer();
-        _hoverEbo = _gl.GenBuffer();
-
-        _gl.BindVertexArray(_meshVao);
-        _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _meshVbo);
-
-        uint stride = (uint)sizeof(GpuVertex);
-        _gl.EnableVertexAttribArray(0);
-        _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
-        _gl.EnableVertexAttribArray(1);
-        _gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
-        _gl.EnableVertexAttribArray(2);
-        _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
-
-        _gl.BindVertexArray(0);
-
-        _glyphVao = _gl.GenVertexArray();
-        _glyphVbo = _gl.GenBuffer();
-        _gl.BindVertexArray(_glyphVao);
-        _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _glyphVbo);
-        _gl.EnableVertexAttribArray(0);
-        _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
-        _gl.EnableVertexAttribArray(1);
-        _gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
-        _gl.EnableVertexAttribArray(2);
-        _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
-        _gl.BindVertexArray(0);
-
-        BuildReferenceGrid(_gl, new Vector3(-50f, -50f, 0f), new Vector3(50f, 50f, 0f));
-
-        _glInitialized = true;
-        lock (_syncLock)
+        try
         {
-            if (_currentMesh is not null)
+            _gl = GL.GetApi(gl.GetProcAddress);
+
+            bool isGles = gl.ContextInfo.Version.Type == GlProfileType.OpenGLES;
+            string preamble = isGles
+                ? "#version 300 es\nprecision highp float;\nprecision highp int;\n"
+                : "#version 330 core\n";
+
+            string renderer = _gl.GetStringS(StringName.Renderer) ?? "Unknown GPU";
+            string version = _gl.GetStringS(StringName.Version) ?? "Unknown GL";
+            string glsl = _gl.GetStringS(StringName.ShadingLanguageVersion) ?? "Unknown GLSL";
+            GlProfileSummary = $"{renderer} | {version} ({glsl})";
+
+            _meshShader = CompileProgram(_gl, preamble + MeshVertexShaderBody, preamble + MeshFragmentShaderBody);
+            _uViewProjLoc = _gl.GetUniformLocation(_meshShader, "uViewProj");
+            _uEyePosLoc = _gl.GetUniformLocation(_meshShader, "uEyePos");
+            _uOverrideColorLoc = _gl.GetUniformLocation(_meshShader, "uOverrideColor");
+            _uUseVertexColorLoc = _gl.GetUniformLocation(_meshShader, "uUseVertexColor");
+
+            _lineShader = CompileProgram(_gl, preamble + LineVertexShaderBody, preamble + LineFragmentShaderBody);
+            _uLineViewProjLoc = _gl.GetUniformLocation(_lineShader, "uViewProj");
+
+            _meshVao = _gl.GenVertexArray();
+            _meshVbo = _gl.GenBuffer();
+            _meshEbo = _gl.GenBuffer();
+            _hoverEbo = _gl.GenBuffer();
+
+            _gl.BindVertexArray(_meshVao);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _meshVbo);
+
+            uint stride = (uint)sizeof(GpuVertex);
+            _gl.EnableVertexAttribArray(0);
+            _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+            _gl.EnableVertexAttribArray(1);
+            _gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
+            _gl.EnableVertexAttribArray(2);
+            _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+
+            _gl.BindVertexArray(0);
+
+            _glyphVao = _gl.GenVertexArray();
+            _glyphVbo = _gl.GenBuffer();
+            _gl.BindVertexArray(_glyphVao);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _glyphVbo);
+            _gl.EnableVertexAttribArray(0);
+            _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+            _gl.EnableVertexAttribArray(1);
+            _gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
+            _gl.EnableVertexAttribArray(2);
+            _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+            _gl.BindVertexArray(0);
+
+            BuildReferenceGrid(_gl, new Vector3(-50f, -50f, 0f), new Vector3(50f, 50f, 0f));
+
+            _glInitialized = true;
+            GlInitFailed = false;
+
+            lock (_syncLock)
             {
-                _meshUploadPending = true;
+                if (_currentMesh is not null)
+                {
+                    _meshUploadPending = true;
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            _glInitialized = false;
+            GlInitFailed = true;
+            string renderer = "Unknown";
+            try { renderer = _gl?.GetStringS(StringName.Renderer) ?? "Unknown"; } catch { }
+            GlInitErrorMessage = $"OpenGL initialization failed on GPU '{renderer}': {ex.Message}. " +
+                                 $"Ensure OpenGL 3.3+ or OpenGL ES 3.0+ drivers are installed, or run with LIBGL_ALWAYS_SOFTWARE=1.";
+            GlProfileSummary = $"GL Failure: {renderer}";
+            DiagnosticsUpdated?.Invoke(0.0, GlProfileSummary);
+            GlInitFailedNotification?.Invoke(GlInitErrorMessage);
+            Trace.WriteLine($"[GL Error] {GlInitErrorMessage}");
         }
     }
 
     protected override unsafe void OnOpenGlRender(GlInterface gl, int fb)
     {
-        if (!_glInitialized || _gl is null)
+        if (!_glInitialized || GlInitFailed || _gl is null)
         {
             return;
         }

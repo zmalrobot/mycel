@@ -69,6 +69,8 @@
   <x:String x:Key="Toolbar.SaveProject.Tooltip">Save current project into a folder</x:String>
   <x:String x:Key="Toolbar.FitView">Fit View</x:String>
   <x:String x:Key="Toolbar.FitView.Tooltip">Fit camera to model geometry (F)</x:String>
+  <x:String x:Key="Toolbar.About">About</x:String>
+  <x:String x:Key="Toolbar.About.Tooltip">About TopoOpt, licenses, and disclaimers</x:String>
 
   <x:String x:Key="Stepper.Common.Step1Number">1</x:String>
   <x:String x:Key="Stepper.Common.Step2Number">2</x:String>

@@ -360,6 +360,21 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _exportStlStatusText = string.Empty;
 
+    [ObservableProperty]
+    private bool _isAboutDialogOpen;
+
+    [RelayCommand]
+    private void OpenAboutDialog() => IsAboutDialogOpen = true;
+
+    [RelayCommand]
+    private void CloseAboutDialog() => IsAboutDialogOpen = false;
+
+    public void HandleGlFailure(string error)
+    {
+        ValidationIssues.Add(new ValidationIssue("GL_INIT_ERROR", ValidationSeverity.Error, error));
+        NotifyStepBadges();
+    }
+
     // Events for Viewport
     public event Action<IndexedMesh?>? MeshLoaded;
     public event Action<IndexedMesh?, bool>? GhostOriginalMeshUpdated;

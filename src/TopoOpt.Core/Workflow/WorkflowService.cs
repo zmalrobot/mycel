@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using TopoOpt.Core.Diagnostics;
 using TopoOpt.Core.Fem;
 using TopoOpt.Core.Geometry;
 using TopoOpt.Core.Optimization;
@@ -208,6 +209,15 @@ public sealed class WorkflowService
                 : ResolutionConfig.ComputeVoxelSize(mesh, State.Resolution.TargetSolidElements);
 
             var grid = GridSpec.FromVoxelSize(mesh, h, padding: 1);
+
+            // Memory guard check before allocating voxel grid and structures
+            long estPrepareBytes = MemoryGuard.EstimatePrepareBytes((long)grid.Nx * grid.Ny * grid.Nz, mesh.TriangleCount);
+            var assessment = MemoryGuard.Assess(estPrepareBytes);
+            if (assessment.Level == MemoryGuardLevel.Refused)
+            {
+                throw new InvalidOperationException(assessment.Message);
+            }
+
             progress?.Report(0.15);
 
             var (voxelModel, _) = Voxeliser.Voxelise(mesh, grid, cancellationToken: ct);
@@ -422,6 +432,15 @@ public sealed class WorkflowService
             State.AnalysisResult = result;
             return result;
         }, ct);
+    }
+
+    public MemoryAssessment AssessRunMemory(OptimizerOptions options)
+    {
+        var prep = State.PreparedModel ?? throw new InvalidOperationException("Model must be prepared first.");
+        long solidElements = prep.FeModel.ActiveElementCount;
+        long nodes = prep.FeModel.TotalNodes;
+        long bytes = MemoryGuard.EstimateRunBytes(solidElements, nodes, options.MaxIterations);
+        return MemoryGuard.Assess(bytes);
     }
 
     public RunMetadata CreateRunMetadata(OptimizerOptions options, int keepEveryN = 1)
