@@ -103,5 +103,28 @@ public sealed class LoadItemViewModelTests
         Assert.Equal(0.001f * LoadItemViewModel.StandardGravity, vm.MagnitudeNewtons, 1e-6);
         Assert.Equal(0.001f * LoadItemViewModel.StandardGravity, vm.Model.MagnitudeNewtons, 1e-6);
     }
+
+    [Theory]
+    [InlineData(100f, "100", "10.197", "10197.2")]
+    [InlineData(1000f, "1000", "101.972", "101971.6")]
+    [InlineData(10000f, "10000", "1019.716", "1019716")]
+    public void FormattedOutputs_ForRealisticLoads_ProduceExpectedStrings(float newtons, string expectedN, string expectedKg, string expectedG)
+    {
+        var model = new LoadRegion { MagnitudeNewtons = newtons };
+        var vm = new LoadItemViewModel(model);
+
+        string formattedN = vm.MagnitudeNewtons.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        string formattedKg = vm.MagnitudeKg.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+        string formattedG = vm.MagnitudeGrams.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.Equal(expectedN, formattedN);
+        Assert.Equal(expectedKg, formattedKg);
+        Assert.Equal(expectedG, formattedG);
+
+        // Verify string lengths fit comfortably within 180px control (approx 18 chars capacity)
+        Assert.True(formattedN.Length <= 12, $"N string length {formattedN.Length} should fit in expanded input");
+        Assert.True(formattedKg.Length <= 12, $"Kg string length {formattedKg.Length} should fit in expanded input");
+        Assert.True(formattedG.Length <= 12, $"Grams string length {formattedG.Length} should fit in expanded input");
+    }
 }
 

@@ -166,7 +166,7 @@
                 <StackPanel x:Name="Step1Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep1Active}">
                   <Grid ColumnDefinitions="*,Auto" Margin="{DynamicResource Margin4T}">
                     <TextBlock Text="{DynamicResource Stepper.Model.ImportUnit}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableUnits}" SelectedItem="{Binding SelectedUnit}" Width="120" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableUnits}" SelectedItem="{Binding SelectedUnit}" Width="160" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
@@ -251,21 +251,21 @@
                             <!-- Force (N) -->
                             <Grid ColumnDefinitions="*,Auto">
                               <TextBlock Text="{DynamicResource Stepper.Loads.MagnitudeN}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeNewtons}" Minimum="0.001" Maximum="10000000" Increment="10" FormatString="0.##" Width="120" Height="26"
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeNewtons}" Minimum="0.001" Maximum="10000000" Increment="10" FormatString="0.##" Width="180" Height="26"
                                              ToolTip.Tip="{DynamicResource Stepper.Loads.MagnitudeN.Tooltip}" />
                             </Grid>
 
                             <!-- Mass (kg) -->
                             <Grid ColumnDefinitions="*,Auto">
                               <TextBlock Text="{DynamicResource Stepper.Loads.MagnitudeKg}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeKg}" Minimum="0.0001" Maximum="1000000" Increment="1" FormatString="0.###" Width="120" Height="26"
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeKg}" Minimum="0.0001" Maximum="1000000" Increment="1" FormatString="0.###" Width="180" Height="26"
                                              ToolTip.Tip="{DynamicResource Stepper.Loads.MagnitudeKg.Tooltip}" />
                             </Grid>
 
                             <!-- Mass (g) -->
                             <Grid ColumnDefinitions="*,Auto">
                               <TextBlock Text="{DynamicResource Stepper.Loads.MagnitudeG}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeGrams}" Minimum="0.1" Maximum="1000000000" Increment="100" FormatString="0.#" Width="120" Height="26"
+                              <NumericUpDown Grid.Column="1" Value="{Binding MagnitudeGrams}" Minimum="0.1" Maximum="1000000000" Increment="100" FormatString="0.#" Width="180" Height="26"
                                              ToolTip.Tip="{DynamicResource Stepper.Loads.MagnitudeG.Tooltip}" />
                             </Grid>
 
@@ -274,7 +274,7 @@
                               <ComboBox Grid.Column="1"
                                         ItemsSource="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).AvailableLoadDirections}"
                                         SelectedItem="{Binding DirectionMode}"
-                                        Width="150" />
+                                        Width="180" />
                             </Grid>
 
                             <!-- Custom Vector Controls -->
@@ -400,43 +400,43 @@
                 <StackPanel x:Name="Step4Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep4Active}">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.Preset}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableMaterialPresets}" SelectedItem="{Binding SelectedMaterialPreset}" Width="140" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableMaterialPresets}" SelectedItem="{Binding SelectedMaterialPreset}" Width="160" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.YoungModulus}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialE}" Minimum="100" Maximum="50000" Increment="100" Width="110" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialE}" Minimum="100" Maximum="50000" Increment="100" Width="160" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Material.YoungModulus.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.PoissonRatio}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialNu}" Minimum="0.05" Maximum="0.49" Increment="0.01" FormatString="F2" Width="110" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialNu}" Minimum="0.05" Maximum="0.49" Increment="0.01" FormatString="F2" Width="160" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Material.PoissonRatio.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.YieldStrengthXy}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldXy}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldXy}" Minimum="5" Maximum="200" Increment="5" Width="160" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Material.YieldStrengthXy.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.YieldStrengthZ}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldZ}" Minimum="5" Maximum="200" Increment="5" Width="110" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialYieldZ}" Minimum="5" Maximum="200" Increment="5" Width="160" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Material.YieldStrengthZ.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.Density}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialDensity}" Minimum="0.5" Maximum="5.0" Increment="0.01" FormatString="F2" Width="110" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialDensity}" Minimum="0.5" Maximum="5.0" Increment="0.01" FormatString="F2" Width="160" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Material.Density.Tooltip}" />
                   </Grid>
 
                   <!-- 3D Print Infill & Pattern -->
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.Infill}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialInfillPercent}" Minimum="10" Maximum="100" Increment="5" FormatString="F0" Width="110" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding MaterialInfillPercent}" Minimum="10" Maximum="100" Increment="5" FormatString="F0" Width="160" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Material.Infill.Tooltip}" />
                   </Grid>
                   <Slider Value="{Binding MaterialInfillPercent}" Minimum="10" Maximum="100" Margin="0,-4,0,0"
@@ -444,7 +444,7 @@
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Material.InfillPattern}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableInfillPatterns}" SelectedItem="{Binding SelectedInfillPattern}" Width="140" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableInfillPatterns}" SelectedItem="{Binding SelectedInfillPattern}" Width="160" />
                   </Grid>
 
                   <!-- 3D Print Material Estimate Card -->
@@ -499,12 +499,12 @@
                 <StackPanel x:Name="Step5Body" Margin="{DynamicResource PadBody}" Spacing="{DynamicResource Spacing8}" IsVisible="{Binding IsStep5Active}">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Resolution.Preset}" FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableResolutionPresets}" SelectedItem="{Binding SelectedResolutionPreset}" Width="140" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableResolutionPresets}" SelectedItem="{Binding SelectedResolutionPreset}" Width="160" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Resolution.TargetElements}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding TargetSolidElements}" Minimum="10000" Maximum="1000000" Increment="10000" Width="110" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding TargetSolidElements}" Minimum="10000" Maximum="1000000" Increment="10000" Width="160" Height="26"
                                    ToolTip.Tip="{DynamicResource Stepper.Resolution.TargetElements.Tooltip}" />
                   </Grid>
 
@@ -653,7 +653,7 @@
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Optimise.MinFeatureSize}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding OptMinFeatureSizeMm}" Minimum="0.2" Maximum="25.0" Increment="0.2" FormatString="F2" Width="105" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding OptMinFeatureSizeMm}" Minimum="0.2" Maximum="25.0" Increment="0.2" FormatString="F2" Width="150" Height="26"
                                    IsEnabled="{Binding !IsOptimising}"
                                    ToolTip.Tip="{DynamicResource Stepper.Optimise.MinFeatureSize.Tooltip}" />
                   </Grid>
@@ -661,14 +661,14 @@
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Optimise.MaxIterations}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding OptMaxIterations}" Minimum="5" Maximum="1000" Increment="10" Width="105" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding OptMaxIterations}" Minimum="5" Maximum="1000" Increment="10" Width="150" Height="26"
                                    IsEnabled="{Binding !IsOptimising}"
                                    ToolTip.Tip="{DynamicResource Stepper.Optimise.MaxIterations.Tooltip}" />
                   </Grid>
 
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Text="{DynamicResource Stepper.Optimise.KeepEveryN}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Value="{Binding OptKeepEveryN}" Minimum="1" Maximum="50" Increment="1" Width="105" Height="26"
+                    <NumericUpDown Grid.Column="1" Value="{Binding OptKeepEveryN}" Minimum="1" Maximum="50" Increment="1" Width="150" Height="26"
                                    IsEnabled="{Binding !IsOptimising}"
                                    ToolTip.Tip="{DynamicResource Stepper.Optimise.KeepEveryN.Tooltip}" />
                   </Grid>
@@ -684,13 +684,13 @@
                     <StackPanel Spacing="{DynamicResource Spacing8}" Margin="{DynamicResource Margin4T}">
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Text="{DynamicResource Stepper.Optimise.Penalisation}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                        <NumericUpDown Grid.Column="1" Value="{Binding OptPenal}" Minimum="1.0" Maximum="5.0" Increment="0.5" FormatString="F1" Width="95" Height="26"
+                        <NumericUpDown Grid.Column="1" Value="{Binding OptPenal}" Minimum="1.0" Maximum="5.0" Increment="0.5" FormatString="F1" Width="140" Height="26"
                                        IsEnabled="{Binding !IsOptimising}"
                                        ToolTip.Tip="{DynamicResource Stepper.Optimise.Penalisation.Tooltip}" />
                       </Grid>
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Text="{DynamicResource Stepper.Optimise.MoveLimit}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                        <NumericUpDown Grid.Column="1" Value="{Binding OptMoveLimit}" Minimum="0.05" Maximum="0.50" Increment="0.05" FormatString="F2" Width="95" Height="26"
+                        <NumericUpDown Grid.Column="1" Value="{Binding OptMoveLimit}" Minimum="0.05" Maximum="0.50" Increment="0.05" FormatString="F2" Width="140" Height="26"
                                        IsEnabled="{Binding !IsOptimising}"
                                        ToolTip.Tip="{DynamicResource Stepper.Optimise.MoveLimit.Tooltip}" />
                       </Grid>
@@ -699,7 +699,7 @@
                                 ToolTip.Tip="{DynamicResource Stepper.Optimise.Projection.Tooltip}" />
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Text="{DynamicResource Stepper.Optimise.EminRatio}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                        <NumericUpDown Grid.Column="1" Value="{Binding OptEminRatio}" Minimum="0.000000000001" Maximum="0.001" Increment="0.000001" FormatString="E1" Width="95" Height="26"
+                        <NumericUpDown Grid.Column="1" Value="{Binding OptEminRatio}" Minimum="0.000000000001" Maximum="0.001" Increment="0.000001" FormatString="E1" Width="140" Height="26"
                                        IsEnabled="{Binding !IsOptimising}"
                                        ToolTip.Tip="{DynamicResource Stepper.Optimise.EminRatio.Tooltip}" />
                       </Grid>
@@ -829,13 +829,13 @@
 
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Text="{DynamicResource Stepper.Optimise.Threshold}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                        <NumericUpDown Grid.Column="1" Value="{Binding VerifyThreshold}" Minimum="0.10" Maximum="0.90" Increment="0.05" FormatString="F2" Width="95" Height="26"
+                        <NumericUpDown Grid.Column="1" Value="{Binding VerifyThreshold}" Minimum="0.10" Maximum="0.90" Increment="0.05" FormatString="F2" Width="140" Height="26"
                                        ToolTip.Tip="{DynamicResource Stepper.Optimise.Threshold.Tooltip}" />
                       </Grid>
 
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Text="{DynamicResource Stepper.Optimise.SmoothIters}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                        <NumericUpDown Grid.Column="1" Value="{Binding ExportSmoothIterations}" Minimum="0" Maximum="10" Increment="1" Width="95" Height="26"
+                        <NumericUpDown Grid.Column="1" Value="{Binding ExportSmoothIterations}" Minimum="0" Maximum="10" Increment="1" Width="140" Height="26"
                                        ToolTip.Tip="{DynamicResource Stepper.Optimise.SmoothIters.Tooltip}" />
                       </Grid>
 
