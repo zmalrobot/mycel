@@ -21,6 +21,12 @@
   - Region selection supports 3 types: `Fixed Support`, `Applied Load` (in Newtons with Normal/Axis/Custom direction), and `Preserve (Keep Solid)`.
   - A 1-voxel protective passive shell ($\rho \equiv 1$) is enforced around loads and supports by default to prevent numerical point hinges.
 - **Multi-Unit Load Inputs & Physical Grounding**: `TopoOpt.Core` and `.topo` project files MUST store load forces exclusively in Newtons ($N$). UI layers projecting alternative units (such as equivalent mass in $\text{kg}$ or $\text{g}$ via $F = m \cdot g_0$) must use standard gravitational acceleration $g_0 = 9.80665\text{ m/s}^2$ (ISO 80000-3 / NIST) and guard bidirectional property updates with an `_isSyncing` reentrancy flag to avoid circular notification cascades and precision drift.
+- **Filament Metrics & Material Savings Grounding**:
+  - Filament length calculations are grounded to standard FDM diameter $d = 1.75\text{ mm}$ ($A_{1.75} = \frac{\pi \cdot d^2}{4} \approx 2.405282\text{ mm}^2$).
+  - Effective printed volume scales with infill percentage: $V_{eff} = V_{solid} \cdot \left(\frac{\rho_{infill}}{100}\right) \cdot V^*$.
+  - Mass in grams: $M\text{ [g]} = V_{eff}\text{ [mm}^3\text{]} \cdot \frac{\rho_m\text{ [g/cm}^3\text{]}}{1000}$.
+  - Filament length in meters: $L\text{ [m]} = \frac{V_{eff}\text{ [mm}^3\text{]}}{A_{1.75} \cdot 1000}$.
+  - Material savings during optimization: $\Delta M = M_0 \cdot (1 - V^*)$, $\Delta L = L_0 \cdot (1 - V^*)$, and $\text{Savings \%} = (1 - V^*) \times 100\%$ relative to the initial un-optimized model at the active infill level.
 
 ## 2. Core Architecture & Numerical Rigor
 - `TopoOpt.Core` MUST NOT reference any UI framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
@@ -30,6 +36,10 @@
   - Project License: **GNU General Public License v3.0 (GPLv3)**.
   - Authorized NuGet Packages only: `Avalonia`, `CommunityToolkit.Mvvm`, `Silk.NET.OpenGL`, `ScottPlot.Avalonia`, `Material.Icons.Avalonia`, `xunit`.
   - No new NuGet package may be added without prior explicit user approval in `docs/DECISIONS.md`.
+- **Additive Manufacturing Infill & Cellular Mechanics Invariant**:
+  - Infill percentage ($\rho_{infill} \in [10\%, 100\%]$) and morphology pattern (`Gyroid`, `Grid`, `Honeycomb`, `Rectilinear`, `Triangles`) must physically scale effective elastic stiffness and yield strength via Gibson-Ashby cellular solid laws:
+    $$E_{eff} = E_0 \cdot \left(\frac{\rho_{infill}}{100}\right)^p, \quad \sigma_{y,eff} = \sigma_{y,0} \cdot \left(\frac{\rho_{infill}}{100}\right)^m$$
+  - All FEA static analysis solves, baseline compliance calculations, and topology optimization solves must consistently evaluate using $E_{eff}$ and $\sigma_{y,eff}$ rather than unscaled bulk solid properties when infill is below 100%.
 
 ## 3. Specification & Verification Protocol
 - **Tests are the specification. Never weaken, delete or skip a test to make it pass; if a test looks wrong, stop and ask me.**
@@ -59,3 +69,6 @@
 - **Structural Voxel Connectivity**: Connected component analysis and filtering on structured Hex8 grids must employ 26-connectivity (sharing vertices, edges, or faces). Hex8 stiffness matrices couple DOFs across shared nodes, so 6-connectivity erroneously disconnects and erodes diagonal or tangential features (e.g., cylindrical pins, thin fillets).
 - **Interactive Picking State Disarm**: Any interactive 3D viewport modal state (picking, region selection banner, hover highlight) must be unconditionally disarmed upon step transition, stepper header click, or workflow action execution (`Prepare`, `Analyze`, `Save`, `Load`), clearing hover geometry and requesting viewport re-rendering.
 - **Modal Dialog Keyboard & State Lifecycle**: Any modal overlay dialog (such as User Guide, About, or Confirmation prompts) must disarm active 3D picking upon opening and handle the `Esc` key with `e.Handled = true` to dismiss top-level overlays before bubbling to other viewport or application shortcuts.
+- **Dynamic Picking Region Growing on Angle Adjustments**:
+  - While interactive surface picking is active, adjusting the dihedral angle threshold slider must dynamically re-grow from the last clicked seed triangle (`LastClickedSeedTriangle`), merging with previously selected patches (`_baseTrianglesBeforeLastClick`) using the active modification mode (`Replace`, `Add`, `Subtract`) via `RegionSelector.ModifySelection`.
+  - Disarming picking (via `Esc`, Stepper header click, or `Done`) must reset `LastClickedSeedTriangle = -1` and restore replacement mode.
