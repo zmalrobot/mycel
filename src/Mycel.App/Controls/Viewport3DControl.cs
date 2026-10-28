@@ -117,6 +117,12 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
     private GpuVertex[]? _pendingGlyphVertices;
     private bool _glyphUploadPending;
 
+    private uint _resultantArrowVao;
+    private uint _resultantArrowVbo;
+    private int _resultantArrowVertexCount;
+    private GpuVertex[]? _pendingResultantArrowVertices;
+    private bool _resultantArrowUploadPending;
+
     private ViewRenderMode _renderMode = ViewRenderMode.OriginalStl;
     public ViewRenderMode RenderMode
     {
@@ -316,6 +322,26 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
         RequestNextFrameRendering();
     }
 
+    public Point? WorldToScreen(Vector3 worldPoint)
+    {
+        double w = Bounds.Width;
+        double h = Bounds.Height;
+        if (w <= 1.0 || h <= 1.0) return null;
+
+        float aspect = (float)(w / Math.Max(1.0, h));
+        Matrix4x4 vp = _camera.GetViewMatrix() * _camera.GetProjectionMatrix(aspect);
+        Vector4 clip = Vector4.Transform(new Vector4(worldPoint, 1.0f), vp);
+        if (clip.W <= 0.001f) return null;
+
+        float ndcX = clip.X / clip.W;
+        float ndcY = clip.Y / clip.W;
+        if (ndcX < -1.2f || ndcX > 1.2f || ndcY < -1.2f || ndcY > 1.2f) return null;
+
+        double screenX = (ndcX + 1.0) * 0.5 * w;
+        double screenY = (1.0 - ndcY) * 0.5 * h;
+        return new Point(screenX, screenY);
+    }
+
     public void SetVoxelMesh(IndexedMesh? mesh)
     {
         lock (_syncLock)
@@ -369,20 +395,26 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
     }
 
     public sealed record BoundaryGlyphData(
+        Guid RegionId,
         bool IsLoad,
         Vector3 Position,
         Vector3 Direction,
-        float Magnitude);
+        float Magnitude,
+        bool IsHovered = false,
+        IReadOnlyList<(Vector3 Point, Vector3 Normal)>? DistributedSamples = null);
 
     public void SetBoundaryGlyphs(IReadOnlyList<BoundaryGlyphData>? glyphs, float bboxDiag)
     {
-        GpuVertex[]? arr = (glyphs != null && glyphs.Count > 0)
-            ? BuildGlyphMesh(glyphs, bboxDiag)
-            : null;
+        var (resultant, others) = (glyphs != null && glyphs.Count > 0)
+            ? BuildGlyphMeshes(glyphs, bboxDiag)
+            : (null, null);
 
         lock (_syncLock)
         {
-            _pendingGlyphVertices = arr;
+            _pendingResultantArrowVertices = resultant;
+            _resultantArrowUploadPending = true;
+
+            _pendingGlyphVertices = others;
             _glyphUploadPending = true;
         }
         RequestNextFrameRendering();
@@ -431,40 +463,72 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
         RequestNextFrameRendering();
     }
 
-    private static GpuVertex[] BuildGlyphMesh(IReadOnlyList<BoundaryGlyphData> glyphs, float bboxDiag)
+    private static (GpuVertex[]? Resultant, GpuVertex[]? Others) BuildGlyphMeshes(
+        IReadOnlyList<BoundaryGlyphData> glyphs,
+        float bboxDiag)
     {
-        var vertices = new List<GpuVertex>();
-        float arrowLen = Math.Clamp(bboxDiag * 0.15f, 5.0f, 150.0f);
-        float shaftRadius = 0.08f * arrowLen;
-        float headLen = 0.35f * arrowLen;
-        float headRadius = 0.22f * arrowLen;
+        var resultantList = new List<GpuVertex>();
+        var othersList = new List<GpuVertex>();
+
+        float arrowLen = Math.Clamp(bboxDiag * 0.22f, 8.0f, 180.0f);
+        float shaftRadius = 0.06f * arrowLen;
+        float headLen = 0.30f * arrowLen;
+        float headRadius = 0.16f * arrowLen;
+
+        float smallArrowLen = arrowLen * 0.35f;
+        float smallShaftRadius = shaftRadius * 0.45f;
+        float smallHeadLen = headLen * 0.40f;
+        float smallHeadRadius = headRadius * 0.50f;
 
         float anchorSize = Math.Clamp(bboxDiag * 0.06f, 3.0f, 60.0f);
 
-        Vector3 orangeColor = new(0.976f, 0.451f, 0.086f); // #F97316
-        Vector3 blueColor = new(0.231f, 0.510f, 0.965f);   // #3B82F6
+        Vector3 orangeNormal = new(0.976f, 0.451f, 0.086f); // #F97316
+        Vector3 orangeHovered = new(1.0f, 0.65f, 0.20f);    // #FFA726
+        Vector3 blueNormal = new(0.231f, 0.510f, 0.965f);   // #3B82F6
+        Vector3 blueHovered = new(0.38f, 0.68f, 1.0f);
 
         foreach (var g in glyphs)
         {
             if (g.IsLoad)
             {
                 Vector3 dir = g.Direction.LengthSquared() > 1e-6f ? Vector3.Normalize(g.Direction) : -Vector3.UnitZ;
-                // Position arrow pointing at the centroid: arrow starts at Position - dir * arrowLen and points to Position
+                Vector3 color = g.IsHovered ? orangeHovered : orangeNormal;
+                float currentShaftRadius = g.IsHovered ? shaftRadius * 1.25f : shaftRadius;
+
+                // 1. Resultant Arrow (anchored at surface AnchorPoint, pointing along force direction)
                 Vector3 start = g.Position - dir * arrowLen;
                 Vector3 headBase = g.Position - dir * headLen;
                 Vector3 tip = g.Position;
 
-                AddCylinderTriangles(vertices, start, headBase, shaftRadius, dir, orangeColor);
-                AddConeTriangles(vertices, headBase, tip, headRadius, dir, orangeColor);
+                AddCylinderTriangles(resultantList, start, headBase, currentShaftRadius, dir, color);
+                AddConeTriangles(resultantList, headBase, tip, headRadius, dir, color);
+
+                // 2. Distributed Small Arrows over patch
+                if (g.DistributedSamples != null && g.DistributedSamples.Count > 0)
+                {
+                    Vector3 sampleColor = color * 0.9f;
+                    foreach (var (pt, _) in g.DistributedSamples)
+                    {
+                        Vector3 sStart = pt - dir * smallArrowLen;
+                        Vector3 sHeadBase = pt - dir * smallHeadLen;
+                        Vector3 sTip = pt;
+
+                        AddCylinderTriangles(othersList, sStart, sHeadBase, smallShaftRadius, dir, sampleColor);
+                        AddConeTriangles(othersList, sHeadBase, sTip, smallHeadRadius, dir, sampleColor);
+                    }
+                }
             }
             else
             {
-                // Support anchor: 4-sided pyramid pointing at g.Position
-                AddPyramidAnchor(vertices, g.Position, anchorSize, blueColor);
+                // Support anchor: 4-sided pyramid pointing at AnchorPoint on surface
+                Vector3 color = g.IsHovered ? blueHovered : blueNormal;
+                AddPyramidAnchor(othersList, g.Position, anchorSize, color);
             }
         }
 
-        return vertices.ToArray();
+        return (
+            resultantList.Count > 0 ? resultantList.ToArray() : null,
+            othersList.Count > 0 ? othersList.ToArray() : null);
     }
 
     private static void AddCylinderTriangles(
@@ -480,7 +544,7 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
         Vector3 side = Vector3.Normalize(Vector3.Cross(axis, up));
         Vector3 normUp = Vector3.Cross(side, axis);
 
-        int segments = 8;
+        int segments = 16;
         for (int i = 0; i < segments; i++)
         {
             float a0 = (float)(2.0 * Math.PI * i / segments);
@@ -517,7 +581,7 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
         Vector3 side = Vector3.Normalize(Vector3.Cross(axis, up));
         Vector3 normUp = Vector3.Cross(side, axis);
 
-        int segments = 8;
+        int segments = 16;
         for (int i = 0; i < segments; i++)
         {
             float a0 = (float)(2.0 * Math.PI * i / segments);
@@ -697,6 +761,18 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
             _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
             _gl.BindVertexArray(0);
 
+            _resultantArrowVao = _gl.GenVertexArray();
+            _resultantArrowVbo = _gl.GenBuffer();
+            _gl.BindVertexArray(_resultantArrowVao);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _resultantArrowVbo);
+            _gl.EnableVertexAttribArray(0);
+            _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
+            _gl.EnableVertexAttribArray(1);
+            _gl.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, (void*)12);
+            _gl.EnableVertexAttribArray(2);
+            _gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+            _gl.BindVertexArray(0);
+
             BuildReferenceGrid(_gl, new Vector3(-50f, -50f, 0f), new Vector3(50f, 50f, 0f));
 
             _glInitialized = true;
@@ -845,7 +921,34 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
 
         _gl.BindVertexArray(0);
 
-        // 6. Render 3D boundary condition glyphs (always-on load arrows & support anchors)
+        // 6. Render 3D boundary condition glyphs (Resultant force arrows with 2-pass occlusion ghosting + distributed arrows & support anchors)
+        if (_resultantArrowVertexCount > 0)
+        {
+            _gl.UseProgram(_meshShader);
+            _gl.UniformMatrix4(_uViewProjLoc, 1, false, (float*)&viewProj);
+            _gl.Uniform3(_uEyePosLoc, eyePos.X, eyePos.Y, eyePos.Z);
+
+            // Pass 1: Occluded Ghost Arrow (Greater depth, semi-transparent ghost visible through model)
+            _gl.Enable(EnableCap.Blend);
+            _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            _gl.DepthFunc(DepthFunction.Greater);
+            _gl.DepthMask(false);
+            _gl.Uniform4(_uOverrideColorLoc, 0.976f, 0.451f, 0.086f, 0.30f);
+            _gl.Uniform1(_uUseVertexColorLoc, 0);
+
+            _gl.BindVertexArray(_resultantArrowVao);
+            _gl.DrawArrays(PrimitiveType.Triangles, 0, (uint)_resultantArrowVertexCount);
+
+            // Pass 2: Foreground Visible Arrow (Lequal depth, solid full color)
+            _gl.DepthFunc(DepthFunction.Lequal);
+            _gl.DepthMask(true);
+            _gl.Uniform4(_uOverrideColorLoc, 0f, 0f, 0f, 0f);
+            _gl.Uniform1(_uUseVertexColorLoc, 1);
+
+            _gl.BindVertexArray(_resultantArrowVao);
+            _gl.DrawArrays(PrimitiveType.Triangles, 0, (uint)_resultantArrowVertexCount);
+        }
+
         if (_glyphVertexCount > 0)
         {
             _gl.UseProgram(_meshShader);
@@ -1109,6 +1212,24 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
                 else
                 {
                     _glyphVertexCount = 0;
+                }
+            }
+
+            if (_resultantArrowUploadPending)
+            {
+                _resultantArrowUploadPending = false;
+                if (_pendingResultantArrowVertices is not null && _pendingResultantArrowVertices.Length > 0)
+                {
+                    gl.BindBuffer(BufferTargetARB.ArrayBuffer, _resultantArrowVbo);
+                    fixed (GpuVertex* gPtr = _pendingResultantArrowVertices)
+                    {
+                        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(_pendingResultantArrowVertices.Length * sizeof(GpuVertex)), gPtr, BufferUsageARB.DynamicDraw);
+                    }
+                    _resultantArrowVertexCount = _pendingResultantArrowVertices.Length;
+                }
+                else
+                {
+                    _resultantArrowVertexCount = 0;
                 }
             }
 
@@ -1398,6 +1519,8 @@ public sealed class Viewport3DControl : OpenGlControlBase, Avalonia.Rendering.IC
 
             if (_glyphVbo != 0) _gl.DeleteBuffer(_glyphVbo);
             if (_glyphVao != 0) _gl.DeleteVertexArray(_glyphVao);
+            if (_resultantArrowVbo != 0) _gl.DeleteBuffer(_resultantArrowVbo);
+            if (_resultantArrowVao != 0) _gl.DeleteVertexArray(_resultantArrowVao);
             if (_ghostEbo != 0) _gl.DeleteBuffer(_ghostEbo);
             if (_ghostVbo != 0) _gl.DeleteBuffer(_ghostVbo);
             if (_ghostVao != 0) _gl.DeleteVertexArray(_ghostVao);

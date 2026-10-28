@@ -126,5 +126,78 @@ public sealed class LoadItemViewModelTests
         Assert.True(formattedKg.Length <= 12, $"Kg string length {formattedKg.Length} should fit in expanded input");
         Assert.True(formattedG.Length <= 12, $"Grams string length {formattedG.Length} should fit in expanded input");
     }
+
+    [Fact]
+    public void LoadDirectionConverter_MapsAllEnumValuesToFriendlyStringsWithoutRawLeak()
+    {
+        var converter = Mycel.App.Converters.LoadDirectionToStringConverter.Instance;
+        foreach (LoadDirectionMode mode in Enum.GetValues<LoadDirectionMode>())
+        {
+            object? result = converter.Convert(mode, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture);
+            Assert.NotNull(result);
+            string str = Assert.IsType<string>(result);
+            Assert.False(string.IsNullOrWhiteSpace(str));
+            // Crucial: Must never show raw enum name like "SurfaceNormalInward"
+            Assert.NotEqual(mode.ToString(), str);
+        }
+    }
+
+    [Fact]
+    public void RefreshMetrics_ComputesPressureAndColorThresholdsCorrectly()
+    {
+        var model = new LoadRegion
+        {
+            MagnitudeNewtons = 5000f,
+            SurfaceAreaMm2 = 100f,
+            ModelSurfaceCoveragePercent = 15f,
+            NormalConsistencyRatio = 0.95f,
+            ConnectedComponentCount = 1
+        };
+        var vm = new LoadItemViewModel(model);
+
+        // Yield strength 120 MPa: 50 MPa / 120 MPa = 0.416 < 0.50 -> Green
+        vm.RefreshMetrics(materialYieldStrength: 120f);
+        Assert.Equal(50f, vm.NominalPressureMpa, 1e-2);
+        var greenBrush = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(vm.PressureBrush);
+        Assert.Equal(Avalonia.Media.Color.FromRgb(16, 185, 129), greenBrush.Color);
+        Assert.False(vm.IsHighCoverage);
+        Assert.False(vm.IsWeakNormal);
+        Assert.False(vm.IsDisconnected);
+
+        // Yield strength 60 MPa: 50 MPa / 60 MPa = 0.833 -> Amber
+        vm.RefreshMetrics(materialYieldStrength: 60f);
+        var amberBrush = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(vm.PressureBrush);
+        Assert.Equal(Avalonia.Media.Color.FromRgb(245, 158, 11), amberBrush.Color);
+
+        // Yield strength 40 MPa: 50 MPa / 40 MPa = 1.25 -> Red
+        vm.RefreshMetrics(materialYieldStrength: 40f);
+        var redBrush = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(vm.PressureBrush);
+        Assert.Equal(Avalonia.Media.Color.FromRgb(239, 68, 68), redBrush.Color);
+    }
+
+    [Fact]
+    public void RefreshMetrics_FlagsWarningsAppropriately()
+    {
+        var model = new LoadRegion
+        {
+            MagnitudeNewtons = 100f,
+            SurfaceAreaMm2 = 500f,
+            ModelSurfaceCoveragePercent = 45f,      // > 40% triggers warning
+            NormalConsistencyRatio = 0.15f,         // < 0.30 triggers weak normal
+            ConnectedComponentCount = 3             // > 1 triggers disconnected
+        };
+        var vm = new LoadItemViewModel(model);
+        vm.DirectionMode = LoadDirectionMode.SurfaceNormalInward;
+
+        vm.RefreshMetrics(materialYieldStrength: 50f);
+        Assert.True(vm.IsHighCoverage);
+        Assert.True(vm.IsWeakNormal);
+        Assert.True(vm.IsDisconnected);
+
+        // When direction is switched to an axis (not normal), weak normal is NOT flagged
+        vm.DirectionMode = LoadDirectionMode.AxisPositiveZ;
+        vm.RefreshMetrics(materialYieldStrength: 50f);
+        Assert.False(vm.IsWeakNormal);
+    }
 }
 

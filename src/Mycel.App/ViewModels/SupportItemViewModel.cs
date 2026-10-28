@@ -26,6 +26,27 @@ public partial class SupportItemViewModel : ObservableObject
     private int _triangleCount;
 
     [ObservableProperty]
+    private float _areaMm2;
+
+    [ObservableProperty]
+    private string _summaryText = "0 triangles · 0.0 mm²";
+
+    [ObservableProperty]
+    private bool _isHighCoverage;
+
+    [ObservableProperty]
+    private string _highCoverageTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool _isDisconnected;
+
+    [ObservableProperty]
+    private string _disconnectedTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool _isHovered;
+
+    [ObservableProperty]
     private bool _isPicking;
 
     public IBrush ColorBrush { get; } = new SolidColorBrush(Color.FromRgb(59, 130, 246)); // #3B82F6 Blue
@@ -72,6 +93,18 @@ public partial class SupportItemViewModel : ObservableObject
         Model.Triangles = triangles;
         TriangleCount = triangles.Length;
         Changed?.Invoke(this);
+    }
+
+    public void RefreshMetrics()
+    {
+        AreaMm2 = Model.SurfaceAreaMm2;
+        SummaryText = $"{TriangleCount} triangles · {AreaMm2:N1} mm²";
+
+        IsHighCoverage = Model.IsHighCoverage;
+        HighCoverageTooltip = $"Selection covers {Model.ModelSurfaceCoveragePercent:F1}% of the entire surface area (> 40%).";
+
+        IsDisconnected = Model.IsDisconnected;
+        DisconnectedTooltip = $"Selection contains {Model.ConnectedComponentCount} separate disconnected pieces.";
     }
 }
 

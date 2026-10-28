@@ -3,6 +3,7 @@
         xmlns:vm="using:Mycel.App.ViewModels"
         xmlns:controls="using:Mycel.App.Controls"
         xmlns:rendering="using:Mycel.App.Rendering"
+        xmlns:conv="using:Mycel.App.Converters"
         xmlns:vox="using:Mycel.Core.Voxelization"
         xmlns:wf="using:Mycel.Core.Workflow"
         x:Class="Mycel.App.Views.MainWindow"
@@ -15,6 +16,10 @@
         MinHeight="620"
         Background="{DynamicResource Bg0}"
         DragDrop.AllowDrop="True">
+
+  <Window.Resources>
+    <conv:LoadDirectionToStringConverter x:Key="DirectionToStringConverter" />
+  </Window.Resources>
 
   <Window.Styles>
     <!-- Stepper headers: no local Background so Fluent pointer-over/pressed templates can apply. -->
@@ -275,7 +280,13 @@
                               <ComboBox Grid.Column="1"
                                         ItemsSource="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).AvailableLoadDirections}"
                                         SelectedItem="{Binding DirectionMode}"
-                                        Width="205" FontSize="11" />
+                                        Width="205" FontSize="11">
+                                <ComboBox.ItemTemplate>
+                                  <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource DirectionToStringConverter}}" FontSize="11" />
+                                  </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                              </ComboBox>
                             </Grid>
 
                             <!-- Custom Vector Controls -->
@@ -290,15 +301,39 @@
                               </Grid>
                             </StackPanel>
 
-                            <Grid ColumnDefinitions="*,Auto">
-                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                              <ToggleButton Grid.Column="1" Content="{DynamicResource Stepper.Common.PickOnMesh}"
-                                            IsChecked="{Binding IsPicking}"
-                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickLoadCommand}"
-                                            CommandParameter="{Binding}"
-                                            Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
-                                            ToolTip.Tip="{DynamicResource Stepper.Common.PickOnMesh.Tooltip}" />
-                            </Grid>
+                            <!-- Summary row: Triangles, Area, Nominal Pressure & Warnings -->
+                            <StackPanel Spacing="{DynamicResource Spacing4}">
+                              <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing4}" VerticalAlignment="Center">
+                                  <TextBlock Text="{Binding SummaryText}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                                  <TextBlock Text="·" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                                  <TextBlock Text="{Binding NominalPressureText}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding PressureBrush}" VerticalAlignment="Center"
+                                             ToolTip.Tip="Nominal surface pressure (F / Area). Green: &lt; 50% yield, Amber: 50-100% yield, Red: &gt; 100% yield." />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1" Content="{DynamicResource Stepper.Common.PickOnMesh}"
+                                              IsChecked="{Binding IsPicking}"
+                                              Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickLoadCommand}"
+                                              CommandParameter="{Binding}"
+                                              Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                                              ToolTip.Tip="{DynamicResource Stepper.Common.PickOnMesh.Tooltip}" />
+                              </Grid>
+
+                              <!-- Warning Badges -->
+                              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing4}">
+                                <Border Background="{DynamicResource Warning}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2"
+                                        IsVisible="{Binding IsHighCoverage}" ToolTip.Tip="{Binding HighCoverageTooltip}">
+                                  <TextBlock Text="⚠️ Coverage &gt; 40%" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Bg0}" />
+                                </Border>
+                                <Border Background="{DynamicResource Info}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2"
+                                        IsVisible="{Binding IsWeakNormal}" ToolTip.Tip="{Binding WeakNormalTooltip}">
+                                  <TextBlock Text="ℹ️ Seed normal fallback" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Bg0}" />
+                                </Border>
+                                <Border Background="{DynamicResource Danger}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2"
+                                        IsVisible="{Binding IsDisconnected}" ToolTip.Tip="{Binding DisconnectedTooltip}">
+                                  <TextBlock Text="⚠️ Disconnected" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                                </Border>
+                              </StackPanel>
+                            </StackPanel>
                           </StackPanel>
                         </Border>
                       </DataTemplate>
@@ -360,15 +395,29 @@
                               <CheckBox Content="{DynamicResource Stepper.Supports.FixZ}" IsChecked="{Binding FixZ}" FontSize="11" Foreground="{DynamicResource TextPrimary}" />
                             </StackPanel>
 
-                            <Grid ColumnDefinitions="*,Auto">
-                              <TextBlock Text="{Binding TriangleCount, StringFormat='{}{0} triangles'}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
-                              <ToggleButton Grid.Column="1" Content="{DynamicResource Stepper.Common.PickOnMesh}"
-                                            IsChecked="{Binding IsPicking}"
-                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickSupportCommand}"
-                                            CommandParameter="{Binding}"
-                                            Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
-                                            ToolTip.Tip="{DynamicResource Stepper.Common.PickOnMesh.Tooltip}" />
-                            </Grid>
+                            <StackPanel Spacing="{DynamicResource Spacing4}">
+                              <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="{Binding SummaryText}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                                <ToggleButton Grid.Column="1" Content="{DynamicResource Stepper.Common.PickOnMesh}"
+                                              IsChecked="{Binding IsPicking}"
+                                              Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TogglePickSupportCommand}"
+                                              CommandParameter="{Binding}"
+                                              Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                                              ToolTip.Tip="{DynamicResource Stepper.Common.PickOnMesh.Tooltip}" />
+                              </Grid>
+
+                              <!-- Warning Badges -->
+                              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing4}">
+                                <Border Background="{DynamicResource Warning}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2"
+                                        IsVisible="{Binding IsHighCoverage}" ToolTip.Tip="{Binding HighCoverageTooltip}">
+                                  <TextBlock Text="⚠️ Coverage &gt; 40%" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Bg0}" />
+                                </Border>
+                                <Border Background="{DynamicResource Danger}" CornerRadius="{DynamicResource CornerRadius}" Padding="6,2"
+                                        IsVisible="{Binding IsDisconnected}" ToolTip.Tip="{Binding DisconnectedTooltip}">
+                                  <TextBlock Text="⚠️ Disconnected" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+                                </Border>
+                              </StackPanel>
+                            </StackPanel>
                           </StackPanel>
                         </Border>
                       </DataTemplate>
@@ -898,20 +947,95 @@
         <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="{DynamicResource Margin16T}"
                 Background="{DynamicResource Warning}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12_8}"
                 IsVisible="{Binding IsPickingActive}">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing16}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing12}">
             <TextBlock Text="{Binding PickingBannerText}" FontWeight="SemiBold" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
-            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing8}" VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Picking.Angle}" FontSize="11" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
-              <Slider Value="{Binding AngleThresholdDegrees}" Minimum="1" Maximum="90" Width="120" VerticalAlignment="Center"
-                      ToolTip.Tip="{DynamicResource Picking.Angle.Tooltip}" />
-              <TextBlock Text="{Binding AngleThresholdDegrees, StringFormat='{}{0:F0}°'}" FontSize="11" Foreground="{DynamicResource Bg0}" Width="30" VerticalAlignment="Center" />
+
+            <!-- Segmented Mode Controls -->
+            <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+              <Button Content="{DynamicResource Stepper.Selection.Mode.Flat}" Command="{Binding SetFlatModeCommand}"
+                      Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="8,4" CornerRadius="4,0,0,4" />
+              <Button Content="{DynamicResource Stepper.Selection.Mode.Smooth}" Command="{Binding SetSmoothModeCommand}"
+                      Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="8,4" CornerRadius="0,4,4,0" />
             </StackPanel>
-            <Button Content="{DynamicResource Picking.Done}" Command="{Binding CancelPickingCommand}"
-                    Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"
-                    Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
-                    ToolTip.Tip="{DynamicResource Picking.Done.Tooltip}" />
+
+            <!-- Flat Mode Tolerance Slider -->
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing8}" VerticalAlignment="Center"
+                        IsVisible="{Binding IsFlatModeActive}">
+              <TextBlock Text="{DynamicResource Stepper.Selection.Tolerance.Flat}" FontSize="11" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
+              <Slider Value="{Binding FlatToleranceDegrees}" Minimum="1" Maximum="45" Width="100" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding FlatToleranceDegrees, StringFormat='{}{0:F0}°'}" FontSize="11" Foreground="{DynamicResource Bg0}" Width="28" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Smooth Mode Tolerance & Reach Limit Sliders -->
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Spacing8}" VerticalAlignment="Center"
+                        IsVisible="{Binding IsSmoothModeActive}">
+              <TextBlock Text="{DynamicResource Stepper.Selection.Tolerance.Smooth}" FontSize="11" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
+              <Slider Value="{Binding SmoothToleranceDegrees}" Minimum="1" Maximum="89" Width="90" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding SmoothToleranceDegrees, StringFormat='{}{0:F0}°'}" FontSize="11" Foreground="{DynamicResource Bg0}" Width="28" VerticalAlignment="Center" />
+
+              <TextBlock Text="{DynamicResource Stepper.Selection.ReachLimit}" FontSize="11" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" Margin="6,0,0,0" />
+              <Slider Value="{Binding ReachLimitMm}" Minimum="1" Maximum="200" Width="90" VerticalAlignment="Center" IsEnabled="{Binding !IsReachUnlimited}" />
+              <TextBlock Text="{Binding ReachLimitMm, StringFormat='{}{0:F0}mm'}" FontSize="11" Foreground="{DynamicResource Bg0}" Width="35" VerticalAlignment="Center"
+                         IsVisible="{Binding !IsReachUnlimited}" />
+              <CheckBox Content="{DynamicResource Stepper.Selection.ReachUnlimited}" IsChecked="{Binding IsReachUnlimited}" FontSize="10" Foreground="{DynamicResource Bg0}" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Help Popover Button -->
+            <Button Content="?" Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}"
+                    FontWeight="Bold" Width="24" Height="24" Padding="0" CornerRadius="12" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    ToolTip.Tip="Selection Modes Guide">
+              <Button.Flyout>
+                <Flyout Placement="Bottom">
+                  <Border Background="{DynamicResource Bg2}" CornerRadius="{DynamicResource CornerRadius}" Padding="{DynamicResource Pad12}" MaxWidth="320">
+                    <StackPanel Spacing="{DynamicResource Spacing8}">
+                      <TextBlock Text="SURFACE SELECTION MODES" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource TextPrimary}" />
+                      <TextBlock Text="• Flat face: Grow across coplanar faces where the normal matches the seed face within tolerance. Cannot drift over curved surfaces or round fillets." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                      <TextBlock Text="• Smooth surface: Grow across adjacent faces differing by less than the threshold, stopping at sharp creases or when reaching the reach limit." FontSize="11" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+
+            <!-- Undo / Redo / Clear / Done -->
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Button Content="{DynamicResource Stepper.Selection.Undo}" Command="{Binding UndoSelectionCommand}" IsEnabled="{Binding CanUndoSelection}"
+                      Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="6,4" CornerRadius="{DynamicResource CornerRadius}"
+                      ToolTip.Tip="Undo last selection operation (Ctrl+Z)" />
+              <Button Content="{DynamicResource Stepper.Selection.Redo}" Command="{Binding RedoSelectionCommand}" IsEnabled="{Binding CanRedoSelection}"
+                      Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontSize="11" Padding="6,4" CornerRadius="{DynamicResource CornerRadius}"
+                      ToolTip.Tip="Redo last selection operation (Ctrl+Shift+Z)" />
+              <Button Content="{DynamicResource Stepper.Selection.Clear}" Command="{Binding ClearSelectionCommand}"
+                      Background="{DynamicResource Bg1}" Foreground="{DynamicResource Danger}" FontSize="11" Padding="6,4" CornerRadius="{DynamicResource CornerRadius}"
+                      ToolTip.Tip="Clear all selected triangles in this region" />
+              <Button Content="{DynamicResource Stepper.Selection.Done}" Command="{Binding CancelPickingCommand}"
+                      Background="{DynamicResource Bg1}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold"
+                      Padding="{DynamicResource Pad8_4}" CornerRadius="{DynamicResource CornerRadius}"
+                      ToolTip.Tip="{DynamicResource Picking.Done.Tooltip}" />
+            </StackPanel>
           </StackPanel>
         </Border>
+
+        <!-- Floating Show Forces Toggle (Top Right) -->
+        <ToggleButton HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,16,0"
+                      IsChecked="{Binding ShowForces}"
+                      Command="{Binding ToggleShowForcesCommand}"
+                      Background="{DynamicResource Bg1}" Padding="{DynamicResource Pad8_4}"
+                      CornerRadius="{DynamicResource CornerRadius}"
+                      ToolTip.Tip="{DynamicResource Viewport.ShowForces.Tooltip}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="🎯" FontSize="12" />
+            <TextBlock Text="Forces (F)" FontSize="11" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" />
+          </StackPanel>
+        </ToggleButton>
+
+        <!-- Cursor Hover Live Preview Badge -->
+        <Canvas IsHitTestVisible="False">
+          <Border x:Name="CursorHoverBadge" Background="{DynamicResource Bg1}" BorderBrush="{DynamicResource Warning}" BorderThickness="1"
+                  CornerRadius="{DynamicResource CornerRadius}" Padding="6,3" IsVisible="False">
+            <TextBlock x:Name="CursorHoverText" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
+          </Border>
+        </Canvas>
 
         <!-- 2. Outdated Banner Overlay -->
         <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="{DynamicResource Margin16T}"

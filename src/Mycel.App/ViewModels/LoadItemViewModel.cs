@@ -47,6 +47,42 @@ public partial class LoadItemViewModel : ObservableObject
     private int _triangleCount;
 
     [ObservableProperty]
+    private float _areaMm2;
+
+    [ObservableProperty]
+    private string _summaryText = "0 triangles · 0.0 mm²";
+
+    [ObservableProperty]
+    private float _nominalPressureMpa;
+
+    [ObservableProperty]
+    private string _nominalPressureText = "0.00 MPa";
+
+    [ObservableProperty]
+    private IBrush _pressureBrush = new SolidColorBrush(Color.FromRgb(156, 163, 175)); // Neutral grey
+
+    [ObservableProperty]
+    private bool _isHighCoverage;
+
+    [ObservableProperty]
+    private string _highCoverageTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool _isWeakNormal;
+
+    [ObservableProperty]
+    private string _weakNormalTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool _isDisconnected;
+
+    [ObservableProperty]
+    private string _disconnectedTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool _isHovered;
+
+    [ObservableProperty]
     private bool _isPicking;
 
     public IBrush ColorBrush { get; } = new SolidColorBrush(Color.FromRgb(249, 115, 22)); // #F97316 Orange
@@ -146,5 +182,31 @@ public partial class LoadItemViewModel : ObservableObject
         Model.Triangles = triangles;
         TriangleCount = triangles.Length;
         Changed?.Invoke(this);
+    }
+
+    public void RefreshMetrics(float materialYieldStrength = 50f)
+    {
+        AreaMm2 = Model.SurfaceAreaMm2;
+        SummaryText = $"{TriangleCount} triangles · {AreaMm2:N1} mm²";
+        NominalPressureMpa = Model.NominalPressureMpa;
+        NominalPressureText = $"{NominalPressureMpa:F2} MPa";
+
+        float yield = materialYieldStrength > 0f ? materialYieldStrength : 50f;
+        float ratio = NominalPressureMpa / yield;
+
+        PressureBrush = ratio > 1.0f
+            ? new SolidColorBrush(Color.FromRgb(239, 68, 68))    // Red (> 100% yield)
+            : ratio >= 0.5f
+                ? new SolidColorBrush(Color.FromRgb(245, 158, 11)) // Amber (50-100% yield)
+                : new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green (< 50% yield)
+
+        IsHighCoverage = Model.IsHighCoverage;
+        HighCoverageTooltip = $"Selection covers {Model.ModelSurfaceCoveragePercent:F1}% of the entire surface area (> 40%).";
+
+        IsWeakNormal = Model.IsWeakNormal;
+        WeakNormalTooltip = $"Opposing normals on curved/closed selection (|Σ A·n|/Σ A = {Model.NormalConsistencyRatio:F2} < 0.30).\nUsing seed normal ({Model.FallbackSeedNormal.X:F2}, {Model.FallbackSeedNormal.Y:F2}, {Model.FallbackSeedNormal.Z:F2}) for force vector.";
+
+        IsDisconnected = Model.IsDisconnected;
+        DisconnectedTooltip = $"Selection contains {Model.ConnectedComponentCount} separate disconnected pieces.";
     }
 }

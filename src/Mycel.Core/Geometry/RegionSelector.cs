@@ -7,6 +7,24 @@ using System.Runtime.CompilerServices;
 namespace Mycel.Core.Geometry;
 
 /// <summary>
+/// Mode of operation for interactive surface region growing.
+/// </summary>
+public enum SelectionMode
+{
+    /// <summary>
+    /// Grows only across faces whose normal is within tolerance of the seed triangle's normal.
+    /// Strictly prevents angular drift across curved surfaces.
+    /// </summary>
+    FlatFace,
+
+    /// <summary>
+    /// Grows across neighbour-to-neighbour shared edges whose dihedral angle does not exceed tolerance,
+    /// optionally bounded by a maximum Euclidean distance from the seed.
+    /// </summary>
+    SmoothSurface
+}
+
+/// <summary>
 /// Set operation applied when modifying an existing triangle selection.
 /// </summary>
 public enum SelectionModifyMode
@@ -148,12 +166,38 @@ public sealed class RegionSelector
         return (int)key;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector3 ComputeTriangleCentroid(int tri)
+    {
+        ReadOnlySpan<int> indices = _mesh.Indices.Span;
+        ReadOnlySpan<Vector3> positions = _mesh.Positions.Span;
+        int baseIdx = tri * 3;
+        Vector3 v0 = positions[indices[baseIdx]];
+        Vector3 v1 = positions[indices[baseIdx + 1]];
+        Vector3 v2 = positions[indices[baseIdx + 2]];
+        return (v0 + v1 + v2) / 3.0f;
+    }
+
     /// <summary>
     /// Grows a connected surface region starting at <paramref name="seedTriangle"/> while the dihedral
     /// angle between adjacent face normals is at most <paramref name="maxDihedralAngleDegrees"/>.
-    /// Returns a sorted array of selected triangle indices.
+    /// Preserved for backward compatibility.
     /// </summary>
     public int[] GrowRegion(int seedTriangle, float maxDihedralAngleDegrees = 30.0f)
+    {
+        return GrowRegion(seedTriangle, SelectionMode.SmoothSurface, maxDihedralAngleDegrees, float.PositiveInfinity);
+    }
+
+    /// <summary>
+    /// Grows a connected surface region starting at <paramref name="seedTriangle"/> according to
+    /// <paramref name="mode"/>, <paramref name="toleranceDegrees"/>, and an optional <paramref name="reachLimit"/>.
+    /// Returns a sorted array of selected triangle indices.
+    /// </summary>
+    public int[] GrowRegion(
+        int seedTriangle,
+        SelectionMode mode,
+        float toleranceDegrees,
+        float reachLimit = float.PositiveInfinity)
     {
         int triCount = _mesh.TriangleCount;
         if (seedTriangle < 0 || seedTriangle >= triCount)
@@ -161,8 +205,13 @@ public sealed class RegionSelector
             return [];
         }
 
-        float cosThreshold = MathF.Cos(Math.Clamp(maxDihedralAngleDegrees, 0f, 180f) * (MathF.PI / 180.0f));
+        float cosThreshold = MathF.Cos(Math.Clamp(toleranceDegrees, 0f, 180f) * (MathF.PI / 180.0f));
         ReadOnlySpan<Vector3> normals = _mesh.TriangleNormals.Span;
+        Vector3 nSeed = normals[seedTriangle];
+        Vector3 cSeed = mode == SelectionMode.SmoothSurface && !float.IsPositiveInfinity(reachLimit)
+            ? ComputeTriangleCentroid(seedTriangle)
+            : Vector3.Zero;
+        float reachLimitSq = float.IsPositiveInfinity(reachLimit) ? float.PositiveInfinity : reachLimit * reachLimit;
 
         int stamp = ++_currentStamp;
         if (stamp == int.MaxValue)
@@ -192,10 +241,36 @@ public sealed class RegionSelector
                 }
 
                 Vector3 nNb = normals[nb];
-                if (Vector3.Dot(nCurr, nNb) >= cosThreshold)
+
+                if (mode == SelectionMode.FlatFace)
                 {
-                    _visitStamp[nb] = stamp;
-                    _bfsQueue[tail++] = nb;
+                    // In flat mode, the candidate normal must strictly match the SEED normal.
+                    if (Vector3.Dot(nSeed, nNb) >= cosThreshold)
+                    {
+                        _visitStamp[nb] = stamp;
+                        _bfsQueue[tail++] = nb;
+                    }
+                }
+                else
+                {
+                    // In smooth mode, compare neighbour-to-neighbour dihedral angle and check reach limit.
+                    if (Vector3.Dot(nCurr, nNb) >= cosThreshold)
+                    {
+                        if (float.IsPositiveInfinity(reachLimitSq))
+                        {
+                            _visitStamp[nb] = stamp;
+                            _bfsQueue[tail++] = nb;
+                        }
+                        else
+                        {
+                            Vector3 cNb = ComputeTriangleCentroid(nb);
+                            if (Vector3.DistanceSquared(cSeed, cNb) <= reachLimitSq)
+                            {
+                                _visitStamp[nb] = stamp;
+                                _bfsQueue[tail++] = nb;
+                            }
+                        }
+                    }
                 }
             }
         }

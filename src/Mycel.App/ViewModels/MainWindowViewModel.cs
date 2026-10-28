@@ -246,21 +246,186 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private float _angleThresholdDegrees = 30.0f;
 
+    [ObservableProperty]
+    private SelectionMode _currentSelectionMode = SelectionMode.FlatFace;
+
+    [ObservableProperty]
+    private float _flatToleranceDegrees = 10.0f;
+
+    [ObservableProperty]
+    private float _smoothToleranceDegrees = 30.0f;
+
+    [ObservableProperty]
+    private float _reachLimitMm = 20.0f;
+
+    [ObservableProperty]
+    private bool _isReachUnlimited = false;
+
+    [ObservableProperty]
+    private bool _showForces = true;
+
+    [ObservableProperty]
+    private Guid? _activeHoveredRegionId;
+
+    public bool IsFlatModeActive => CurrentSelectionMode == SelectionMode.FlatFace;
+    public bool IsSmoothModeActive => CurrentSelectionMode == SelectionMode.SmoothSurface;
+
+    public float ActiveToleranceDegrees => CurrentSelectionMode == SelectionMode.FlatFace
+        ? FlatToleranceDegrees
+        : SmoothToleranceDegrees;
+
+    public float ActiveReachLimit => (CurrentSelectionMode == SelectionMode.SmoothSurface && !IsReachUnlimited)
+        ? ReachLimitMm
+        : float.PositiveInfinity;
+
     public int LastClickedSeedTriangle { get; set; } = -1;
     public SelectionModifyMode LastClickedMode { get; set; } = SelectionModifyMode.Replace;
     private int[] _baseTrianglesBeforeLastClick = [];
 
-    public event Action<float>? AngleThresholdChanged;
+    private readonly Stack<int[]> _selectionUndoStack = new();
+    private readonly Stack<int[]> _selectionRedoStack = new();
 
-    partial void OnAngleThresholdDegreesChanged(float value)
+    public bool CanUndoSelection => _selectionUndoStack.Count > 0;
+    public bool CanRedoSelection => _selectionRedoStack.Count > 0;
+
+    public event Action<float>? AngleThresholdChanged;
+    public event Action? SelectionModeOrToleranceChanged;
+
+    partial void OnCurrentSelectionModeChanged(SelectionMode value)
+    {
+        OnPropertyChanged(nameof(IsFlatModeActive));
+        OnPropertyChanged(nameof(IsSmoothModeActive));
+        OnPropertyChanged(nameof(ActiveToleranceDegrees));
+        OnPropertyChanged(nameof(ActiveReachLimit));
+        UpdateBannerText();
+        ReGrowLastSelection();
+        SelectionModeOrToleranceChanged?.Invoke();
+    }
+
+    partial void OnFlatToleranceDegreesChanged(float value)
+    {
+        OnPropertyChanged(nameof(ActiveToleranceDegrees));
+        ReGrowLastSelection();
+        AngleThresholdChanged?.Invoke(value);
+        SelectionModeOrToleranceChanged?.Invoke();
+    }
+
+    partial void OnSmoothToleranceDegreesChanged(float value)
+    {
+        OnPropertyChanged(nameof(ActiveToleranceDegrees));
+        ReGrowLastSelection();
+        AngleThresholdChanged?.Invoke(value);
+        SelectionModeOrToleranceChanged?.Invoke();
+    }
+
+    partial void OnReachLimitMmChanged(float value)
+    {
+        OnPropertyChanged(nameof(ActiveReachLimit));
+        ReGrowLastSelection();
+        SelectionModeOrToleranceChanged?.Invoke();
+    }
+
+    partial void OnIsReachUnlimitedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ActiveReachLimit));
+        ReGrowLastSelection();
+        SelectionModeOrToleranceChanged?.Invoke();
+    }
+
+    partial void OnShowForcesChanged(bool value)
+    {
+        RefreshBoundaryGlyphs();
+    }
+
+    partial void OnActiveHoveredRegionIdChanged(Guid? value)
+    {
+        RefreshBoundaryGlyphs();
+    }
+
+    private void ReGrowLastSelection()
     {
         if (IsPickingActive && ActivePickingTarget != null && LastClickedSeedTriangle >= 0 && CurrentSelector != null)
         {
-            int[] newTriangles = CurrentSelector.GrowRegion(LastClickedSeedTriangle, value);
+            int[] newTriangles = CurrentSelector.GrowRegion(
+                LastClickedSeedTriangle,
+                CurrentSelectionMode,
+                ActiveToleranceDegrees,
+                ActiveReachLimit);
             int[] updated = RegionSelector.ModifySelection(_baseTrianglesBeforeLastClick, newTriangles, LastClickedMode);
             ApplyActiveSelectionTriangles(updated);
         }
+    }
+
+    partial void OnAngleThresholdDegreesChanged(float value)
+    {
+        _smoothToleranceDegrees = value;
+        _flatToleranceDegrees = value;
+        OnPropertyChanged(nameof(SmoothToleranceDegrees));
+        OnPropertyChanged(nameof(FlatToleranceDegrees));
+        OnPropertyChanged(nameof(ActiveToleranceDegrees));
+        ReGrowLastSelection();
         AngleThresholdChanged?.Invoke(value);
+        SelectionModeOrToleranceChanged?.Invoke();
+    }
+
+    public void PushSelectionUndo(int[] beforeModification)
+    {
+        _selectionUndoStack.Push(beforeModification ?? []);
+        _selectionRedoStack.Clear();
+        OnPropertyChanged(nameof(CanUndoSelection));
+        OnPropertyChanged(nameof(CanRedoSelection));
+    }
+
+    [RelayCommand]
+    public void UndoSelection()
+    {
+        if (!IsPickingActive || _selectionUndoStack.Count == 0) return;
+        int[] current = GetActiveSelectionTriangles();
+        _selectionRedoStack.Push(current);
+        int[] previous = _selectionUndoStack.Pop();
+        ApplyActiveSelectionTriangles(previous);
+        OnPropertyChanged(nameof(CanUndoSelection));
+        OnPropertyChanged(nameof(CanRedoSelection));
+    }
+
+    [RelayCommand]
+    public void RedoSelection()
+    {
+        if (!IsPickingActive || _selectionRedoStack.Count == 0) return;
+        int[] current = GetActiveSelectionTriangles();
+        _selectionUndoStack.Push(current);
+        int[] next = _selectionRedoStack.Pop();
+        ApplyActiveSelectionTriangles(next);
+        OnPropertyChanged(nameof(CanUndoSelection));
+        OnPropertyChanged(nameof(CanRedoSelection));
+    }
+
+    [RelayCommand]
+    public void ClearSelection()
+    {
+        if (!IsPickingActive) return;
+        int[] current = GetActiveSelectionTriangles();
+        PushSelectionUndo(current);
+        ApplyActiveSelectionTriangles([]);
+        LastClickedSeedTriangle = -1;
+    }
+
+    [RelayCommand]
+    public void ToggleShowForces()
+    {
+        ShowForces = !ShowForces;
+    }
+
+    [RelayCommand]
+    public void SetFlatMode()
+    {
+        CurrentSelectionMode = SelectionMode.FlatFace;
+    }
+
+    [RelayCommand]
+    public void SetSmoothMode()
+    {
+        CurrentSelectionMode = SelectionMode.SmoothSurface;
     }
 
     public void SetBaseTrianglesBeforeLastClick(int[] triangles)
@@ -293,6 +458,11 @@ public partial class MainWindowViewModel : ObservableObject
         else if (ActivePickingTarget is PreserveItemViewModel pvm)
         {
             pvm.UpdateTriangles(triangles);
+            if (Workflow.State.Mesh != null)
+            {
+                pvm.Model.UpdateGeometryMetrics(Workflow.State.Mesh, pvm.Model.SeedTriangle);
+                pvm.RefreshMetrics();
+            }
             SelectionOverlayUpdated?.Invoke(pvm.Id, pvm.Model.Triangles, pvm.ColorRgba);
             QueueAutosave();
         }
@@ -669,6 +839,8 @@ public partial class MainWindowViewModel : ObservableObject
             // Check for units guard: max dimension < 1 mm or > 2000 mm
             var (min, max) = mesh.BBox;
             Vector3 size = max - min;
+            float diag = size.Length();
+            ReachLimitMm = MathF.Round(diag * 0.25f, 1);
             float maxDim = Math.Max(size.X, Math.Max(size.Y, size.Z));
 
             if (maxDim < 1.0f || maxDim > 2000.0f)
@@ -837,6 +1009,21 @@ public partial class MainWindowViewModel : ObservableObject
         DisarmPicking();
     }
 
+    private void UpdateBannerText()
+    {
+        if (!IsPickingActive || ActivePickingTarget == null) return;
+        string name = ActivePickingTarget switch
+        {
+            LoadItemViewModel l => l.Name,
+            SupportItemViewModel s => s.Name,
+            PreserveItemViewModel p => p.Name,
+            _ => "Region"
+        };
+
+        string modeName = CurrentSelectionMode == SelectionMode.FlatFace ? "Flat face" : "Smooth surface";
+        PickingBannerText = $"Selecting '{name}' · {modeName} (Shift=Add, Ctrl=Subtract, Esc=Done)";
+    }
+
     public void ArmPicking(object target)
     {
         DisarmPicking();
@@ -846,18 +1033,17 @@ public partial class MainWindowViewModel : ObservableObject
         if (target is LoadItemViewModel lvm)
         {
             lvm.IsPicking = true;
-            PickingBannerText = $"Selecting surface for '{lvm.Name}' — Click surface (Esc when done)";
         }
         else if (target is SupportItemViewModel svm)
         {
             svm.IsPicking = true;
-            PickingBannerText = $"Selecting surface for '{svm.Name}' — Click surface (Esc when done)";
         }
         else if (target is PreserveItemViewModel pvm)
         {
             pvm.IsPicking = true;
-            PickingBannerText = $"Selecting surface for '{pvm.Name}' — Click surface (Esc when done)";
         }
+
+        UpdateBannerText();
     }
 
     public void DisarmPicking()
@@ -872,6 +1058,10 @@ public partial class MainWindowViewModel : ObservableObject
         LastClickedSeedTriangle = -1;
         LastClickedMode = SelectionModifyMode.Replace;
         _baseTrianglesBeforeLastClick = [];
+        _selectionUndoStack.Clear();
+        _selectionRedoStack.Clear();
+        OnPropertyChanged(nameof(CanUndoSelection));
+        OnPropertyChanged(nameof(CanRedoSelection));
     }
 
     // Material Preset changes
@@ -1170,16 +1360,25 @@ public partial class MainWindowViewModel : ObservableObject
         var (min, max) = Workflow.State.Mesh.BBox;
         float diag = (max - min).Length();
 
+        if (!ShowForces)
+        {
+            GlyphsUpdated?.Invoke([], diag);
+            return;
+        }
+
         var list = new List<Viewport3DControl.BoundaryGlyphData>();
         foreach (var l in Workflow.State.Loads)
         {
             if (l.Triangles.Length > 0)
             {
                 list.Add(new Viewport3DControl.BoundaryGlyphData(
+                    RegionId: l.Id,
                     IsLoad: true,
-                    Position: l.Centroid,
+                    Position: l.AnchorPoint,
                     Direction: l.ComputeUnitDirection(),
-                    Magnitude: l.MagnitudeNewtons));
+                    Magnitude: l.MagnitudeNewtons,
+                    IsHovered: l.Id == ActiveHoveredRegionId,
+                    DistributedSamples: l.SampleDistributedPoints(Workflow.State.Mesh, 40)));
             }
         }
 
@@ -1188,10 +1387,13 @@ public partial class MainWindowViewModel : ObservableObject
             if (s.Triangles.Length > 0)
             {
                 list.Add(new Viewport3DControl.BoundaryGlyphData(
+                    RegionId: s.Id,
                     IsLoad: false,
-                    Position: s.Centroid,
+                    Position: s.AnchorPoint,
                     Direction: Vector3.UnitZ,
-                    Magnitude: 0f));
+                    Magnitude: 0f,
+                    IsHovered: s.Id == ActiveHoveredRegionId,
+                    DistributedSamples: null));
             }
         }
 
@@ -1329,7 +1531,8 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (Workflow.State.Mesh != null)
         {
-            item.Model.UpdateGeometryMetrics(Workflow.State.Mesh);
+            item.Model.UpdateGeometryMetrics(Workflow.State.Mesh, item.Model.SeedTriangle);
+            item.RefreshMetrics((float)MaterialYieldXy);
         }
         SelectionOverlayUpdated?.Invoke(item.Id, item.Model.Triangles, item.ColorRgba);
         RefreshBoundaryGlyphs();
@@ -1341,7 +1544,8 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (Workflow.State.Mesh != null)
         {
-            item.Model.UpdateGeometryMetrics(Workflow.State.Mesh);
+            item.Model.UpdateGeometryMetrics(Workflow.State.Mesh, item.Model.SeedTriangle);
+            item.RefreshMetrics();
         }
         SelectionOverlayUpdated?.Invoke(item.Id, item.Model.Triangles, item.ColorRgba);
         RefreshBoundaryGlyphs();

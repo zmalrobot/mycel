@@ -182,6 +182,84 @@
   <data name="Stepper.Loads.Direction" xml:space="preserve">
     <value>Direction:</value>
   </data>
+  <data name="Stepper.Loads.Direction.SurfaceNormalInward" xml:space="preserve">
+    <value>Into the surface (along normal)</value>
+  </data>
+  <data name="Stepper.Loads.Direction.SurfaceNormalOutward" xml:space="preserve">
+    <value>Out of the surface</value>
+  </data>
+  <data name="Stepper.Loads.Direction.AxisPositiveX" xml:space="preserve">
+    <value>+X (Right)</value>
+  </data>
+  <data name="Stepper.Loads.Direction.AxisNegativeX" xml:space="preserve">
+    <value>−X (Left)</value>
+  </data>
+  <data name="Stepper.Loads.Direction.AxisPositiveY" xml:space="preserve">
+    <value>+Y (Front)</value>
+  </data>
+  <data name="Stepper.Loads.Direction.AxisNegativeY" xml:space="preserve">
+    <value>−Y (Back)</value>
+  </data>
+  <data name="Stepper.Loads.Direction.AxisPositiveZ" xml:space="preserve">
+    <value>+Z (Up)</value>
+  </data>
+  <data name="Stepper.Loads.Direction.AxisNegativeZ" xml:space="preserve">
+    <value>−Z (Down)</value>
+  </data>
+  <data name="Stepper.Loads.Direction.CustomVector" xml:space="preserve">
+    <value>Custom vector…</value>
+  </data>
+  <data name="Stepper.Selection.Mode.Flat" xml:space="preserve">
+    <value>Flat face</value>
+  </data>
+  <data name="Stepper.Selection.Mode.Smooth" xml:space="preserve">
+    <value>Smooth surface</value>
+  </data>
+  <data name="Stepper.Selection.Tolerance.Flat" xml:space="preserve">
+    <value>Flatness tolerance (°):</value>
+  </data>
+  <data name="Stepper.Selection.Tolerance.Smooth" xml:space="preserve">
+    <value>Stop at edges sharper than (°):</value>
+  </data>
+  <data name="Stepper.Selection.ReachLimit" xml:space="preserve">
+    <value>Reach limit (mm):</value>
+  </data>
+  <data name="Stepper.Selection.ReachUnlimited" xml:space="preserve">
+    <value>Unlimited</value>
+  </data>
+  <data name="Stepper.Selection.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Stepper.Selection.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Stepper.Selection.Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="Stepper.Selection.Done" xml:space="preserve">
+    <value>Done (Esc)</value>
+  </data>
+  <data name="Stepper.Selection.Help.Flat" xml:space="preserve">
+    <value>Flat face: grows only across facets whose normal matches the clicked seed face within tolerance. Strictly prevents drifting over curved surfaces.</value>
+  </data>
+  <data name="Stepper.Selection.Help.Smooth" xml:space="preserve">
+    <value>Smooth surface: propagates across adjacent facets differing by less than the threshold, stopping at sharp creases or when reaching the reach limit.</value>
+  </data>
+  <data name="Stepper.Loads.Warning.HighCoverage" xml:space="preserve">
+    <value>Selection covers > 40% of the entire model surface area.</value>
+  </data>
+  <data name="Stepper.Loads.Warning.WeakNormal" xml:space="preserve">
+    <value>Curved or closed selection has opposing normals. Using seed normal ({0:F2}, {1:F2}, {2:F2}) as direction.</value>
+  </data>
+  <data name="Stepper.Loads.Warning.Disconnected" xml:space="preserve">
+    <value>Selection contains multiple disconnected patches ({0} separate pieces).</value>
+  </data>
+  <data name="Stepper.Loads.Warning.SmallArea" xml:space="preserve">
+    <value>Selected surface area is smaller than a single voxel element.</value>
+  </data>
+  <data name="Viewport.ShowForces.Tooltip" xml:space="preserve">
+    <value>Toggle 3D Force &amp; Support Glyphs (F)</value>
+  </data>
   <data name="Stepper.Loads.CustomX.Tooltip" xml:space="preserve">
     <value>Custom force direction X component</value>
   </data>

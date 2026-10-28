@@ -106,6 +106,111 @@ public sealed class RegionSelectorTests
     }
 
     [Fact]
+    public void GrowRegion_FlatFace_OnCylinderLateralWall_SelectsNarrowStrip()
+    {
+        int segments = 64;
+        IndexedMesh cyl = LoadMesh(StlFixtures.Cylinder(10f, 30f, segments, holeRadius: 0f));
+        RegionSelector selector = new(cyl);
+
+        int lateralSeed = -1;
+        for (int i = 0; i < cyl.TriangleCount; i++)
+        {
+            if (MathF.Abs(cyl.TriangleNormals.Span[i].Z) < 0.01f)
+            {
+                lateralSeed = i;
+                break;
+            }
+        }
+        Assert.True(lateralSeed >= 0);
+
+        // FlatFace mode with 10 degree tolerance: should select only faces whose normal is within 10 degrees of seed
+        // Each segment is 360 / 64 = 5.625 degrees, so at most ~3 segments (6 triangles) can be selected, NOT all 128!
+        int[] flatRegion = selector.GrowRegion(lateralSeed, SelectionMode.FlatFace, toleranceDegrees: 10f);
+        Assert.True(flatRegion.Length <= 6, $"Expected narrow strip (<= 6 triangles), got {flatRegion.Length}");
+        Assert.True(flatRegion.Length >= 2);
+
+        // While SmoothSurface without reach selects all 128
+        int[] smoothAll = selector.GrowRegion(lateralSeed, SelectionMode.SmoothSurface, toleranceDegrees: 30f);
+        Assert.Equal(segments * 2, smoothAll.Length);
+    }
+
+    [Fact]
+    public void GrowRegion_SmoothSurface_WithReachLimit_ConstrainsSelection()
+    {
+        int segments = 64;
+        IndexedMesh cyl = LoadMesh(StlFixtures.Cylinder(10f, 10f, segments, holeRadius: 0f));
+        RegionSelector selector = new(cyl);
+
+        int lateralSeed = -1;
+        for (int i = 0; i < cyl.TriangleCount; i++)
+        {
+            if (MathF.Abs(cyl.TriangleNormals.Span[i].Z) < 0.01f)
+            {
+                lateralSeed = i;
+                break;
+            }
+        }
+        Assert.True(lateralSeed >= 0);
+
+        // With small reach limit (e.g. 5 mm on a cylinder of radius 10), it cannot select all 128 triangles
+        int[] boundedRegion = selector.GrowRegion(
+            lateralSeed,
+            SelectionMode.SmoothSurface,
+            toleranceDegrees: 30f,
+            reachLimit: 5.0f);
+
+        Assert.True(boundedRegion.Length < segments * 2, $"Expected bounded region < 128, got {boundedRegion.Length}");
+        Assert.True(boundedRegion.Length >= 2);
+    }
+
+    [Fact]
+    public void GrowRegion_OnObj1Assemblaggio_PegSeed_FlatFacePreventsSpill()
+    {
+        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../examples/obj_1_Assemblaggio.stl");
+        if (!File.Exists(path))
+        {
+            path = Path.GetFullPath("examples/obj_1_Assemblaggio.stl");
+        }
+
+        if (!File.Exists(path))
+        {
+            return; // Skip if example STL not in relative path
+        }
+
+        using var fs = File.OpenRead(path);
+        var (mesh, _) = StlReader.Read(fs);
+        var selector = new RegionSelector(mesh);
+
+        // Find a seed triangle on the top surface of the peg (Z near max, normal pointing +Z)
+        float maxZ = mesh.BBox.Max.Z;
+        int pegTopSeed = -1;
+        for (int i = 0; i < mesh.TriangleCount; i++)
+        {
+            Vector3 n = mesh.TriangleNormals.Span[i];
+            if (n.Z > 0.99f)
+            {
+                mesh.GetTriangle(i, out Vector3 v0, out Vector3 v1, out Vector3 v2);
+                float avgZ = (v0.Z + v1.Z + v2.Z) / 3f;
+                if (avgZ >= maxZ - 1.0f)
+                {
+                    pegTopSeed = i;
+                    break;
+                }
+            }
+        }
+
+        Assert.True(pegTopSeed >= 0, "Peg top seed triangle not found");
+
+        // In FlatFace mode with 10 degree tolerance, it selects only coplanar top face and CANNOT drift to 1498 triangles!
+        int[] flatSelection = selector.GrowRegion(pegTopSeed, SelectionMode.FlatFace, toleranceDegrees: 10f);
+        Assert.True(flatSelection.Length < 100, $"FlatFace should be confined to top face (< 100 tris), got {flatSelection.Length}");
+
+        // SmoothSurface at 30 deg without reach reproduces baseline flood of 1498 triangles
+        int[] smoothFlood = selector.GrowRegion(pegTopSeed, SelectionMode.SmoothSurface, toleranceDegrees: 30f);
+        Assert.Equal(1498, smoothFlood.Length);
+    }
+
+    [Fact]
     public void ModifySelection_SupportsReplaceAddAndSubtractKeepingSortedOrder()
     {
         int[] initial = [0, 1, 5, 8];

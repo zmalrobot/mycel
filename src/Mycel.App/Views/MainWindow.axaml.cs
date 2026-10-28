@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         };
 
         vm.AngleThresholdChanged += OnAngleThresholdChanged;
+        vm.SelectionModeOrToleranceChanged += () => OnAngleThresholdChanged(vm.ActiveToleranceDegrees);
         vm.ShowDimensionsChanged += show =>
         {
             Viewport.ShowDimensions = show;
@@ -468,6 +469,8 @@ public partial class MainWindow : Window
         Viewport.FitView();
     }
 
+    private CancellationTokenSource? _hoverCts;
+
     private void OnViewportPointerMoved(Vector2 pixelPos)
     {
         if (!ViewModel.IsPickingActive)
@@ -477,6 +480,7 @@ public partial class MainWindow : Window
                 _lastHoverSeedTriangle = -1;
                 _currentHoveredTriangles = [];
                 Viewport.SetHoverTriangles([]);
+                UpdateCursorHoverBadge(null, 0, 0f);
             }
             return;
         }
@@ -505,20 +509,90 @@ public partial class MainWindow : Window
                 _lastHoverSeedTriangle = -1;
                 _currentHoveredTriangles = [];
                 Viewport.SetHoverTriangles([]);
+                UpdateCursorHoverBadge(null, 0, 0f);
             }
             return;
         }
 
-        float angle = ViewModel.AngleThresholdDegrees;
-        if (hit.TriangleIndex == _lastHoverSeedTriangle && MathF.Abs(angle - _lastHoverAngle) < 1e-3f)
+        float tol = ViewModel.ActiveToleranceDegrees;
+        var mode = ViewModel.CurrentSelectionMode;
+        float reach = ViewModel.ActiveReachLimit;
+
+        if (hit.TriangleIndex == _lastHoverSeedTriangle &&
+            MathF.Abs(tol - _lastHoverAngle) < 1e-3f)
         {
+            UpdateCursorHoverBadge(pixelPos, _currentHoveredTriangles.Length, _lastHoverArea);
             return;
         }
 
         _lastHoverSeedTriangle = hit.TriangleIndex;
-        _lastHoverAngle = angle;
-        _currentHoveredTriangles = selector.GrowRegion(hit.TriangleIndex, angle);
-        Viewport.SetHoverTriangles(_currentHoveredTriangles);
+        _lastHoverAngle = tol;
+
+        uint hoverColor = ViewModel.ActivePickingTarget switch
+        {
+            LoadItemViewModel => 0xFDBA74CCu,    // Light orange
+            SupportItemViewModel => 0x93C5FDCCu, // Light blue
+            _ => 0x86EFACCCu                     // Light green
+        };
+
+        _hoverCts?.Cancel();
+        _hoverCts = new CancellationTokenSource();
+        var ct = _hoverCts.Token;
+
+        int seed = hit.TriangleIndex;
+        Task.Run(() =>
+        {
+            if (ct.IsCancellationRequested) return;
+            int[] grown = selector.GrowRegion(seed, mode, tol, reach);
+            if (ct.IsCancellationRequested) return;
+
+            float area = 0f;
+            var mesh = ViewModel.Workflow.State.Mesh;
+            if (mesh != null)
+            {
+                ReadOnlySpan<int> idx = mesh.Indices.Span;
+                ReadOnlySpan<Vector3> pos = mesh.Positions.Span;
+                foreach (int t in grown)
+                {
+                    if (t >= 0 && t < mesh.TriangleCount)
+                    {
+                        Vector3 v0 = pos[idx[t * 3]];
+                        Vector3 v1 = pos[idx[t * 3 + 1]];
+                        Vector3 v2 = pos[idx[t * 3 + 2]];
+                        area += 0.5f * Vector3.Cross(v1 - v0, v2 - v0).Length();
+                    }
+                }
+            }
+
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (ct.IsCancellationRequested) return;
+                _currentHoveredTriangles = grown;
+                _lastHoverArea = area;
+                Viewport.SetHoverTriangles(grown, hoverColor);
+                UpdateCursorHoverBadge(pixelPos, grown.Length, area);
+            });
+        }, ct);
+    }
+
+    private float _lastHoverArea;
+
+    private void UpdateCursorHoverBadge(Vector2? pos, int triCount, float areaMm2)
+    {
+        var badge = this.FindControl<Border>("CursorHoverBadge");
+        var text = this.FindControl<TextBlock>("CursorHoverText");
+        if (badge == null || text == null) return;
+
+        if (pos == null || triCount == 0 || !ViewModel.IsPickingActive)
+        {
+            badge.IsVisible = false;
+            return;
+        }
+
+        text.Text = $"{triCount} triangles · {areaMm2:N1} mm²";
+        Canvas.SetLeft(badge, pos.Value.X + 16);
+        Canvas.SetTop(badge, pos.Value.Y + 16);
+        badge.IsVisible = true;
     }
 
     private void OnAngleThresholdChanged(float angle)
@@ -526,7 +600,11 @@ public partial class MainWindow : Window
         if (ViewModel?.CurrentSelector is { } selector && _lastHoverSeedTriangle >= 0)
         {
             _lastHoverAngle = angle;
-            _currentHoveredTriangles = selector.GrowRegion(_lastHoverSeedTriangle, angle);
+            _currentHoveredTriangles = selector.GrowRegion(
+                _lastHoverSeedTriangle,
+                ViewModel.CurrentSelectionMode,
+                ViewModel.ActiveToleranceDegrees,
+                ViewModel.ActiveReachLimit);
             Viewport.SetHoverTriangles(_currentHoveredTriangles);
         }
     }
@@ -561,6 +639,8 @@ public partial class MainWindow : Window
         {
             if (mode == SelectionModifyMode.Replace)
             {
+                int[] curr = ViewModel.GetActiveSelectionTriangles();
+                ViewModel.PushSelectionUndo(curr);
                 ViewModel.LastClickedSeedTriangle = -1;
                 ViewModel.LastClickedMode = SelectionModifyMode.Replace;
                 ViewModel.SetBaseTrianglesBeforeLastClick([]);
@@ -570,11 +650,16 @@ public partial class MainWindow : Window
         }
 
         int[] current = ViewModel.GetActiveSelectionTriangles();
+        ViewModel.PushSelectionUndo(current);
         ViewModel.LastClickedSeedTriangle = hit.TriangleIndex;
         ViewModel.LastClickedMode = mode;
         ViewModel.SetBaseTrianglesBeforeLastClick(mode == SelectionModifyMode.Replace ? [] : current);
 
-        int[] region = selector.GrowRegion(hit.TriangleIndex, ViewModel.AngleThresholdDegrees);
+        int[] region = selector.GrowRegion(
+            hit.TriangleIndex,
+            ViewModel.CurrentSelectionMode,
+            ViewModel.ActiveToleranceDegrees,
+            ViewModel.ActiveReachLimit);
         ViewModel.ModifyActiveSelectionTriangles(region, mode);
     }
 
@@ -606,7 +691,31 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.F)
         {
-            Viewport.FitView();
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                Viewport.FitView();
+            }
+            else
+            {
+                ViewModel?.ToggleShowForcesCommand.Execute(null);
+            }
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            {
+                ViewModel?.RedoSelection();
+            }
+            else
+            {
+                ViewModel?.UndoSelection();
+            }
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Y && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            ViewModel?.RedoSelection();
             e.Handled = true;
         }
         else if (e.Key == Key.O && e.KeyModifiers.HasFlag(KeyModifiers.Control))
