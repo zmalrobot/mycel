@@ -80,3 +80,4 @@ fi
 
 echo "Mycel successfully installed to ${INSTALL_DIR}"
 echo "Desktop entry created at ${DESKTOP_FILE}"
+

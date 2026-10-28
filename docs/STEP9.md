@@ -82,3 +82,4 @@ The master visual asset is `resources/logo.jpeg` ($2048 \times 2048$, square, 8-
 1. **File Explorer & Properties**: Extract `dist/Mycel-1.0.0-win-x64.zip`. Verify `Mycel.exe` displays the rounded Mycel icon in File Explorer. Right-click $\to$ Properties $\to$ Details: confirm File Description is `"Mycel"`, Product Name is `"Mycel"`, and Version is `"1.0.0.0"`.
 2. **Taskbar & Alt+Tab**: Launch `Mycel.exe`. Confirm the taskbar icon, Alt+Tab thumbnail, and Task Manager process name show `"Mycel"`.
 3. **STL Export Header**: Export an STL from a completed optimization and verify the binary header begins with `"Mycel it=..."`.
+
