@@ -1,7 +1,7 @@
 # Step 9: Product Rebranding to Mycel, Icon Assets & Platform Packaging
 
 ## 1. Executive Summary & Overview
-Step 9 executes the comprehensive rebranding of the project from "TopoOpt" to **Mycel**. The rename touches all software layers—solutions, project files, folder structures, C# namespaces, XAML references, diagnostics, build scripts, CI pipelines, and desktop packaging—without introducing behavioural changes, numerical alterations, or feature modifications.
+Step 9 executes the comprehensive rebranding of the project to **Mycel**. The rename touches all software layers—solutions, project files, folder structures, C# namespaces, XAML references, diagnostics, build scripts, CI pipelines, and desktop packaging—without introducing behavioural changes, numerical alterations, or feature modifications.
 
 ### Core Rebranding Decisions & Invariants
 1. **Namespace & Assembly Separation**:
@@ -17,7 +17,7 @@ Step 9 executes the comprehensive rebranding of the project from "TopoOpt" to **
    - Verified by `tests/Mycel.Core.Tests/Legacy/LegacyFormatTests.cs`.
 3. **App-Data & Logs Migration**:
    - Active user directory: `%LOCALAPPDATA%/Mycel` on Windows, `~/.local/share/Mycel` on Linux.
-   - Safe migration in `CrashLogger.cs`: if the legacy `TopoOpt` directory exists and the new `Mycel` directory does not, user settings are copied once (logs are excluded, and the legacy directory is never deleted).
+   - Safe migration in `CrashLogger.cs`: if the legacy application directory exists and the new `Mycel` directory does not, user settings are copied once (logs are excluded, and the legacy directory is never deleted).
 4. **Source Code Hygiene (Forbidden Word Scan)**:
    - Automated regression test `tests/Mycel.Core.Tests/SourceScanTests.cs` scans the entire repository to ensure 0 occurrences of the former product name outside an explicit allowlist (`docs/RENAME_PLAN.md`, migration fallback paths in `CrashLogger.cs`/`OrbitDiagnostics.cs`, and legacy test fixtures).
 
