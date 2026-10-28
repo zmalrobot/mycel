@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+SOURCE="${ROOT_DIR}/resources/logo.jpeg"
+OUTPUT_DIR="${ROOT_DIR}/src/Mycel.App/Assets/icons"
+
+APPLY_MASK=1
+for arg in "$@"; do
+    if [ "$arg" = "--no-mask" ]; then
+        APPLY_MASK=0
+    fi
+done
+
+if [ ! -f "$SOURCE" ]; then
+    echo "Error: master logo not found at $SOURCE" >&2
+    exit 1
+fi
+
+if ! command -v magick >/dev/null 2>&1 && ! command -v convert >/dev/null 2>&1; then
+    echo "Error: ImageMagick (magick or convert) is required." >&2
+    exit 1
+fi
+
+MAGICK_CMD="magick"
+if ! command -v magick >/dev/null 2>&1; then
+    MAGICK_CMD="convert"
+fi
+
+IDENTIFY_CMD="identify"
+if command -v magick >/dev/null 2>&1; then
+    IDENTIFY_CMD="magick identify"
+fi
+
+# 1. Validation
+DIMENSIONS=$($IDENTIFY_CMD -format "%w %h" "$SOURCE")
+WIDTH=$(echo "$DIMENSIONS" | awk '{print $1}')
+HEIGHT=$(echo "$DIMENSIONS" | awk '{print $2}')
+
+if [ "$WIDTH" -ne "$HEIGHT" ]; then
+    echo "Warning: Master logo is not square (${WIDTH}x${HEIGHT}). Padding with corner color..."
+    # Sample top-left corner color and pad to square
+    CORNER_COLOR=$($MAGICK_CMD "$SOURCE" -crop 1x1+0+0 -format "%[hex:p{0,0}]" info:)
+    MAX_DIM=$(( WIDTH > HEIGHT ? WIDTH : HEIGHT ))
+    TEMP_SOURCE=$(mktemp /tmp/logo_padded_XXXXXX.png)
+    $MAGICK_CMD "$SOURCE" -gravity center -background "#${CORNER_COLOR}" -extent "${MAX_DIM}x${MAX_DIM}" "$TEMP_SOURCE"
+    SOURCE="$TEMP_SOURCE"
+fi
+
+if [ "$WIDTH" -lt 512 ] || [ "$HEIGHT" -lt 512 ]; then
+    echo "Warning: Master logo is smaller than 512px (${WIDTH}x${HEIGHT})." >&2
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
+SIZES=(16 24 32 48 64 128 256 512)
+ICO_SIZES=(16 24 32 48 64 128 256)
+
+echo "Generating icon assets in $OUTPUT_DIR (apply_mask=${APPLY_MASK})..."
+
+for s in "${SIZES[@]}"; do
+    OUT_PNG="${OUTPUT_DIR}/mycel_${s}.png"
+    if [ "$APPLY_MASK" -eq 1 ]; then
+        # 20% corner radius
+        r=$(( s * 20 / 100 ))
+        [ "$r" -lt 1 ] && r=1
+        sm1=$(( s - 1 ))
+        $MAGICK_CMD "$SOURCE" -filter Lanczos -resize "${s}x${s}" \
+            \( +clone -alpha transparent -background none -fill white -draw "roundrectangle 0,0,${sm1},${sm1},${r},${r}" \) \
+            -alpha off -compose CopyOpacity -composite "$OUT_PNG"
+    else
+        $MAGICK_CMD "$SOURCE" -filter Lanczos -resize "${s}x${s}" "$OUT_PNG"
+    fi
+    echo "  -> Created $(basename "$OUT_PNG")"
+done
+
+# Generate multi-resolution mycel.ico
+ICO_INPUTS=()
+for s in "${ICO_SIZES[@]}"; do
+    ICO_INPUTS+=("${OUTPUT_DIR}/mycel_${s}.png")
+done
+
+$MAGICK_CMD "${ICO_INPUTS[@]}" "${OUTPUT_DIR}/mycel.ico"
+echo "  -> Created mycel.ico (${ICO_SIZES[*]})"
+
+if [ -n "${TEMP_SOURCE:-}" ] && [ -f "${TEMP_SOURCE}" ]; then
+    rm -f "${TEMP_SOURCE}"
+fi
+
+echo "Done."
