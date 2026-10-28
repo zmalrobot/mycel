@@ -1,12 +1,12 @@
-# Contributing to TopoOpt
+# Contributing to Mycel
 
-Thank you for contributing to **TopoOpt**. This document outlines the build workflow, test execution, architectural invariants, and coding conventions taken from `AGENTS.md`.
+Thank you for contributing to **Mycel**. This document outlines the build workflow, test execution, architectural invariants, and coding conventions taken from `AGENTS.md`.
 
 ---
 
 ## 1. Prerequisites & Building
 
-TopoOpt targets **.NET 10.0** (`10.0.x`).
+Mycel targets **.NET 10.0** (`10.0.x`).
 
 ### Build for Development
 ```bash
@@ -67,7 +67,7 @@ dotnet test --configuration Release --filter "Category=Benchmark"
 - **Boundary Mapping**: Surface triangles map to Hex8 nodes via a volume dilation layer ($\delta = 1.0 \times h$). A protective passive solid shell ($\rho \equiv 1$) is enforced around loads and supports by default to prevent numerical point hinges.
 
 ### Architectural Separation & Numerical Rigor
-- **UI-Free Core**: `TopoOpt.Core` **MUST NOT** reference any UI or graphics framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
+- **UI-Free Core**: `Mycel.Core` **MUST NOT** reference any UI or graphics framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
 - **Deterministic Numerics**: Enforce a fixed reduction order in parallel loops (e.g., chunked deterministic reductions in dot products and norms) so runs are bit-identical across executions.
 - **Zero Allocations in Hot Loops**: Pre-allocate all scratch buffers, vectors, and arrays outside PCG and Optimality Criteria (OC) iteration loops.
 - **Concurrency & UI Responsiveness**:
@@ -83,7 +83,7 @@ dotnet test --configuration Release --filter "Category=Benchmark"
 
 ## 5. How to Add a Validation Test
 
-1. **Choose the Matching Test Folder**: Place new tests in `tests/TopoOpt.Core.Tests/<Subsystem>/` matching the `TopoOpt.Core` namespace (`Geometry`, `Voxelization`, `Fem`, `Optimization`, `Workflow`, `Step6`, or `Diagnostics`).
+1. **Choose the Matching Test Folder**: Place new tests in `tests/Mycel.Core.Tests/<Subsystem>/` matching the `Mycel.Core` namespace (`Geometry`, `Voxelization`, `Fem`, `Optimization`, `Workflow`, `Step6`, or `Diagnostics`).
 2. **State the Analytical Reference**: In a comment or XML docstring above the `[Fact]` method, document the analytical formula, reference solution, physical dimensions (`mm`, `N`, `MPa`), and expected relative error tolerance.
 3. **Keep Default Tests Deterministic and Fast**:
    - Construct synthetic meshes or `FeModel` instances directly in memory.

@@ -4,7 +4,7 @@
 After loading a model the six accordion headers (Model, Applied Loads, Fixed Supports, Material, Resolution & Analysis, Optimise) gave no hover feedback and nothing opened, so loads, supports, material and the optimisation could not be set up from the UI. The UI thread was healthy (max gap ~111 ms).
 
 ## Method
-Evidence first, same as `HOTFIX_ORBIT.md`: debug switch `--test-stepper` (`MainWindow.RunStepperDiagnosticTestAsync`, log `~/.local/share/TopoOpt/logs/stepper_diag.log`; `--diag-pointer` adds a 25 s pointer-event trace for manual runs).
+Evidence first, same as `HOTFIX_ORBIT.md`: debug switch `--test-stepper` (`MainWindow.RunStepperDiagnosticTestAsync`, log `~/.local/share/Mycel/logs/stepper_diag.log`; `--diag-pointer` adds a 25 s pointer-event trace for manual runs).
 
 ## Evidence (before the fix)
 ```
@@ -35,7 +35,7 @@ DISABLED buttons left (all legitimate): "Run Static Analysis" (hidden), NumericU
 ```
 
 ## Tests
-`tests/TopoOpt.Core.Tests/App/StepperTests.cs` (13 cases): string parameter is executable and activates exactly one step; invalid parameters are ignored; `PropertyChanged` for all flags; XAML regression guards (no `ActiveStep` + `ObjectConverters.Equal` + numeric parameter, no typed `SelectStepCommand`, bodies bound to typed flags, headers without local `Background`). Existing suite unchanged.
+`tests/Mycel.Core.Tests/App/StepperTests.cs` (13 cases): string parameter is executable and activates exactly one step; invalid parameters are ignored; `PropertyChanged` for all flags; XAML regression guards (no `ActiveStep` + `ObjectConverters.Equal` + numeric parameter, no typed `SelectStepCommand`, bodies bound to typed flags, headers without local `Background`). Existing suite unchanged.
 
 ## Lesson
 In Avalonia XAML, `CommandParameter=1` and `ConverterParameter=1` are strings. Typed commands and `ObjectConverters.Equal` against an `int` fail silently (disabled button / always-false visibility). Use string-parsing commands or typed bool properties.

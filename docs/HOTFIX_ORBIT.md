@@ -27,7 +27,7 @@
 
 ## 2. Hard Log Evidence
 
-Captured from `~/.local/share/TopoOpt/logs/orbit_diag.log` during in-window execution:
+Captured from `~/.local/share/Mycel/logs/orbit_diag.log` during in-window execution:
 
 ```text
 [   2704.07 ms] Viewport Bounds: 980x770
@@ -39,8 +39,8 @@ BEFORE FIX:
 [   2789.12 ms] Viewport.InputHitTest at (100, 100) returned: null (Name=none)
 
 AFTER FIX (ICustomHitTest):
-[   2709.70 ms] this.InputHitTest at 490, 385 returned: TopoOpt.App.Controls.Viewport3DControl (Name=Viewport)
-[   2709.74 ms] Viewport.InputHitTest at (100, 100) returned: TopoOpt.App.Controls.Viewport3DControl (Name=Viewport)
+[   2709.70 ms] this.InputHitTest at 490, 385 returned: Mycel.App.Controls.Viewport3DControl (Name=Viewport)
+[   2709.74 ms] Viewport.InputHitTest at (100, 100) returned: Mycel.App.Controls.Viewport3DControl (Name=Viewport)
 
 --- TEST 1: Left-drag without modifiers ---
 [   2712.89 ms] --- Simulating Drag: Button=Left, Modifiers=None, Start=490, 385, End=530, 405 ---
@@ -86,7 +86,7 @@ AFTER FIX (ICustomHitTest):
    ```
 
 3. **Deterministic Unit Tests Added**:
-   `tests/TopoOpt.Core.Tests/Geometry/OrbitCameraTests.cs`:
+   `tests/Mycel.Core.Tests/Geometry/OrbitCameraTests.cs`:
    - `Orbit_DeltaChangesYawAndPitchDeterministically`
    - `Orbit_ClampsElevationAtGimbalPoles`
    - `Pan_ChangesTargetDeterministically`

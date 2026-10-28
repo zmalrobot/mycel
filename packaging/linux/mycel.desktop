@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Mycel
+GenericName=Topology Optimisation
+Comment=3D Topology Optimization for Additive Manufacturing
+Exec=Mycel
+Icon=mycel
+Terminal=false
+Categories=Graphics;Engineering;
+StartupWMClass=Mycel
+

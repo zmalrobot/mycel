@@ -1,10 +1,10 @@
-# TopoOpt Architecture Specification
+# Mycel Architecture Specification
 
 ## 1. Project Layout & Dependencies
 ```text
 StlOptimizer/
 ├── src/
-│   ├── TopoOpt.Core/           # net10.0 class library: Pure numerics, voxelization, FEM, SIMP, zero UI deps
+│   ├── Mycel.Core/           # net10.0 class library: Pure numerics, voxelization, FEM, SIMP, zero UI deps
 │   │   ├── Geometry/           # Triangle meshes, BVH, half-edge, picking, welding, unit scaling
 │   │   ├── Voxelization/       # Voxel grids, ray parity, winding numbers, boundary mapping, time-budget estimator
 │   │   ├── Fem/                # Hex8 element, matrix-free operator, 8-colour PCG solver
@@ -12,19 +12,19 @@ StlOptimizer/
 │   │   ├── PostProcessing/     # Centroid/nodal von Mises, Surface Nets, Taubin smoothing
 │   │   ├── Materials/          # FDM material profiles (PLA, PLA+, PETG) & anisotropic safety factors
 │   │   └── Persistence/        # .topo project serialization, Brotli compression, binary STL export
-│   ├── TopoOpt.App/            # net10.0 Avalonia desktop application (MVVM, dark UI, 3D viewport)
+│   ├── Mycel.App/            # net10.0 Avalonia desktop application (MVVM, dark UI, 3D viewport)
 │   │   ├── Controls/           # OpenGl3DViewport (OpenGlControlBase + Silk.NET)
 │   │   ├── Rendering/          # Shaders (GLSL ES 3.00), mesh buffers, camera, picking renderer
 │   │   ├── ViewModels/         # MainViewModel, TimelineViewModel, MaterialViewModel, MetricsViewModel
 │   │   ├── Views/              # MainWindow, ViewportView, InspectorView, TimelineView, UnitDialog
 │   │   └── Resources/          # Strings.resx (English v1, localization ready)
-│   └── TopoOpt.Cli/            # net10.0 headless CLI dev tool: benchmark runner, batch jobs, validation
+│   └── Mycel.Cli/            # net10.0 headless CLI dev tool: benchmark runner, batch jobs, validation
 ├── tests/
-│   └── TopoOpt.Core.Tests/     # xUnit test suite: analytical benchmarks, beam deflections, SIMP tests
+│   └── Mycel.Core.Tests/     # xUnit test suite: analytical benchmarks, beam deflections, SIMP tests
 ├── docs/                       # Architectural decisions, research, roadmap, step logs
 ├── AGENTS.md                   # Strict engineering rules for AI coding assistants
 ├── LICENSE                     # GNU General Public License v3.0 (GPLv3)
-└── TopoOpt.sln
+└── Mycel.sln
 ```
 
 ### Approved NuGet Dependencies (GPLv3 Compatible)
@@ -43,7 +43,7 @@ StlOptimizer/
 ## 2. Public Interfaces (Signatures Only)
 
 ```csharp
-namespace TopoOpt.Core.Geometry;
+namespace Mycel.Core.Geometry;
 
 public enum LengthUnit { Millimeter, Centimeter, Meter, Inch }
 
@@ -76,7 +76,7 @@ public interface IPickingService
 ```
 
 ```csharp
-namespace TopoOpt.Core.Voxelization;
+namespace Mycel.Core.Voxelization;
 
 public readonly record struct VoxelCoord(int X, int Y, int Z);
 
@@ -101,7 +101,7 @@ public interface IVoxelizer
 ```
 
 ```csharp
-namespace TopoOpt.Core.Fem;
+namespace Mycel.Core.Fem;
 
 public enum LoadDirectionType { NormalInward, NormalOutward, GlobalAxis, CustomVector }
 
@@ -147,7 +147,7 @@ public interface IFemSolver
 ```
 
 ```csharp
-namespace TopoOpt.Core.Optimization;
+namespace Mycel.Core.Optimization;
 
 public enum OptimizationMode { HighQualityCrisp, FastDraft }
 
@@ -183,7 +183,7 @@ public interface ITopologyOptimizer
 ```
 
 ```csharp
-namespace TopoOpt.Core.PostProcessing;
+namespace Mycel.Core.PostProcessing;
 
 public interface IIsoSurfaceExtractor
 {
@@ -193,7 +193,7 @@ public interface IIsoSurfaceExtractor
 ```
 
 ```csharp
-namespace TopoOpt.Core.Persistence;
+namespace Mycel.Core.Persistence;
 
 public sealed record ProjectMetadata(
     string Name,

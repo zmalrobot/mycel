@@ -1,0 +1,282 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Palette Colors -->
+  <Color x:Key="Bg0Color">#0D0F14</Color>
+  <Color x:Key="Bg1Color">#141720</Color>
+  <Color x:Key="Bg2Color">#1E2330</Color>
+  <Color x:Key="BorderColor">#262D3D</Color>
+  <Color x:Key="TextPrimaryColor">#E2E8F0</Color>
+  <Color x:Key="TextSecondaryColor">#94A3B8</Color>
+  <Color x:Key="AccentColor">#2563EB</Color>
+  <Color x:Key="LoadColor">#FF9F40</Color>
+  <Color x:Key="SupportColor">#4DA3FF</Color>
+  <Color x:Key="PreserveColor">#5BD18B</Color>
+  <Color x:Key="DangerColor">#EF4444</Color>
+  <Color x:Key="WarningColor">#F59E0B</Color>
+
+  <!-- Shared Brushes (Stable Keys) -->
+  <SolidColorBrush x:Key="Bg0" Color="{StaticResource Bg0Color}" />
+  <SolidColorBrush x:Key="Bg1" Color="{StaticResource Bg1Color}" />
+  <SolidColorBrush x:Key="Bg2" Color="{StaticResource Bg2Color}" />
+  <SolidColorBrush x:Key="Border" Color="{StaticResource BorderColor}" />
+  <SolidColorBrush x:Key="TextPrimary" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="TextSecondary" Color="{StaticResource TextSecondaryColor}" />
+  <SolidColorBrush x:Key="Accent" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="Load" Color="{StaticResource LoadColor}" />
+  <SolidColorBrush x:Key="Support" Color="{StaticResource SupportColor}" />
+  <SolidColorBrush x:Key="Preserve" Color="{StaticResource PreserveColor}" />
+  <SolidColorBrush x:Key="Danger" Color="{StaticResource DangerColor}" />
+  <SolidColorBrush x:Key="Warning" Color="{StaticResource WarningColor}" />
+
+  <!-- Spacing Tokens (4 / 8 / 12 / 16 / 24) -->
+  <x:Double x:Key="Spacing4">4</x:Double>
+  <x:Double x:Key="Spacing8">8</x:Double>
+  <x:Double x:Key="Spacing12">12</x:Double>
+  <x:Double x:Key="Spacing16">16</x:Double>
+  <x:Double x:Key="Spacing24">24</x:Double>
+
+  <!-- Padding & Margin Thickness Tokens (4 / 8 / 12 / 16 / 24) -->
+  <Thickness x:Key="Pad4">4</Thickness>
+  <Thickness x:Key="Pad8">8</Thickness>
+  <Thickness x:Key="Pad12">12</Thickness>
+  <Thickness x:Key="Pad16">16</Thickness>
+  <Thickness x:Key="Pad24">24</Thickness>
+  <Thickness x:Key="Pad12H">12,0</Thickness>
+  <Thickness x:Key="Pad8_4">8,4</Thickness>
+  <Thickness x:Key="Pad12_8">12,8</Thickness>
+  <Thickness x:Key="PadBody">12,0,12,12</Thickness>
+  <Thickness x:Key="Margin4V">0,4</Thickness>
+  <Thickness x:Key="Margin4T">0,4,0,0</Thickness>
+  <Thickness x:Key="Margin8T">0,8,0,0</Thickness>
+  <Thickness x:Key="Margin16T">0,16,0,0</Thickness>
+  <Thickness x:Key="Margin16TR">0,16,16,0</Thickness>
+  <Thickness x:Key="Margin4L">4,0,0,0</Thickness>
+  <Thickness x:Key="Margin8L">8,0,0,0</Thickness>
+  <Thickness x:Key="Margin4H">4,0</Thickness>
+
+  <!-- Corner Radius Token (8) -->
+  <CornerRadius x:Key="CornerRadius">8</CornerRadius>
+  <CornerRadius x:Key="CornerRadius8">8</CornerRadius>
+
+  <!-- User-Visible Strings (Mirroring Resources/Strings.resx) -->
+  <x:String x:Key="App.Title">Mycel — Topology Optimization</x:String>
+  <x:String x:Key="Toolbar.OpenStl">Open STL</x:String>
+  <x:String x:Key="Toolbar.OpenStl.Tooltip">Open an STL mesh file (Ctrl+O)</x:String>
+  <x:String x:Key="Toolbar.OpenProject">Open Project</x:String>
+  <x:String x:Key="Toolbar.OpenProject.Tooltip">Open an existing project folder</x:String>
+  <x:String x:Key="Toolbar.SaveProject">Save Project</x:String>
+  <x:String x:Key="Toolbar.SaveProject.Tooltip">Save current project into a folder</x:String>
+  <x:String x:Key="Toolbar.FitView">Fit View</x:String>
+  <x:String x:Key="Toolbar.FitView.Tooltip">Fit camera to model (F) | Orbit: Right-drag (or Alt+Left) | Pan: Middle-drag | Zoom: Wheel</x:String>
+  <x:String x:Key="Toolbar.About">About</x:String>
+  <x:String x:Key="Toolbar.About.Tooltip">About Mycel, licenses, and disclaimers</x:String>
+  <x:String x:Key="Toolbar.Guide">User Guide</x:String>
+  <x:String x:Key="Toolbar.Guide.Tooltip">Open interactive user guide and theoretical manual (F1)</x:String>
+
+  <x:String x:Key="Stepper.Common.Step1Number">1</x:String>
+  <x:String x:Key="Stepper.Common.Step2Number">2</x:String>
+  <x:String x:Key="Stepper.Common.Step3Number">3</x:String>
+  <x:String x:Key="Stepper.Common.Step4Number">4</x:String>
+  <x:String x:Key="Stepper.Common.Step5Number">5</x:String>
+  <x:String x:Key="Stepper.Common.CompletedCheck">✓</x:String>
+  <x:String x:Key="Stepper.Common.RemoveSymbol">✕</x:String>
+  <x:String x:Key="Stepper.Common.PickOnMesh">Pick on Mesh</x:String>
+  <x:String x:Key="Stepper.Common.PickOnMesh.Tooltip">Select surface triangles on the 3D mesh</x:String>
+  <x:String x:Key="Common.Cancel">Cancel</x:String>
+  <x:String x:Key="Common.Cancel.Tooltip">Cancel the current operation</x:String>
+
+  <x:String x:Key="Stepper.Model.Title">Model &amp; Geometry</x:String>
+  <x:String x:Key="Stepper.Model.Tooltip">Expand model and geometry summary</x:String>
+  <x:String x:Key="Stepper.Model.ImportUnit">Import Unit:</x:String>
+  <x:String x:Key="Stepper.Model.Triangles">Triangles:</x:String>
+  <x:String x:Key="Stepper.Model.Vertices">Vertices:</x:String>
+  <x:String x:Key="Stepper.Model.BoundingBox">Bounding Box:</x:String>
+  <x:String x:Key="Stepper.Model.Volume">Volume:</x:String>
+
+  <x:String x:Key="Stepper.Loads.Title">Applied Loads</x:String>
+  <x:String x:Key="Stepper.Loads.Tooltip">Expand applied load regions</x:String>
+  <x:String x:Key="Stepper.Loads.Add">+ Add Load Region</x:String>
+  <x:String x:Key="Stepper.Loads.Add.Tooltip">Add a new applied force region</x:String>
+  <x:String x:Key="Stepper.Loads.Remove.Tooltip">Remove this load region</x:String>
+  <x:String x:Key="Stepper.Loads.Magnitude">Force (N):</x:String>
+  <x:String x:Key="Stepper.Loads.Magnitude.Tooltip">Total applied force in Newtons</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeN">Force (N):</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeN.Tooltip">Total applied force in Newtons</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeKg">Mass (kg):</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeKg.Tooltip">Equivalent mass in kilograms (F = m · g, g = 9.80665 m/s²)</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeG">Mass (g):</x:String>
+  <x:String x:Key="Stepper.Loads.MagnitudeG.Tooltip">Equivalent mass in grams (1 kg = 1000 g)</x:String>
+  <x:String x:Key="Stepper.Loads.Direction">Direction:</x:String>
+  <x:String x:Key="Stepper.Loads.CustomX.Tooltip">Custom force direction X component</x:String>
+  <x:String x:Key="Stepper.Loads.CustomY.Tooltip">Custom force direction Y component</x:String>
+  <x:String x:Key="Stepper.Loads.CustomZ.Tooltip">Custom force direction Z component</x:String>
+
+  <x:String x:Key="Stepper.Supports.Title">Fixed Supports</x:String>
+  <x:String x:Key="Stepper.Supports.Tooltip">Expand fixed support constraints</x:String>
+  <x:String x:Key="Stepper.Supports.Add">+ Add Fixed Support</x:String>
+  <x:String x:Key="Stepper.Supports.Add.Tooltip">Add a new fixed support constraint</x:String>
+  <x:String x:Key="Stepper.Supports.Remove.Tooltip">Remove this support constraint</x:String>
+  <x:String x:Key="Stepper.Supports.FixX">Fix X</x:String>
+  <x:String x:Key="Stepper.Supports.FixY">Fix Y</x:String>
+  <x:String x:Key="Stepper.Supports.FixZ">Fix Z</x:String>
+
+  <x:String x:Key="Stepper.Material.Title">Material</x:String>
+  <x:String x:Key="Stepper.Material.Tooltip">Expand material properties and presets</x:String>
+  <x:String x:Key="Stepper.Material.Preset">Preset:</x:String>
+  <x:String x:Key="Stepper.Material.YoungModulus">Young's Modulus E (MPa):</x:String>
+  <x:String x:Key="Stepper.Material.YoungModulus.Tooltip">Elastic Young's modulus E in MPa</x:String>
+  <x:String x:Key="Stepper.Material.PoissonRatio">Poisson's Ratio ν:</x:String>
+  <x:String x:Key="Stepper.Material.PoissonRatio.Tooltip">Poisson's ratio (dimensionless, 0.05 to 0.49)</x:String>
+  <x:String x:Key="Stepper.Material.YieldStrengthXy">Yield Strength XY (MPa):</x:String>
+  <x:String x:Key="Stepper.Material.YieldStrengthXy.Tooltip">In-plane XY tensile yield strength in MPa</x:String>
+  <x:String x:Key="Stepper.Material.YieldStrengthZ">Yield Strength Z (MPa):</x:String>
+  <x:String x:Key="Stepper.Material.YieldStrengthZ.Tooltip">Inter-layer Z tensile yield strength in MPa</x:String>
+  <x:String x:Key="Stepper.Material.ConservativeZ">Conservative (use Z strength)</x:String>
+  <x:String x:Key="Stepper.Material.Density">Density (g/cm³):</x:String>
+  <x:String x:Key="Stepper.Material.Density.Tooltip">Material mass density in g/cm³</x:String>
+  <x:String x:Key="Stepper.Material.Infill">Infill (%):</x:String>
+  <x:String x:Key="Stepper.Material.Infill.Tooltip">Internal print infill density percentage (10% to 100%)</x:String>
+  <x:String x:Key="Stepper.Material.InfillPattern">Infill Pattern:</x:String>
+  <x:String x:Key="Stepper.Material.EstWeight">Est. Mass (g)</x:String>
+  <x:String x:Key="Stepper.Material.EstLength">1.75mm Filament</x:String>
+  <x:String x:Key="Stepper.Model.EstWeight">Est. Print Mass:</x:String>
+  <x:String x:Key="Stepper.Model.EstLength">Est. Filament Length:</x:String>
+  <x:String x:Key="Stepper.Optimise.MaterialSavedCard">MATERIAL SAVINGS (3D PRINT)</x:String>
+  <x:String x:Key="Stepper.Optimise.WeightSaved">Mass Saved:</x:String>
+  <x:String x:Key="Stepper.Optimise.FilamentSaved">Filament Saved:</x:String>
+  <x:String x:Key="Hud.PrintEstimate">Print:</x:String>
+  <x:String x:Key="Hud.Savings">Saved:</x:String>
+  <x:String x:Key="Stepper.Material.TdsDisclaimer">* Indicative manufacturer values from Polymaker / eSUN TDS</x:String>
+
+  <x:String x:Key="Stepper.Resolution.Title">Resolution &amp; Analysis</x:String>
+  <x:String x:Key="Stepper.Resolution.Tooltip">Expand voxel resolution and static analysis</x:String>
+  <x:String x:Key="Stepper.Resolution.Outdated">Outdated</x:String>
+  <x:String x:Key="Stepper.Resolution.Preset">Preset:</x:String>
+  <x:String x:Key="Stepper.Resolution.TargetElements">Target Elements:</x:String>
+  <x:String x:Key="Stepper.Resolution.TargetElements.Tooltip">Target count of active solid voxel elements</x:String>
+  <x:String x:Key="Stepper.Resolution.VoxelSize">Voxel size</x:String>
+  <x:String x:Key="Stepper.Resolution.EstMemory">Est. Memory</x:String>
+  <x:String x:Key="Stepper.Resolution.EstSolveTime">Est. Solve Time</x:String>
+  <x:String x:Key="Stepper.Resolution.PrepareModel">Prepare Model</x:String>
+  <x:String x:Key="Stepper.Resolution.PrepareModel.Tooltip">Voxelize mesh and map boundary conditions</x:String>
+  <x:String x:Key="Stepper.Resolution.IssueBullet">●</x:String>
+  <x:String x:Key="Stepper.Resolution.FocusIssue.Tooltip">Focus camera on this validation issue</x:String>
+
+  <x:String x:Key="Stepper.Analysis.Run">Run Static Analysis</x:String>
+  <x:String x:Key="Stepper.Analysis.Run.Tooltip">Solve linear elastic finite element model</x:String>
+  <x:String x:Key="Stepper.Analysis.ResultsTitle">Static Analysis Results</x:String>
+  <x:String x:Key="Stepper.Analysis.Compliance">Compliance (Work):</x:String>
+  <x:String x:Key="Stepper.Analysis.MaxDisplacement">Max Displacement:</x:String>
+  <x:String x:Key="Stepper.Analysis.MaxVonMises">Max von Mises:</x:String>
+  <x:String x:Key="Stepper.Analysis.P99VonMises">p99 von Mises (filtered):</x:String>
+  <x:String x:Key="Stepper.Analysis.SafetyFactorMax">Safety Factor SF (max):</x:String>
+  <x:String x:Key="Stepper.Analysis.SafetyFactorP99">Safety Factor SF (p99):</x:String>
+  <x:String x:Key="Stepper.Analysis.FdmDisclaimer">Indicative results. FDM parts are anisotropic and material data vary: verify load-bearing parts with physical tests.</x:String>
+
+  <x:String x:Key="Picking.Angle">Angle:</x:String>
+  <x:String x:Key="Picking.Angle.Tooltip">Dihedral angle threshold in degrees for region growing</x:String>
+  <x:String x:Key="Picking.Done">Done (Esc)</x:String>
+  <x:String x:Key="Picking.Done.Tooltip">Finish surface selection mode (Esc)</x:String>
+
+  <x:String x:Key="Banner.OutdatedResults">⚠ Parameters changed: Static analysis results are outdated. Re-run analysis to update.</x:String>
+
+  <x:String x:Key="Hud.StressVm">Stress (vM)</x:String>
+  <x:String x:Key="Hud.Displacement">Disp</x:String>
+  <x:String x:Key="Hud.Colormap">Colormap:</x:String>
+  <x:String x:Key="Hud.ZeroValue">0.0</x:String>
+  <x:String x:Key="Hud.Dimensions">DIMENSIONS</x:String>
+  <x:String x:Key="Hud.ShowDimensions">3D Quote</x:String>
+  <x:String x:Key="Hud.ShowDimensions.Tooltip">Toggle 3D bounding box dimension lines</x:String>
+  <x:String x:Key="Hud.GridScale">Grid: 10 mm</x:String>
+
+  <x:String x:Key="UnitGuard.Title">⚠ STL Unit Guard</x:String>
+  <x:String x:Key="UnitGuard.Description">The imported model bounding box appears to have unusual dimensions:</x:String>
+  <x:String x:Key="UnitGuard.Prompt">Please confirm the intended unit of measure to rescale to millimeters:</x:String>
+  <x:String x:Key="UnitGuard.KeepMm">Keep as Millimeters (mm)</x:String>
+  <x:String x:Key="UnitGuard.KeepMm.Tooltip">Keep coordinates in millimeters without scaling</x:String>
+  <x:String x:Key="UnitGuard.RescaleMeters">Rescale from Meters (×1000)</x:String>
+  <x:String x:Key="UnitGuard.RescaleMeters.Tooltip">Multiply mesh coordinates by 1000 (m to mm)</x:String>
+  <x:String x:Key="UnitGuard.RescaleInches">Rescale from Inches (×25.4)</x:String>
+  <x:String x:Key="UnitGuard.RescaleInches.Tooltip">Multiply mesh coordinates by 25.4 (in to mm)</x:String>
+
+  <x:String x:Key="StatusBar.Ready">Mycel v1.0 — Ready</x:String>
+
+  <x:String x:Key="Stepper.Common.Step6Number">6</x:String>
+  <x:String x:Key="Stepper.Optimise.Title">Optimise</x:String>
+  <x:String x:Key="Stepper.Optimise.Tooltip">Expand topology optimisation settings, live metrics, verification and export</x:String>
+  <x:String x:Key="Stepper.Optimise.VolumeFraction">Target Volume (%):</x:String>
+  <x:String x:Key="Stepper.Optimise.VolumeFraction.Tooltip">Target fraction of the design volume to retain (10% to 80%)</x:String>
+  <x:String x:Key="Stepper.Optimise.MinFeatureSize">Min Feature Size (mm):</x:String>
+  <x:String x:Key="Stepper.Optimise.MinFeatureSize.Tooltip">Minimum filter radius in millimeters (default ~3 extrusion widths)</x:String>
+  <x:String x:Key="Stepper.Optimise.MinFeatureHint">about 3 extrusion widths (3 × 0.4 mm nozzle)</x:String>
+  <x:String x:Key="Stepper.Optimise.MaxIterations">Max Iterations:</x:String>
+  <x:String x:Key="Stepper.Optimise.MaxIterations.Tooltip">Maximum number of SIMP-OC optimisation iterations</x:String>
+  <x:String x:Key="Stepper.Optimise.KeepEveryN">Save Every N Iterations:</x:String>
+  <x:String x:Key="Stepper.Optimise.KeepEveryN.Tooltip">Store every Nth iteration to disk (1 = store all iterations)</x:String>
+  <x:String x:Key="Stepper.Optimise.EstDisk">Estimated Disk Usage:</x:String>
+  <x:String x:Key="Stepper.Optimise.AdvancedTitle">Advanced Parameters</x:String>
+  <x:String x:Key="Stepper.Optimise.AdvancedTitle.Tooltip">Toggle advanced SIMP and OC solver parameters</x:String>
+  <x:String x:Key="Stepper.Optimise.Penalisation">Penalisation p:</x:String>
+  <x:String x:Key="Stepper.Optimise.Penalisation.Tooltip">SIMP power-law penalisation exponent (default 3.0)</x:String>
+  <x:String x:Key="Stepper.Optimise.MoveLimit">Move Limit m:</x:String>
+  <x:String x:Key="Stepper.Optimise.MoveLimit.Tooltip">Maximum density change per iteration (default 0.2)</x:String>
+  <x:String x:Key="Stepper.Optimise.Projection">Heaviside Projection (β continuation)</x:String>
+  <x:String x:Key="Stepper.Optimise.Projection.Tooltip">Enable Heaviside projection for sharper 0/1 boundaries</x:String>
+  <x:String x:Key="Stepper.Optimise.EminRatio">Emin / E0 Ratio:</x:String>
+  <x:String x:Key="Stepper.Optimise.EminRatio.Tooltip">Ersatz void stiffness ratio (default 1e-9)</x:String>
+  <x:String x:Key="Stepper.Optimise.Start">Start Optimisation</x:String>
+  <x:String x:Key="Stepper.Optimise.Start.Tooltip">Start live topology optimisation and save iterations to disk</x:String>
+  <x:String x:Key="Stepper.Optimise.Pause">Pause</x:String>
+  <x:String x:Key="Stepper.Optimise.Pause.Tooltip">Pause the running optimisation after the current iteration</x:String>
+  <x:String x:Key="Stepper.Optimise.Resume">Resume</x:String>
+  <x:String x:Key="Stepper.Optimise.Resume.Tooltip">Resume the paused optimisation run</x:String>
+  <x:String x:Key="Stepper.Optimise.Stop">Stop</x:String>
+  <x:String x:Key="Stepper.Optimise.Stop.Tooltip">Cooperatively stop and finalise the current run</x:String>
+  <x:String x:Key="Stepper.Optimise.ContinueRun">Continue Interrupted Run</x:String>
+  <x:String x:Key="Stepper.Optimise.ContinueRun.Tooltip">Continue an interrupted run from its last saved checkpoint</x:String>
+  <x:String x:Key="Stepper.Optimise.OpenRun">Open Run…</x:String>
+  <x:String x:Key="Stepper.Optimise.OpenRun.Tooltip">Open a saved optimisation run folder for playback and export</x:String>
+  <x:String x:Key="Stepper.Optimise.LiveMetricsTitle">Live Metrics &amp; Convergence</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricIteration">Iteration:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricCompliance">Compliance:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricVolume">Volume Fraction:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricChange">Max Change:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricGrey">Grey Level:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricMsPerIter">Time / Iter:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricEta">ETA:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricSolverIters">PCG Iters:</x:String>
+  <x:String x:Key="Stepper.Optimise.MetricDiskUsed">Disk Used:</x:String>
+  <x:String x:Key="Stepper.Optimise.VerifyExportTitle">Verify &amp; Export Design</x:String>
+  <x:String x:Key="Stepper.Optimise.VerifyBtn">Verify Design (FEA)</x:String>
+  <x:String x:Key="Stepper.Optimise.VerifyBtn.Tooltip">Run static FEA on thresholded design and map von Mises stress</x:String>
+  <x:String x:Key="Stepper.Optimise.Threshold">Density Threshold:</x:String>
+  <x:String x:Key="Stepper.Optimise.Threshold.Tooltip">Iso-surface density cut-off threshold (default 0.50)</x:String>
+  <x:String x:Key="Stepper.Optimise.SmoothIters">Taubin Smoothing Iters:</x:String>
+  <x:String x:Key="Stepper.Optimise.SmoothIters.Tooltip">Volume-preserving Taubin smoothing iterations (0 to 10, default 3)</x:String>
+  <x:String x:Key="Stepper.Optimise.ExportStlBtn">Export STL…</x:String>
+  <x:String x:Key="Stepper.Optimise.ExportStlBtn.Tooltip">Export current iteration iso-surface as binary STL and verify watertightness</x:String>
+  <x:String x:Key="Stepper.Optimise.MaterialSaved">Material Saved:</x:String>
+  <x:String x:Key="Stepper.Optimise.ComplianceRatio">Compliance vs Solid:</x:String>
+
+  <x:String x:Key="Timeline.Play">▶</x:String>
+  <x:String x:Key="Timeline.Play.Tooltip">Play or pause iteration history playback</x:String>
+  <x:String x:Key="Timeline.StepBack">⏮</x:String>
+  <x:String x:Key="Timeline.StepBack.Tooltip">Step backward 1 iteration</x:String>
+  <x:String x:Key="Timeline.StepForward">⏭</x:String>
+  <x:String x:Key="Timeline.StepForward.Tooltip">Step forward 1 iteration</x:String>
+  <x:String x:Key="Timeline.Slider.Tooltip">Scrub across saved optimisation iterations</x:String>
+  <x:String x:Key="Timeline.Speed.Tooltip">Playback speed multiplier (1×, 2×, 5×)</x:String>
+  <x:String x:Key="Timeline.Live">Live</x:String>
+  <x:String x:Key="Timeline.Live.Tooltip">Follow the latest iteration during a running optimisation</x:String>
+  <x:String x:Key="Timeline.Ghost">Ghost Original</x:String>
+  <x:String x:Key="Timeline.Ghost.Tooltip">Overlay a faint translucent outline of the original STL mesh</x:String>
+
+  <x:String x:Key="CloseConfirm.Title">⚠ Optimisation in Progress</x:String>
+  <x:String x:Key="CloseConfirm.Description">An optimisation run is currently active. Do you want to cooperatively stop the solver and finalise the run folder before closing?</x:String>
+  <x:String x:Key="CloseConfirm.StopAndExit">Stop, Finalise &amp; Exit</x:String>
+  <x:String x:Key="CloseConfirm.StopAndExit.Tooltip">Stop the solver, flush the run folder cleanly, and close the window</x:String>
+  <x:String x:Key="CloseConfirm.KeepRunning">Keep Running</x:String>
+  <x:String x:Key="CloseConfirm.KeepRunning.Tooltip">Dismiss dialog and continue the optimisation run</x:String>
+
+</ResourceDictionary>

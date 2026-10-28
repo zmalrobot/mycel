@@ -1,8 +1,8 @@
-# TopoOpt Implementation Roadmap
+# Mycel Implementation Roadmap
 
 ## Step 1: Scaffold + Viewport + STL Import + Picking
 - **Scope**:
-  - Solution scaffolding (`TopoOpt.Core`, `TopoOpt.App`, `TopoOpt.Cli`, `TopoOpt.Core.Tests`).
+  - Solution scaffolding (`Mycel.Core`, `Mycel.App`, `Mycel.Cli`, `Mycel.Core.Tests`).
   - Binary & ASCII STL parser with $84+50N$ binary header verification and spatial hash vertex welding.
   - Linear BVH tree with Möller–Trumbore ray casting.
   - Surface region growing (dihedral angle threshold) and cylindrical hole detection.
@@ -57,7 +57,7 @@
   - Optimality Criteria (OC) density update with volume multiplier bisection.
   - Continuation strategy on penalization exponent ($p: 1 \to 2 \to 3$).
   - Measure of Non-Discreteness ($M_{nd}$) tracking.
-  - `TopoOpt.Cli` console tool to run end-to-end optimizations headless with progress logging.
+  - `Mycel.Cli` console tool to run end-to-end optimizations headless with progress logging.
 - **Acceptance Criteria**:
   - Headless optimization of standard MBB beam and 3D cantilever benchmarks converges to classic topology structures.
   - Volume constraint is satisfied to within $\pm 0.05\%$.

@@ -71,7 +71,7 @@ Measured on the 8-colour lattice matrix-free operator with `FemWorkTeam` ($N_{\t
    - **Standard Preset**: $\approx 100\text{k}$ elements ($\approx 4\text{ s}$ per iteration).
    - **Production / Fine Preset**: $\ge 200\text{k}$ elements (runs asynchronously in background thread).
 2. **Geometric Multigrid (MG-PCG) Roadmap Candidate**:
-   - Because TopoOpt uses a regular structured Hex8 grid, geometric coarsening ($2 \times 2 \times 2$ cell agglomeration) is straightforward.
+   - Because Mycel uses a regular structured Hex8 grid, geometric coarsening ($2 \times 2 \times 2$ cell agglomeration) is straightforward.
    - Multigrid V-cycles damp both high-frequency and low-frequency modes in $O(1)$ iterations ($15\text{--}25$ V-cycles to $10^{-4}$).
    - With our measured $8.4\text{ ms}$ matvec, 20 MG-PCG V-cycles would require only $\approx 0.2\text{--}0.3\text{ seconds}$ per solve, exceeding the performance target by $> 10\times$.
    - The `IPreconditioner` interface designed in Step 3 is already in place to host `MultigridPreconditioner` seamlessly when scheduled.

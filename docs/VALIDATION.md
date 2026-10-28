@@ -1,6 +1,6 @@
 # Finite Element Model Validation & Analytical Benchmarks
 
-This document records the mathematical derivations, boundary condition formulations, analytical benchmark references, and numerical convergence results for the finite element solver in **TopoOpt.Core**.
+This document records the mathematical derivations, boundary condition formulations, analytical benchmark references, and numerical convergence results for the finite element solver in **Mycel.Core**.
 
 ---
 
@@ -36,7 +36,7 @@ This fundamental dimensional property allows precomputing the $24 \times 24$ sti
 
 ### 1.2 Boundary Condition Projection & SPD Operator Preservation
 
-In TopoOpt, vectors are sized over the entire structured bounding box ($N_{\text{total}} = (N_x + 1)(N_y + 1)(N_z + 1)$ nodes, $3 N_{\text{total}}$ DOFs). Only active elements (where $\text{Domain}[e] = 1$) contribute to elasticity. Inactive nodes and prescribed support DOFs are constrained to zero.
+In Mycel, vectors are sized over the entire structured bounding box ($N_{\text{total}} = (N_x + 1)(N_y + 1)(N_z + 1)$ nodes, $3 N_{\text{total}}$ DOFs). Only active elements (where $\text{Domain}[e] = 1$) contribute to elasticity. Inactive nodes and prescribed support DOFs are constrained to zero.
 
 To keep the matrix-free linear operator strictly **Symmetric Positive Definite (SPD)** and avoid ill-conditioned zeros on the diagonal:
 

@@ -1,8 +1,8 @@
-# Step 4 — Headless Topology Optimisation in TopoOpt.Core & Dev CLI
+# Step 4 — Headless Topology Optimisation in Mycel.Core & Dev CLI
 
 ## 1. Overview & Architecture
 
-Step 4 delivers the complete headless topology optimization engine in `TopoOpt.Core.Optimization` and a lightweight developer CLI in `TopoOpt.Cli` (under 250 lines), with zero UI dependencies and full compliance with `AGENTS.md`.
+Step 4 delivers the complete headless topology optimization engine in `Mycel.Core.Optimization` and a lightweight developer CLI in `Mycel.Cli` (under 250 lines), with zero UI dependencies and full compliance with `AGENTS.md`.
 
 Key components implemented:
 1. **`DensityFilter`**:
@@ -30,9 +30,9 @@ Key components implemented:
    - Creates immutable, box-sized snapshot copies (`float[] PhysicalDensity` and `float[] DesignDensity`).
 5. **Phase B (`HeavisideProjection`)**:
    - Implements smooth threshold projection with continuation $\beta \in \{1, 2, 4, 8\}$ and analytical derivatives $\frac{d\bar{\rho}}{d\tilde{\rho}}$.
-6. **Dev CLI (`TopoOpt.Cli`)**:
-   - `topoopt analyze model.json`: Static analysis outputting compliance, max displacement, max von Mises stress.
-   - `topoopt optimize model.json --out runs/x`: Optimization runner outputting progress per iteration, `metrics.csv`, and `density.bin` (raw float32 array).
+6. **Dev CLI (`Mycel.Cli`)**:
+   - `mycel analyze model.json`: Static analysis outputting compliance, max displacement, max von Mises stress.
+   - `mycel optimize model.json --out runs/x`: Optimization runner outputting progress per iteration, `metrics.csv`, and `density.bin` (raw float32 array).
 
 ---
 
@@ -124,4 +124,4 @@ Measured on a 20-thread CPU across active element target scales on cantilever ge
 2. **Phase B Heaviside Volume Non-Linearity**:
    With Heaviside projection enabled, filtered volume becomes non-linear in $\boldsymbol{\rho}$, requiring re-filtering during bisection. Baseline linear filter without projection remains the recommended default.
 3. **Solver Iteration Growth with Domain Aspect Ratio**:
-   Point Jacobi PCG iteration counts scale with the longest dimension of slender structures. Future multigrid extensions (deferred per ADR-002) can be layered cleanly onto `TopoOpt.Core.Fem`.
+   Point Jacobi PCG iteration counts scale with the longest dimension of slender structures. Future multigrid extensions (deferred per ADR-002) can be layered cleanly onto `Mycel.Core.Fem`.

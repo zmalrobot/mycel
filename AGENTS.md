@@ -1,4 +1,4 @@
-# TopoOpt Agent Development Rules
+# Mycel Agent Development Rules
 
 ## 0. Communication & Task Boot Protocol
 - **Language**: Talk to the user in Italian. Write code, identifiers, code comments, commit messages, and documentation in English.
@@ -20,7 +20,7 @@
   - Surface triangles map to Hex8 nodes via volume dilation layer ($\delta = 1.0 \times h$).
   - Region selection supports 3 types: `Fixed Support`, `Applied Load` (in Newtons with Normal/Axis/Custom direction), and `Preserve (Keep Solid)`.
   - A 1-voxel protective passive shell ($\rho \equiv 1$) is enforced around loads and supports by default to prevent numerical point hinges.
-- **Multi-Unit Load Inputs & Physical Grounding**: `TopoOpt.Core` and `.topo` project files MUST store load forces exclusively in Newtons ($N$). UI layers projecting alternative units (such as equivalent mass in $\text{kg}$ or $\text{g}$ via $F = m \cdot g_0$) must use standard gravitational acceleration $g_0 = 9.80665\text{ m/s}^2$ (ISO 80000-3 / NIST) and guard bidirectional property updates with an `_isSyncing` reentrancy flag to avoid circular notification cascades and precision drift.
+- **Multi-Unit Load Inputs & Physical Grounding**: `Mycel.Core` and `.topo` project files MUST store load forces exclusively in Newtons ($N$). UI layers projecting alternative units (such as equivalent mass in $\text{kg}$ or $\text{g}$ via $F = m \cdot g_0$) must use standard gravitational acceleration $g_0 = 9.80665\text{ m/s}^2$ (ISO 80000-3 / NIST) and guard bidirectional property updates with an `_isSyncing` reentrancy flag to avoid circular notification cascades and precision drift.
 - **Filament Metrics & Material Savings Grounding**:
   - Filament length calculations are grounded to standard FDM diameter $d = 1.75\text{ mm}$ ($A_{1.75} = \frac{\pi \cdot d^2}{4} \approx 2.405282\text{ mm}^2$).
   - Effective printed volume scales with infill percentage: $V_{eff} = V_{solid} \cdot \left(\frac{\rho_{infill}}{100}\right) \cdot V^*$.
@@ -29,7 +29,7 @@
   - Material savings during optimization: $\Delta M = M_0 \cdot (1 - V^*)$, $\Delta L = L_0 \cdot (1 - V^*)$, and $\text{Savings \%} = (1 - V^*) \times 100\%$ relative to the initial un-optimized model at the active infill level.
 
 ## 2. Core Architecture & Numerical Rigor
-- `TopoOpt.Core` MUST NOT reference any UI framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
+- `Mycel.Core` MUST NOT reference any UI framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
 - Deterministic Numerics: Fixed reduction order in parallel loops (e.g. dot products, norm calculations).
 - Zero Allocations in Hot Loops: Pre-allocate all scratch buffers, vectors, and matrices outside PCG and OC iteration loops.
 - License & Dependencies:
@@ -72,3 +72,14 @@
 - **Dynamic Picking Region Growing on Angle Adjustments**:
   - While interactive surface picking is active, adjusting the dihedral angle threshold slider must dynamically re-grow from the last clicked seed triangle (`LastClickedSeedTriangle`), merging with previously selected patches (`_baseTrianglesBeforeLastClick`) using the active modification mode (`Replace`, `Add`, `Subtract`) via `RegionSelector.ModifySelection`.
   - Disarming picking (via `Esc`, Stepper header click, or `Done`) must reset `LastClickedSeedTriangle = -1` and restore replacement mode.
+- **NumericUpDown Input Sizing & Text Clipping Invariant**:
+  - In Avalonia desktop UI, `NumericUpDown` controls contain up/down spinner buttons consuming 36–40px of internal horizontal space. For high-magnitude physical values (e.g. Grams up to 1,000,000,000, Newtons up to 10,000,000) or multi-digit floating point numbers, fixed `Width` below 200px causes right-hand numerical clipping. Controls binding large numeric ranges must specify sufficient width (e.g., `Width="205"` in sidebar panels) and compact typography (`FontSize="11"`) or flexible grid columns to guarantee complete readability across all valid ranges.
+- **Repository Brand Hygiene & Forbidden Word Scan Invariant**:
+  - In rebranded repositories governed by automated keyword scan regression tests (such as `SourceScanTests`), milestone documentation (`docs/STEP*.md`), release notes, and markdown summaries must never mention obsolete product names in plain text unless explicitly added to the test allowlist. Authors must use generic terminology ("legacy application", "former product name") to preserve 100% green source-scan gates.
+- **Pre-Publication Public Git Audit Protocol**:
+  - Before pushing a repository to a public remote, an automated pre-flight hygiene scan must verify:
+    1. Commit authors/emails (`git log --all --format='%an <%ae>' | sort -u`): any personal email requires explicit user confirmation.
+    2. Tracked file sizes (< 5 MB) and large blobs in history.
+    3. Absence of secret/credential patterns (`.env`, `*.pfx`, `*.key`, tokens, passwords) across all revisions.
+    4. Absence of absolute personal paths (`/home/<user>`, `C:\Users\<user>`) in tracked text files.
+    5. Cleanliness of ignored artifacts: no `bin/`, `obj/`, `dist/`, `runs/` or generated STLs tracked.

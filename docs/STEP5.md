@@ -2,10 +2,10 @@
 
 ## 1. Overview & Architecture
 
-Step 5 delivers the complete interactive pre-processing and linear elastic FEA visualization pipeline for TopoOpt, bridging mesh import, boundary condition setup, voxel preparation, linear solve, and smooth 3D stress/displacement visualization on the original STL surface.
+Step 5 delivers the complete interactive pre-processing and linear elastic FEA visualization pipeline for Mycel, bridging mesh import, boundary condition setup, voxel preparation, linear solve, and smooth 3D stress/displacement visualization on the original STL surface.
 
 Key components delivered:
-1. **`WorkflowService` (`TopoOpt.Core.Workflow`)**:
+1. **`WorkflowService` (`Mycel.Core.Workflow`)**:
    - UI-free orchestration service managing `ProjectState` (model mesh, load regions, support regions, preserve regions, material configuration, resolution config, prepared model, and analysis results).
    - Reactive dirty-tracking revision tokens with cascading invalidations:
      - Mesh change $\to$ Invalidate Preparations & Analysis Results.
@@ -18,7 +18,7 @@ Key components delivered:
    - Run-length encoding (RLE) compression for triangle index sets (`[start, length]`), minimizing metadata payload.
    - SHA-256 integrity hash verification on `model.stl` to guarantee that loaded boundary condition triangle indices faithfully match the mesh geometry.
    - Autosave debouncing with non-blocking async disk writes.
-3. **Accordion Stepper UI (`TopoOpt.App`)**:
+3. **Accordion Stepper UI (`Mycel.App`)**:
    - Clean vertical 5-step accordion left panel:
      - **Step 1: Model** (STL import, units validation guard, mesh metrics).
      - **Step 2: Loads** (Region list, 3D face picking, magnitude [N], direction modes: Normal Inward/Outward, Global X/Y/Z, Custom vector).

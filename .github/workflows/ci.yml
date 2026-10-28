@@ -66,7 +66,7 @@ jobs:
 
           mkdir -p dist artifacts/linux-x64 artifacts/win-x64
 
-          dotnet publish src/TopoOpt.App/TopoOpt.App.csproj \
+          dotnet publish src/Mycel.App/Mycel.App.csproj \
               -c Release \
               -r linux-x64 \
               --self-contained \
@@ -76,9 +76,13 @@ jobs:
               -o artifacts/linux-x64 \
               --nologo
           cp LICENSE THIRD_PARTY_NOTICES.md artifacts/linux-x64/
-          tar -czf "dist/TopoOpt-${VERSION}-linux-x64.tar.gz" -C artifacts/linux-x64 .
+          mkdir -p artifacts/linux-x64/packaging/linux
+          cp -r packaging/linux/* artifacts/linux-x64/packaging/linux/
+          mkdir -p artifacts/linux-x64/icons
+          cp src/Mycel.App/Assets/icons/*.png artifacts/linux-x64/icons/
+          tar -czf "dist/Mycel-${VERSION}-linux-x64.tar.gz" -C artifacts/linux-x64 .
 
-          dotnet publish src/TopoOpt.App/TopoOpt.App.csproj \
+          dotnet publish src/Mycel.App/Mycel.App.csproj \
               -c Release \
               -r win-x64 \
               --self-contained \
@@ -88,17 +92,17 @@ jobs:
               -o artifacts/win-x64 \
               --nologo
           cp LICENSE THIRD_PARTY_NOTICES.md artifacts/win-x64/
-          (cd artifacts/win-x64 && zip -q -r "../../dist/TopoOpt-${VERSION}-win-x64.zip" .)
+          (cd artifacts/win-x64 && zip -q -r "../../dist/Mycel-${VERSION}-win-x64.zip" .)
 
       - name: Upload Linux release archive
         uses: actions/upload-artifact@v4
         with:
-          name: TopoOpt-linux-x64
-          path: dist/TopoOpt-*-linux-x64.tar.gz
+          name: Mycel-linux-x64
+          path: dist/Mycel-*-linux-x64.tar.gz
 
       - name: Upload Windows release archive
         uses: actions/upload-artifact@v4
         with:
-          name: TopoOpt-win-x64
-          path: dist/TopoOpt-*-win-x64.zip
+          name: Mycel-win-x64
+          path: dist/Mycel-*-win-x64.zip
 

@@ -1,12 +1,12 @@
-# TopoOpt Installation & Runtime Requirements
+# Mycel Installation & Runtime Requirements
 
-This document describes the prerequisites, installation steps, and graphics troubleshooting for running **TopoOpt** on Linux and Windows platforms.
+This document describes the prerequisites, installation steps, and graphics troubleshooting for running **Mycel** on Linux and Windows platforms.
 
 ---
 
 ## 1. Linux Runtime Requirements
 
-TopoOpt is distributed as a self-contained single-file executable (`dist/TopoOpt-<version>-linux-x64.tar.gz`), requiring no external .NET runtime installation. However, it requires standard Linux desktop graphics and font libraries:
+Mycel is distributed as a self-contained single-file executable (`dist/Mycel-<version>-linux-x64.tar.gz`), requiring no external .NET runtime installation. However, it requires standard Linux desktop graphics and font libraries:
 
 ### System Libraries
 - **OpenGL / Mesa**:
@@ -42,20 +42,20 @@ sudo pacman -S mesa fontconfig freetype2 libx11 libxcursor libxi libxrandr
 
 ## 2. Graphics Troubleshooting & Software Fallback
 
-If running on a virtual machine, headless server, or legacy GPU without OpenGL 3.3 hardware support, TopoOpt detects OpenGL initialization errors and warns rather than crashing.
+If running on a virtual machine, headless server, or legacy GPU without OpenGL 3.3 hardware support, Mycel detects OpenGL initialization errors and warns rather than crashing.
 
 To force software rasterization via Mesa llvmpipe:
 ```bash
-LIBGL_ALWAYS_SOFTWARE=1 ./TopoOpt
+LIBGL_ALWAYS_SOFTWARE=1 ./Mycel
 ```
 
 To run with explicit Wayland or X11 backend:
 ```bash
 # Force X11 / XWayland backend:
-AVALONIA_SCREEN_BACKEND=x11 ./TopoOpt
+AVALONIA_SCREEN_BACKEND=x11 ./Mycel
 
 # Force Wayland native backend:
-AVALONIA_SCREEN_BACKEND=wayland ./TopoOpt
+AVALONIA_SCREEN_BACKEND=wayland ./Mycel
 ```
 
 ---
@@ -64,7 +64,7 @@ AVALONIA_SCREEN_BACKEND=wayland ./TopoOpt
 
 - Windows 10 (version 1809+) or Windows 11 (x64).
 - DirectX 11 / OpenGL 3.3 compatible graphics driver.
-- TopoOpt for Windows (`dist/TopoOpt-<version>-win-x64.zip`) is fully self-contained; no .NET Framework or .NET Desktop Runtime installation is required.
+- Mycel for Windows (`dist/Mycel-<version>-win-x64.zip`) is fully self-contained; no .NET Framework or .NET Desktop Runtime installation is required.
 
 ---
 

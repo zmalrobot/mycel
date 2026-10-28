@@ -4,10 +4,10 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     <InformationalVersion>1.0.0</InformationalVersion>
-    <Authors>TopoOpt Contributors</Authors>
-    <Company>TopoOpt</Company>
-    <Product>TopoOpt — 3D Topology Optimizer</Product>
-    <Copyright>Copyright (C) 2026 TopoOpt Contributors. Licensed under GNU GPLv3.</Copyright>
+    <Authors>Mycel Contributors</Authors>
+    <Company>Mycel</Company>
+    <Product>Mycel — 3D Topology Optimizer</Product>
+    <Copyright>Copyright (C) 2026 Mycel Contributors. Licensed under GNU GPLv3.</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
 </Project>

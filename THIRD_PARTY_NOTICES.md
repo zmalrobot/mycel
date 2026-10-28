@@ -1,6 +1,6 @@
 # Third-Party Software Notices and Licences
 
-TopoOpt includes or links to third-party open-source components under permissive open-source licences. This document lists the third-party dependencies, their authors, and their respective licence terms.
+Mycel includes or links to third-party open-source components under permissive open-source licences. This document lists the third-party dependencies, their authors, and their respective licence terms.
 
 ---
 

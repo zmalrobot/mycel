@@ -2,7 +2,7 @@
 
 ## 1. Overview & Architecture
 
-Step 3 delivers the complete Finite Element Method (FEM) simulation core of **TopoOpt**, located entirely in `TopoOpt.Core.Fem` with **zero UI dependencies**.
+Step 3 delivers the complete Finite Element Method (FEM) simulation core of **Mycel**, located entirely in `Mycel.Core.Fem` with **zero UI dependencies**.
 
 Key deliverables implemented:
 1. **`FeMaterial`**: Elastic isotropic material definition ($E_0$, $\nu$) with configurable artificial void stiffness ratio $E_{\min} / E_0$ (default $10^{-6}$).
