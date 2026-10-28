@@ -76,6 +76,10 @@ jobs:
               -o artifacts/linux-x64 \
               --nologo
           cp LICENSE THIRD_PARTY_NOTICES.md artifacts/linux-x64/
+          mkdir -p artifacts/linux-x64/packaging/linux
+          cp -r packaging/linux/* artifacts/linux-x64/packaging/linux/
+          mkdir -p artifacts/linux-x64/icons
+          cp src/Mycel.App/Assets/icons/*.png artifacts/linux-x64/icons/
           tar -czf "dist/Mycel-${VERSION}-linux-x64.tar.gz" -C artifacts/linux-x64 .
 
           dotnet publish src/Mycel.App/Mycel.App.csproj \

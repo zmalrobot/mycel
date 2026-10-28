@@ -38,6 +38,10 @@ dotnet publish src/Mycel.App/Mycel.App.csproj \
 
 cp LICENSE artifacts/linux-x64/
 cp THIRD_PARTY_NOTICES.md artifacts/linux-x64/
+mkdir -p artifacts/linux-x64/packaging/linux
+cp -r packaging/linux/* artifacts/linux-x64/packaging/linux/
+mkdir -p artifacts/linux-x64/icons
+cp src/Mycel.App/Assets/icons/*.png artifacts/linux-x64/icons/
 
 echo "Creating dist/Mycel-${VERSION}-linux-x64.tar.gz..."
 tar -czf "dist/Mycel-${VERSION}-linux-x64.tar.gz" -C artifacts/linux-x64 .

@@ -37,6 +37,10 @@ dotnet publish src/Mycel.App/Mycel.App.csproj `
 
 Copy-Item "LICENSE" "artifacts/linux-x64/"
 Copy-Item "THIRD_PARTY_NOTICES.md" "artifacts/linux-x64/"
+New-Item -ItemType Directory -Force -Path "artifacts/linux-x64/packaging/linux" | Out-Null
+Copy-Item "packaging/linux/*" "artifacts/linux-x64/packaging/linux/" -Recurse
+New-Item -ItemType Directory -Force -Path "artifacts/linux-x64/icons" | Out-Null
+Copy-Item "src/Mycel.App/Assets/icons/*.png" "artifacts/linux-x64/icons/"
 
 Write-Host "Creating dist/Mycel-$version-linux-x64.tar.gz..."
 tar -czf "dist/Mycel-$version-linux-x64.tar.gz" -C artifacts/linux-x64 .
