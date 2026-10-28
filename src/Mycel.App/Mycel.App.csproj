@@ -4,6 +4,10 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>Mycel</AssemblyName>
     <TargetFramework>net10.0</TargetFramework>
+    <ApplicationIcon>Assets\icons\mycel.ico</ApplicationIcon>
+    <AssemblyTitle>Mycel</AssemblyTitle>
+    <Product>Mycel</Product>
+    <Description>3D Topology Optimization for Additive Manufacturing</Description>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

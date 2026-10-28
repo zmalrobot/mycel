@@ -76,14 +76,31 @@ for s in "${SIZES[@]}"; do
     echo "  -> Created $(basename "$OUT_PNG")"
 done
 
-# Generate multi-resolution mycel.ico
-ICO_INPUTS=()
-for s in "${ICO_SIZES[@]}"; do
-    ICO_INPUTS+=("${OUTPUT_DIR}/mycel_${s}.png")
-done
+# Generate multi-resolution mycel.ico with PNG-compressed entries
+python3 -c "
+import struct
 
-$MAGICK_CMD "${ICO_INPUTS[@]}" "${OUTPUT_DIR}/mycel.ico"
-echo "  -> Created mycel.ico (${ICO_SIZES[*]})"
+sizes = [16, 24, 32, 48, 64, 128, 256]
+output_dir = '$OUTPUT_DIR'
+png_blobs = [open(f'{output_dir}/mycel_{s}.png', 'rb').read() for s in sizes]
+
+num_images = len(sizes)
+header = struct.pack('<HHH', 0, 1, num_images)
+
+offset = 6 + 16 * num_images
+entries = []
+for s, blob in zip(sizes, png_blobs):
+    w = 0 if s == 256 else s
+    h = 0 if s == 256 else s
+    size = len(blob)
+    entries.append(struct.pack('<BBBBHHII', w, h, 0, 0, 1, 32, size, offset))
+    offset += size
+
+ico_data = header + b''.join(entries) + b''.join(png_blobs)
+with open(f'{output_dir}/mycel.ico', 'wb') as f:
+    f.write(ico_data)
+"
+echo "  -> Created mycel.ico (PNG-compressed ${ICO_SIZES[*]})"
 
 if [ -n "${TEMP_SOURCE:-}" ] && [ -f "${TEMP_SOURCE}" ]; then
     rm -f "${TEMP_SOURCE}"

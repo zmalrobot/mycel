@@ -54,8 +54,43 @@ foreach ($s in $Sizes) {
     Write-Host "  -> Created mycel_$s.png"
 }
 
-$IcoInputs = $IcoSizes | ForEach-Object { Join-Path $OutputDir "mycel_$_.png" }
+# Generate multi-resolution mycel.ico with PNG-compressed entries
 $IcoOutput = Join-Path $OutputDir "mycel.ico"
-& magick @IcoInputs $IcoOutput
-Write-Host "  -> Created mycel.ico"
+$numImages = $IcoSizes.Count
+$header = [byte[]]@(0, 0, 1, 0, ($numImages -band 0xFF), (($numImages -shr 8) -band 0xFF))
+
+$pngBlobs = @()
+foreach ($s in $IcoSizes) {
+    $pngPath = Join-Path $OutputDir "mycel_$s.png"
+    $pngBlobs += , [System.IO.File]::ReadAllBytes($pngPath)
+}
+
+$offset = 6 + 16 * $numImages
+$entries = [System.Collections.Generic.List[byte]]::new()
+for ($i = 0; $i -lt $numImages; $i++) {
+    $s = $IcoSizes[$i]
+    $blob = $pngBlobs[$i]
+    $w = if ($s -eq 256) { [byte]0 } else { [byte]$s }
+    $h = if ($s -eq 256) { [byte]0 } else { [byte]$s }
+    $size = $blob.Length
+
+    $entries.Add($w)
+    $entries.Add($h)
+    $entries.Add(0)
+    $entries.Add(0)
+    $entries.AddRange([BitConverter]::GetBytes([uint16]1))
+    $entries.AddRange([BitConverter]::GetBytes([uint16]32))
+    $entries.AddRange([BitConverter]::GetBytes([uint32]$size))
+    $entries.AddRange([BitConverter]::GetBytes([uint32]$offset))
+    $offset += $size
+}
+
+$allBytes = [System.Collections.Generic.List[byte]]::new()
+$allBytes.AddRange($header)
+$allBytes.AddRange($entries)
+foreach ($blob in $pngBlobs) {
+    $allBytes.AddRange($blob)
+}
+[System.IO.File]::WriteAllBytes($IcoOutput, $allBytes.ToArray())
+Write-Host "  -> Created mycel.ico (PNG-compressed $IcoSizes)"
 Write-Host "Done."
