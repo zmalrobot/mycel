@@ -4,7 +4,7 @@
 - **Findings**: Linux host (Nobara Linux 44 / Fedora 44, kernel 7.2.11, 20 CPU threads, 62 GiB RAM, AMD Radeon RX 480 8GB, Mesa 26.2.5 with OpenGL Core 4.6, GLES 3.2, Vulkan 1.4). .NET SDK 10.0.112 (host 10.0.12) is installed and active. Avalonia templates (`avalonia.app`, `avalonia.mvvm`) are installed. Latest stable Avalonia on NuGet is 12.1.4.
 - **Source URLs**: https://aka.ms/dotnet/info | https://www.nuget.org/packages/Avalonia/ | https://github.com/AvaloniaUI/Avalonia
 - **Licence**: MIT (Avalonia) | MIT (.NET Runtime).
-- **Recommendation**: Target `net10.0` for all projects (`TopoOpt.Core`, `TopoOpt.App`, `TopoOpt.Cli`, `TopoOpt.Core.Tests`). Use Avalonia 12.1.4 with MVVM CommunityToolkit.
+- **Recommendation**: Target `net10.0` for all projects (`Mycel.Core`, `Mycel.App`, `Mycel.Cli`, `Mycel.Core.Tests`). Use Avalonia 12.1.4 with MVVM CommunityToolkit.
 - **Risks**: Bleeding-edge .NET 10 / Avalonia 12 minor API updates during development.
 - **Open Questions**: None on host environment; all hardware and SDK prerequisites are met.
 
@@ -53,7 +53,7 @@
 - **Findings**: SIMP penalty $E(\tilde{\rho}) = E_{min} + \tilde{\rho}^p (E_0 - E_{min})$ ($p=3$, $E_{min}=10^{-9}$). Linear density filter with cone kernel $w = \max(0, R_{min} - r)$ prevents checkerboarding; chain-rule sensitivities computed via transpose convolution. Optimality Criteria (OC) with bisection on volume multiplier $\lambda$ ($m=0.2$ move limit, $\eta=0.5$ damping). Heaviside threshold projection drives discrete 0/1 designs. Continuation on penalty ($p: 1 \to 2 \to 3$) prevents local minima. 88-line (Andreassen 2011) and top3d (Liu & Tovar 2014) provide standard formulation references. Svanberg's MMA has non-commercial/GPL restrictions; OC is unencumbered and optimal for single-constraint compliance.
 - **Source URLs**: Andreassen et al. (2011) https://doi.org/10.1007/s00158-010-0594-7 | Liu & Tovar (2014) https://doi.org/10.1007/s00158-014-1107-5 | Svanberg (1987) MMA.
 - **Licence**: Published scientific algorithms; no third-party code copied.
-- **Recommendation**: Implement SIMP + Density Filter + OC with bisection in `TopoOpt.Core`. For FDM (0.4 mm nozzle), set filter radius $R_{min} \ge 1.2$ mm ($\ge 2\times$ nozzle width / voxel size).
+- **Recommendation**: Implement SIMP + Density Filter + OC with bisection in `Mycel.Core`. For FDM (0.4 mm nozzle), set filter radius $R_{min} \ge 1.2$ mm ($\ge 2\times$ nozzle width / voxel size).
 - **Risks**: Sensitivity boundary artifacts at fixed/loaded non-design regions if not explicitly preserved.
 - **Open Questions**: Automatic preservation of solid shells (passive non-design elements) around load and support patches.
 

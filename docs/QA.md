@@ -1,4 +1,4 @@
-# TopoOpt Quality Assurance & Verification Checklist
+# Mycel Quality Assurance & Verification Checklist
 
 This document provides the formal QA test matrix covering functional workflows, numerical accuracy, input hardening, fault tolerance, HiDPI scaling, and accessibility.
 
@@ -17,5 +17,5 @@ This document provides the formal QA test matrix covering functional workflows, 
 | **QA-09** | **OpenGL Fallback & Fault Tolerance** | 1. Run with `LIBGL_ALWAYS_SOFTWARE=1` or on a system without hardware GL. | Silk.NET / Avalonia initializes via software Mesa llvmpipe; if GL init fails, banner displays detected renderer and recovery hints without crashing. | **PASS** (Verified via `Viewport3DControl` error handling) | **PASS** (Ready) |
 | **QA-10** | **HiDPI & Fractional Scaling** | 1. Test UI under 100%, 150%, and 200% DPI scaling.<br>2. Test ray-cast triangle picking under 150% scaling. | Text never clips; layouts adjust dynamically; ray-cast picking coordinates remain pixel-accurate under scaling. | **PASS** (Verified via Avalonia vector rendering & `RenderScaling`) | **PASS** (Ready) |
 | **QA-11** | **Keyboard-Only Accessibility** | 1. Navigate steps 1 to 6 using Tab, Shift+Tab, Enter, Space, and Arrow keys.<br>2. Use keyboard shortcuts (Ctrl+O, F). | Full keyboard focus navigation works across all stepper panels, buttons, and numeric inputs; tooltips provide short context. | **PASS** (Verified via Avalonia FocusManager) | **PASS** (Ready) |
-| **QA-12** | **Release Package Integrity** | 1. Build release packages via `build.sh` / `build.ps1`.<br>2. Verify single-file self-contained archives in `dist/`. | Generates `TopoOpt-1.0.0-linux-x64.tar.gz` and `TopoOpt-1.0.0-win-x64.zip` containing executable, `LICENSE`, and `THIRD_PARTY_NOTICES.md`. | **PASS** (Verified) | **PASS** (Ready) |
+| **QA-12** | **Release Package Integrity** | 1. Build release packages via `build.sh` / `build.ps1`.<br>2. Verify single-file self-contained archives in `dist/`. | Generates `Mycel-1.0.0-linux-x64.tar.gz` and `Mycel-1.0.0-win-x64.zip` containing executable, `LICENSE`, and `THIRD_PARTY_NOTICES.md`. | **PASS** (Verified) | **PASS** (Ready) |
 

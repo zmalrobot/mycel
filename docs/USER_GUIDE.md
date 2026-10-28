@@ -1,6 +1,6 @@
-# TopoOpt User Guide
+# Mycel User Guide
 
-TopoOpt is a desktop application for 3D finite element analysis (FEA) and SIMP topology optimisation of parts intended for FDM/FFF 3D printing. All calculations use **millimetres (mm)**, **Newtons (N)**, and **Megapascals (MPa)** in a right-handed coordinate system with **Z up** (the print build direction).
+Mycel is a desktop application for 3D finite element analysis (FEA) and SIMP topology optimisation of parts intended for FDM/FFF 3D printing. All calculations use **millimetres (mm)**, **Newtons (N)**, and **Megapascals (MPa)** in a right-handed coordinate system with **Z up** (the print build direction).
 
 ---
 
@@ -58,7 +58,7 @@ Select surfaces on the 3D model by adjusting the dihedral angle limit slider and
 ## 8. Verify & Export to STL
 1. Select any iteration on the timeline and click **Verify** to threshold the physical density ($\bar{\rho}_e \ge \tau \to 1.0$), run a static FEA solve on the thresholded voxel geometry, and inspect the resulting von Mises stress distribution on the extracted iso-surface.
 2. Adjust the iso-surface density threshold $\tau$ and optional volume-preserving **Taubin Smoothing** iterations ($0..10$, $\lambda = 0.50, \mu = -0.53$).
-3. Click **Export STL**. TopoOpt extracts a closed, watertight 2-manifold triangle mesh via Constrained Surface Nets (with 1-voxel zero-padding and 3D digital-topology well-composedness repair), writes a binary STL with header `"TopoOpt it=<n> th=<t>"`, and automatically re-reads the file with `StlReader.Read` to verify watertightness and volume.
+3. Click **Export STL**. Mycel extracts a closed, watertight 2-manifold triangle mesh via Constrained Surface Nets (with 1-voxel zero-padding and 3D digital-topology well-composedness repair), writes a binary STL with header `"Mycel it=<n> th=<t>"`, and automatically re-reads the file with `StlReader.Read` to verify watertightness and volume.
 
 ---
 

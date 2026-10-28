@@ -72,7 +72,7 @@
 ## ADR-011: Project License (GNU GPL v3)
 - **Status**: ACCEPTED
 - **Context**: Repository licensing and distribution terms.
-- **Decision**: License TopoOpt under the **GNU General Public License v3.0 (GPLv3)**.
+- **Decision**: License Mycel under the **GNU General Public License v3.0 (GPLv3)**.
 - **Consequences**: Strong copyleft; ensures the codebase and all derivatives remain free and open source. Fully compatible with all chosen MIT/Apache-2.0 dependencies.
 
 ## ADR-012: UI Localization Strategy

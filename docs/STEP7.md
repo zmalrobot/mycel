@@ -1,17 +1,17 @@
-# TopoOpt Milestone 7: Production Release Readiness, Hardening, Performance & QA
+# Mycel Milestone 7: Production Release Readiness, Hardening, Performance & QA
 
 ## Executive Summary
-Milestone 7 completes the development roadmap of **TopoOpt**, taking the system from experimental prototype to hardened, release-ready production software for Linux and Windows. This milestone focuses strictly on non-functional requirements, input hardening, memory safety, deterministic concurrency, release packaging, and comprehensive QA verification:
+Milestone 7 completes the development roadmap of **Mycel**, taking the system from experimental prototype to hardened, release-ready production software for Linux and Windows. This milestone focuses strictly on non-functional requirements, input hardening, memory safety, deterministic concurrency, release packaging, and comprehensive QA verification:
 
 1. **Release Builds & Single-Source Versioning**:
    - Single source of truth for versioning defined in `Directory.Build.props` (`1.0.0`).
    - Cross-platform build scripts `build.sh` (Linux/macOS) and `build.ps1` (Windows PowerShell).
    - Self-contained, single-file, ReadyToRun distributions with compression enabled (`PublishSingleFile=true`, `PublishReadyToRun=true`, `EnableCompressionInSingleFile=true`).
-   - Release archives packaged in `dist/TopoOpt-1.0.0-linux-x64.tar.gz` and `dist/TopoOpt-1.0.0-win-x64.zip`.
+   - Release archives packaged in `dist/Mycel-1.0.0-linux-x64.tar.gz` and `dist/Mycel-1.0.0-win-x64.zip`.
    - "About" dialog presenting application version, GNU GPLv3 license, indicative-results disclaimer for FDM 3D printing, and complete third-party notices (`THIRD_PARTY_NOTICES.md`).
 
 2. **System Robustness & Fault Tolerance**:
-   - **Crash Logger & Global Handlers**: Captures unhandled domain exceptions and unobserved task exceptions into `%LOCALAPPDATA%/TopoOpt/logs` (Windows) and `~/.local/share/TopoOpt/logs` (Linux).
+   - **Crash Logger & Global Handlers**: Captures unhandled domain exceptions and unobserved task exceptions into `%LOCALAPPDATA%/Mycel/logs` (Windows) and `~/.local/share/Mycel/logs` (Linux).
    - **OpenGL Fault Tolerance**: Gracefully traps OpenGL / Silk.NET initialization failures on legacy drivers or headless environments, rendering an error notification banner with detected GPU details and software fallback hints (`LIBGL_ALWAYS_SOFTWARE=1`).
    - **Input Hardening**: Rejects corrupted or truncated binary STLs, 0-triangle files, NaN/Infinite vertex coordinates, files exceeding 2,500,000 triangles (~125 MB binary, preventing memory exhaustion), and invalid bounding box scales.
    - **Proactive Memory Guard**: Real-time memory estimation before voxelisation and optimization runs; warns when estimated memory exceeds 70% of available RAM and refuses execution when exceeding 90% to prevent OS thrashing or out-of-memory crashes.
@@ -29,12 +29,12 @@ Milestone 7 completes the development roadmap of **TopoOpt**, taking the system 
 ## 1. Release Packaging Specification
 
 ### Artifact Overview
-- **Linux Distribution**: `dist/TopoOpt-1.0.0-linux-x64.tar.gz`
+- **Linux Distribution**: `dist/Mycel-1.0.0-linux-x64.tar.gz`
   - Fully self-contained single-file Linux ELF binary with bundled .NET 10 runtime.
   - Requires standard Linux graphics stack: `libGL` (Mesa 3.3+ Core or GLES 3.0+), `fontconfig`, and X11 or Wayland display server.
   - Includes `LICENSE` (GNU GPLv3) and `THIRD_PARTY_NOTICES.md`.
-- **Windows Distribution**: `dist/TopoOpt-1.0.0-win-x64.zip`
-  - Fully self-contained single-file Windows PE executable (`TopoOpt.exe`).
+- **Windows Distribution**: `dist/Mycel-1.0.0-win-x64.zip`
+  - Fully self-contained single-file Windows PE executable (`Mycel.exe`).
   - Compatible with Windows 10 (1809+) and Windows 11.
   - Includes `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
@@ -103,14 +103,14 @@ Milestone 7 completes the development roadmap of **TopoOpt**, taking the system 
 
 ### Verified Programmatically (Headless & Linux Environment)
 1. **Automated Test Suite**: 112 passed unit/integration tests with 0 failures across geometry, FEM, SIMP, coordinators, file formats, and UI responsiveness.
-2. **Linux Release Startup**: `dist/TopoOpt-1.0.0-linux-x64.tar.gz` extracted and verified on Wayland native and X11/XWayland with exit code 0 and successful UI initialization.
-3. **Packaging**: Both `dist/TopoOpt-1.0.0-linux-x64.tar.gz` (56 MB) and `dist/TopoOpt-1.0.0-win-x64.zip` (83 MB) built self-contained with bundled native libraries.
+2. **Linux Release Startup**: `dist/Mycel-1.0.0-linux-x64.tar.gz` extracted and verified on Wayland native and X11/XWayland with exit code 0 and successful UI initialization.
+3. **Packaging**: Both `dist/Mycel-1.0.0-linux-x64.tar.gz` (56 MB) and `dist/Mycel-1.0.0-win-x64.zip` (83 MB) built self-contained with bundled native libraries.
 4. **STL Hardening**: Corrupted, truncated, 0-triangle, NaN/Inf, and 5M-triangle models properly rejected.
 5. **Memory Guard**: Safe RAM threshold warnings and refusals verified against `/proc/meminfo`.
 6. **Cancellation**: Verified responsive within 253 ms on multi-iteration runs.
 
 ### Manual Verification Items (For the User)
-1. **Windows Native Smoke Test**: Extract `dist/TopoOpt-1.0.0-win-x64.zip` onto a clean Windows 10/11 machine without .NET SDK installed to verify native launch.
+1. **Windows Native Smoke Test**: Extract `dist/Mycel-1.0.0-win-x64.zip` onto a clean Windows 10/11 machine without .NET SDK installed to verify native launch.
 2. **Physical HiDPI Scaling**: Verify visual sharpness and mouse ray picking at 150% and 200% display scaling on physical Windows/Linux monitors.
 3. **Physical Slicing & Print**: Import exported binary STL into PrusaSlicer/OrcaSlicer to verify slicer acceptance and printability.
 

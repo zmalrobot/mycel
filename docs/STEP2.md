@@ -2,7 +2,7 @@
 
 ## 1. Overview & Architecture
 
-Step 2 delivers the structural discretisation and validation layer of **TopoOpt**, bridging geometric boundary representations (STL surface meshes) and voxel-based finite element methods (Hex8 structured grids).
+Step 2 delivers the structural discretisation and validation layer of **Mycel**, bridging geometric boundary representations (STL surface meshes) and voxel-based finite element methods (Hex8 structured grids).
 
 Key deliverables implemented:
 1. **`GridSpec`**: Regular 3D structured grid indexing conforming strictly to `AGENTS.md` equations with 64-bit safe node and DOF handling and bounds-checking.

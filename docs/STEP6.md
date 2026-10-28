@@ -1,7 +1,7 @@
 # Step 6: Live Topology Optimisation UI, Run Storage, Playback, Verification & STL Export
 
 ## 1. Overview
-Step 6 completes the interactive end-to-end topology optimisation workflow in `TopoOpt`:
+Step 6 completes the interactive end-to-end topology optimisation workflow in `Mycel`:
 1. **Optimisation Panel (Stepper Step 6 "Optimise")**: Basic and collapsible advanced SIMP-OC parameters, pre-run disk usage estimation, live convergence metrics, and a custom Avalonia-drawn compliance-vs-iteration chart (`ComplianceChartControl`).
 2. **Dual-Consumer Threading Model**: Backpressured persistence (`Channel<IterationSnapshot>` with capacity 8 and a single `RunWriter` task) paired with a non-blocking `"latest wins"` display slot (`LatestWinsDisplaySlot<IterationSnapshot>`) polled at ~8 Hz.
 3. **Constrained Surface Nets & Taubin Smoothing**: Parallel Z-slab dual-grid iso-surface extraction (`SurfaceNetsExtractor`) with a 1-voxel zero-padded boundary and 3D digital-topology well-composedness repair guaranteeing closed 2-manifold meshes ($V - E + F = 2$ per shell), plus optional volume-preserving $\lambda|\mu$ Taubin smoothing (`TaubinSmoother`).
@@ -100,7 +100,7 @@ Quantizing physical density $\bar{\rho} \in [0, 1]$ to `uint8` (`round(ρ̃ * 25
 
 ### Verification & Binary STL Export
 - **Verify Design (`WorkflowService.VerifyIterationAsync`)**: Thresholds $\bar{\rho}_e \ge \tau \to 1.0$ (and $\rho_{\min}$ otherwise), runs the Step 3 matrix-free PCG static solver on the thresholded voxel model, and trilinearly samples the nodal von Mises stress onto the extracted iso-surface vertices.
-- **Export STL (`WorkflowService.ExportIterationStlAsync`)**: Extracts the iso-surface at the chosen threshold, applies $0..10$ iterations of volume-preserving Taubin smoothing ($\lambda = 0.50, \mu = -0.53$), writes a binary STL with the 80-byte header `"TopoOpt it=<n> th=<t>"`, and immediately re-reads the file with `StlReader.Read` to verify watertightness and volume.
+- **Export STL (`WorkflowService.ExportIterationStlAsync`)**: Extracts the iso-surface at the chosen threshold, applies $0..10$ iterations of volume-preserving Taubin smoothing ($\lambda = 0.50, \mu = -0.53$), writes a binary STL with the 80-byte header `"Mycel it=<n> th=<t>"`, and immediately re-reads the file with `StlReader.Read` to verify watertightness and volume.
 
 ---
 
@@ -111,7 +111,7 @@ All 8 Step 6 automated test suites (`T1`–`T8`) pass in Release mode:
 - **`T3_PersistenceRoundTrip_QuantizationError`**: Verified 10 iterations round-trip with max pointwise quantization error $\le \frac{1}{255} \approx 0.004$.
 - **`T4_Backpressure_SlowDiskDoesNotDropIterations`**: Verified bounded channel (capacity 8) with 50 ms/write artificial disk delay drops 0 of 20 iterations.
 - **`T5_AtomicWriteAndCrashRecovery`**: Verified simulated crash before `.tmp` rename leaves previous iterations intact, sets status to `Interrupted`, and cleans up `.tmp` files.
-- **`T6_VerifyAndExport_EndToEnd`**: Verified thresholded FEA compliance within 15% of penalised SIMP compliance and exported binary STL re-reads via `StlReader.Read` as watertight with custom `"TopoOpt it=5 th=0.50"` header.
+- **`T6_VerifyAndExport_EndToEnd`**: Verified thresholded FEA compliance within 15% of penalised SIMP compliance and exported binary STL re-reads via `StlReader.Read` as watertight with custom `"Mycel it=5 th=0.50"` header.
 - **`T7_ContinueInterruptedRun_MatchesUninterruptedRun`**: Verified stopping at iteration 3 and resuming to iteration 6 reproduces the uninterrupted 6-iteration compliance within $< 10^{-5}$.
 - **`T8_ThreadingSmokeTest_1000IterationsAt1kHz_And_ScrubbingSequenceGuard`**: Verified 1000 iterations at 1 kHz with concurrent display polling and random `Stop()` complete cleanly with zero deadlocks/exceptions, and rapid scrubbing `1..50` displays strictly iteration 50.
 

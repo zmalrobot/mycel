@@ -1,4 +1,4 @@
-# TopoOpt Agent Development Rules
+# Mycel Agent Development Rules
 
 ## 0. Communication & Task Boot Protocol
 - **Language**: Talk to the user in Italian. Write code, identifiers, code comments, commit messages, and documentation in English.
@@ -20,7 +20,7 @@
   - Surface triangles map to Hex8 nodes via volume dilation layer ($\delta = 1.0 \times h$).
   - Region selection supports 3 types: `Fixed Support`, `Applied Load` (in Newtons with Normal/Axis/Custom direction), and `Preserve (Keep Solid)`.
   - A 1-voxel protective passive shell ($\rho \equiv 1$) is enforced around loads and supports by default to prevent numerical point hinges.
-- **Multi-Unit Load Inputs & Physical Grounding**: `TopoOpt.Core` and `.topo` project files MUST store load forces exclusively in Newtons ($N$). UI layers projecting alternative units (such as equivalent mass in $\text{kg}$ or $\text{g}$ via $F = m \cdot g_0$) must use standard gravitational acceleration $g_0 = 9.80665\text{ m/s}^2$ (ISO 80000-3 / NIST) and guard bidirectional property updates with an `_isSyncing` reentrancy flag to avoid circular notification cascades and precision drift.
+- **Multi-Unit Load Inputs & Physical Grounding**: `Mycel.Core` and `.topo` project files MUST store load forces exclusively in Newtons ($N$). UI layers projecting alternative units (such as equivalent mass in $\text{kg}$ or $\text{g}$ via $F = m \cdot g_0$) must use standard gravitational acceleration $g_0 = 9.80665\text{ m/s}^2$ (ISO 80000-3 / NIST) and guard bidirectional property updates with an `_isSyncing` reentrancy flag to avoid circular notification cascades and precision drift.
 - **Filament Metrics & Material Savings Grounding**:
   - Filament length calculations are grounded to standard FDM diameter $d = 1.75\text{ mm}$ ($A_{1.75} = \frac{\pi \cdot d^2}{4} \approx 2.405282\text{ mm}^2$).
   - Effective printed volume scales with infill percentage: $V_{eff} = V_{solid} \cdot \left(\frac{\rho_{infill}}{100}\right) \cdot V^*$.
@@ -29,7 +29,7 @@
   - Material savings during optimization: $\Delta M = M_0 \cdot (1 - V^*)$, $\Delta L = L_0 \cdot (1 - V^*)$, and $\text{Savings \%} = (1 - V^*) \times 100\%$ relative to the initial un-optimized model at the active infill level.
 
 ## 2. Core Architecture & Numerical Rigor
-- `TopoOpt.Core` MUST NOT reference any UI framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
+- `Mycel.Core` MUST NOT reference any UI framework (no Avalonia, no WPF, no Silk.NET, no OpenGL).
 - Deterministic Numerics: Fixed reduction order in parallel loops (e.g. dot products, norm calculations).
 - Zero Allocations in Hot Loops: Pre-allocate all scratch buffers, vectors, and matrices outside PCG and OC iteration loops.
 - License & Dependencies:

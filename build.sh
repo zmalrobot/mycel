@@ -13,7 +13,7 @@ if [ -f "Directory.Build.props" ]; then
 fi
 
 echo "========================================================================"
-echo " Building TopoOpt v${VERSION} Release Packages"
+echo " Building Mycel v${VERSION} Release Packages"
 echo "========================================================================"
 
 mkdir -p dist
@@ -26,7 +26,7 @@ dotnet test -c Release --filter "FullyQualifiedName!~PerformanceProfilingTests" 
 
 echo ""
 echo "--> Step 2/4: Publishing linux-x64 (self-contained, SingleFile, ReadyToRun)..."
-dotnet publish src/TopoOpt.App/TopoOpt.App.csproj \
+dotnet publish src/Mycel.App/Mycel.App.csproj \
     -c Release \
     -r linux-x64 \
     --self-contained \
@@ -39,12 +39,12 @@ dotnet publish src/TopoOpt.App/TopoOpt.App.csproj \
 cp LICENSE artifacts/linux-x64/
 cp THIRD_PARTY_NOTICES.md artifacts/linux-x64/
 
-echo "Creating dist/TopoOpt-${VERSION}-linux-x64.tar.gz..."
-tar -czf "dist/TopoOpt-${VERSION}-linux-x64.tar.gz" -C artifacts/linux-x64 .
+echo "Creating dist/Mycel-${VERSION}-linux-x64.tar.gz..."
+tar -czf "dist/Mycel-${VERSION}-linux-x64.tar.gz" -C artifacts/linux-x64 .
 
 echo ""
 echo "--> Step 3/4: Publishing win-x64 (self-contained, SingleFile, ReadyToRun)..."
-dotnet publish src/TopoOpt.App/TopoOpt.App.csproj \
+dotnet publish src/Mycel.App/Mycel.App.csproj \
     -c Release \
     -r win-x64 \
     --self-contained \
@@ -57,16 +57,16 @@ dotnet publish src/TopoOpt.App/TopoOpt.App.csproj \
 cp LICENSE artifacts/win-x64/
 cp THIRD_PARTY_NOTICES.md artifacts/win-x64/
 
-echo "Creating dist/TopoOpt-${VERSION}-win-x64.zip..."
-(cd artifacts/win-x64 && zip -q -r "../../dist/TopoOpt-${VERSION}-win-x64.zip" .)
+echo "Creating dist/Mycel-${VERSION}-win-x64.zip..."
+(cd artifacts/win-x64 && zip -q -r "../../dist/Mycel-${VERSION}-win-x64.zip" .)
 
 echo ""
 echo "--> Step 4/4: Verification of release packages..."
-ls -lh dist/TopoOpt-${VERSION}-linux-x64.tar.gz
-ls -lh dist/TopoOpt-${VERSION}-win-x64.zip
+ls -lh dist/Mycel-${VERSION}-linux-x64.tar.gz
+ls -lh dist/Mycel-${VERSION}-win-x64.zip
 
 echo ""
 echo "========================================================================"
-echo " SUCCESS: TopoOpt v${VERSION} packages generated in dist/"
+echo " SUCCESS: Mycel v${VERSION} packages generated in dist/"
 echo "========================================================================"
 

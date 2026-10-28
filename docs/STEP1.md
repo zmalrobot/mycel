@@ -2,16 +2,16 @@
 
 ## 1. What Was Built
 - **Solution & Projects (`net10.0`)**:
-  - `src/TopoOpt.Core`: Pure numerical and geometrical library with zero UI dependencies.
-  - `src/TopoOpt.App`: Avalonia 12.1.4 desktop application (Dark Fluent theme, MVVM with `CommunityToolkit.Mvvm`, `Silk.NET.OpenGL` 2.23.0).
-  - `src/TopoOpt.Cli`: Headless CLI benchmark and STL inspection utility.
-  - `tests/TopoOpt.Core.Tests`: xUnit automated specification test suite (23 unit and benchmark tests).
-- **Core Geometry Components (`TopoOpt.Core.Geometry`)**:
+  - `src/Mycel.Core`: Pure numerical and geometrical library with zero UI dependencies.
+  - `src/Mycel.App`: Avalonia 12.1.4 desktop application (Dark Fluent theme, MVVM with `CommunityToolkit.Mvvm`, `Silk.NET.OpenGL` 2.23.0).
+  - `src/Mycel.Cli`: Headless CLI benchmark and STL inspection utility.
+  - `tests/Mycel.Core.Tests`: xUnit automated specification test suite (23 unit and benchmark tests).
+- **Core Geometry Components (`Mycel.Core.Geometry`)**:
   - `IndexedMesh`: Immutable triangle mesh with welded positions, triangle indices, face normals, area-weighted smooth vertex normals, bounding box, surface area, and double-precision signed volume.
   - `StlReader` & `StlWriter`: Automatic Binary vs. ASCII detection via strict `84 + 50 * N` byte-length check (never trusting `"solid"` prefixes), spatial-hash vertex welding (`1e-5 * bboxDiagonal`), degenerate triangle filtering, and manifold topology verification (`OpenEdges`, `NonManifoldEdges`, `IsWatertight`).
   - `Bvh`: Flat-array Bounding Volume Hierarchy (`BvhNode` value-type struct, 32 bytes/node, zero heap allocations per node) built with 8-bin Surface Area Heuristic (SAH). Supports branchless Möller–Trumbore ray casting and exact closest-point queries.
   - `RegionSelector` & `SurfaceSelection`: Precomputes half-edge adjacency across 2-manifold edges and performs allocation-free BFS flood fill within a configurable dihedral angle threshold (default $30^\circ$), supporting `Replace`, `Add` (`Shift`), and `Subtract` (`Ctrl`) operations across `Load`, `Support`, and `Preserve` selection kinds.
-- **3D Viewport & Desktop UI (`TopoOpt.App`)**:
+- **3D Viewport & Desktop UI (`Mycel.App`)**:
   - `Viewport3DControl`: Custom `OpenGlControlBase` + `Silk.NET.OpenGL` control with Z-up turntable `OrbitCamera` (orbit, pan, zoom-to-cursor, fit-to-view), crease-aware normal shading (`dFdx`/`dFdy` screen-space derivatives blended with smooth normals for $<32^\circ$ curvature), polygon-offset selection/hover overlays, scalar colormaps (`Viridis`, `Turbo`, `CoolWarm`, `Jet`, `DensityGrey`), and double-buffered `UpdateMeshAsync`.
   - `MainWindow`: Slim top bar (`Open STL`, unit selector `mm`/`cm`/`m`/`in`, `Fit View`), left selection panel (dihedral angle slider $1^\circ\text{--}89^\circ$, add/remove/rename/kind/color selection list), central 3D viewport with `.stl` drag-and-drop, and status bar (triangles, bounding box in `mm`, watertight badge, live FPS).
 
@@ -31,7 +31,7 @@
 
 ## 3. Measured Performance (Release Build, .NET 10.0.112, 20-thread CPU, RX 480 GPU)
 
-### 1,001,112-Triangle Sphere Benchmark (`TopoOpt.Cli --benchmark-1m`)
+### 1,001,112-Triangle Sphere Benchmark (`Mycel.Cli --benchmark-1m`)
 | Metric | Measured Value | Target Budget |
 | :--- | :--- | :--- |
 | **Input Geometry** | $708 \times 708$ UV Sphere ($1,001,112$ tris, $500,558$ welded verts) | $1,000,000$ tris |
@@ -41,7 +41,7 @@
 | **Half-Edge Adjacency Build** | **109.6 ms** | $< 1.0\text{ s}$ |
 | **Raycast Throughput (50,000 rays)** | **288,908 picks/sec** ($3.46\text{ }\mu\text{s/pick}$) | $> 50,000\text{ picks/sec}$ |
 
-### 500,000-Triangle 3D Viewport Smoke Test (`TopoOpt.App --smoke-500k`)
+### 500,000-Triangle 3D Viewport Smoke Test (`Mycel.App --smoke-500k`)
 | Metric | Measured Value | Target Budget |
 | :--- | :--- | :--- |
 | **500k-Triangle Continuous Orbit Frame Rate** | **118.5 FPS** | $\ge 60\text{ FPS}$ |
